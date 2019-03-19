@@ -45,9 +45,8 @@ script:
   - |
     if [ "$TRAVIS_JDK_VERSION" == "oraclejdk8" ]; then
       ./gradlew sonarqube codeCoverageReport
-    else
-      ./gradlew check codeCoverageReport
     fi
+  - ./gradlew check codeCoverageReport
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
