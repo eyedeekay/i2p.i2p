@@ -71,7 +71,7 @@ public class GeneralHelper {
         if (tcg == null) return null;
         List<TunnelController> controllers = tcg.getControllers();
         if (controllers.size() > tunnel)
-            return controllers.get(tunnel); 
+            return controllers.get(tunnel);
         else
             return null;
     }
@@ -94,6 +94,7 @@ public class GeneralHelper {
 
         List<String> msgs = new ArrayList<String>();
         String type = props.getProperty(TunnelController.PROP_TYPE);
+        msgs.add(props.getProperty(TunnelController.PROP_FILE, "i2ptunnel.config"));
         if (TunnelController.TYPE_STD_CLIENT.equals(type) || TunnelController.TYPE_IRC_CLIENT.equals(type)) {
             //
             // If we switch to SSL, create the keystore here, so we can store the new properties.
@@ -128,16 +129,16 @@ public class GeneralHelper {
                         // config now contains new keystore props
                         String name = props.getProperty(TunnelController.PROP_NAME, "");
                         msgs.add("Created new self-signed certificate for tunnel " + name);
-                    }        
-                } catch (IOException ioe) {       
+                    }
+                } catch (IOException ioe) {
                     msgs.add("Failed to create new self-signed certificate for tunnel " +
                             getTunnelName(tcg, tunnel) + ", check logs: " + ioe);
-                }        
-            }        
-        }        
+                }
+            }
+        }
         if (cur == null) {
             // creating new
-            cur = new TunnelController(props, "", true);
+            cur = new TunnelController(props, "", props.getProperty("tunnelConfigFile", "i2ptunnel.config"), true);
             tcg.addController(cur);
             if (cur.getStartOnLoad())
                 cur.startTunnelBackground();
@@ -172,7 +173,7 @@ public class GeneralHelper {
         return msgs;
     }
 
-    protected static List<String> saveConfig(I2PAppContext context, TunnelControllerGroup tcg) { 
+    protected static List<String> saveConfig(I2PAppContext context, TunnelControllerGroup tcg) {
         List<String> rv = tcg.clearAllMessages();
         try {
             tcg.saveConfig();
@@ -617,16 +618,16 @@ public class GeneralHelper {
             return 2;
         return 0;
     }
-    
+
     public String getAccessList(int tunnel) {
         return getProperty(tunnel, "i2cp.accessList", "").replace(",", "\n");
     }
-    
+
     public String getJumpList(int tunnel) {
         return getProperty(tunnel, I2PTunnelHTTPClient.PROP_JUMP_SERVERS,
                            I2PTunnelHTTPClient.DEFAULT_JUMP_SERVERS).replace(",", "\n");
     }
-    
+
     public boolean getCloseOnIdle(int tunnel, boolean def) {
         return getBooleanProperty(tunnel, "i2cp.closeOnIdle", def);
     }
@@ -677,15 +678,15 @@ public class GeneralHelper {
     public String getProxyAuth(int tunnel) {
         return getProperty(tunnel, I2PTunnelHTTPClientBase.PROP_AUTH, "false");
     }
-    
+
     public boolean getOutproxyAuth(int tunnel) {
         return getBooleanProperty(tunnel, I2PTunnelHTTPClientBase.PROP_OUTPROXY_AUTH);
     }
-    
+
     public String getOutproxyUsername(int tunnel) {
         return getProperty(tunnel, I2PTunnelHTTPClientBase.PROP_OUTPROXY_USER, "");
     }
-    
+
     public String getOutproxyPassword(int tunnel) {
         if (getOutproxyUsername(tunnel).length() <= 0)
             return "";

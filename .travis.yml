@@ -15,7 +15,7 @@ matrix:
           organization: "i2p"
       before_install:
         - export JAVA7_HOME=$(jdk_switcher home openjdk7)
-        - sed -i "1iplugins {\n    id 'org.sonarqube' version '2.6.1'\n}\n" build.gradle
+        - sed -i "1iplugins {\n    id 'org.sonarqube' version '2.7'\n}\n" build.gradle
     - jdk: openjdk8
       before_install:
         - export JAVA7_HOME=$(jdk_switcher home openjdk7)
@@ -36,15 +36,14 @@ before_cache:
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
 cache:
   directories:
-    - $HOME/.gradle/caches/
-    - $HOME/.gradle/wrapper/
     - $HOME/.sonar/cache/
-    - .gradle
 
 script:
   - |
     if [ "$TRAVIS_JDK_VERSION" == "oraclejdk8" ]; then
-      ./gradlew sonarqube codeCoverageReport
+      ./gradlew check codeCoverageReport
+      ## Sonarcloud temporarily disabled
+      #./gradlew sonarqube codeCoverageReport
     else
       ./gradlew check codeCoverageReport
     fi
@@ -52,9 +51,9 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 
-notifications:
-  irc:
-    channels:
-      - "chat.freenode.net#i2p-dev"
-    on_success: change
-    on_failure: always
+#notifications:
+#  irc:
+#    channels:
+#      - "chat.freenode.net#i2p-dev"
+#    on_success: change
+#    on_failure: always

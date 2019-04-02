@@ -42,23 +42,25 @@ public class TunnelControllerGroup implements ClientApp {
     private final ClientAppManager _mgr;
     private static volatile TunnelControllerGroup _instance;
     static final String DEFAULT_CONFIG_FILE = "i2ptunnel.config";
-    
+    static final String DEFAULT_CONFIG_DIRECTORY = "i2ptunnel.config.d";
+
     private final List<TunnelController> _controllers;
     private final ReadWriteLock _controllersLock;
     // locking: this
     private boolean _controllersLoaded;
     private final String _configFile;
-    
+    private final String _configDir;
+
     private static final String REGISTERED_NAME = "i2ptunnel";
 
-    /** 
-     * Map of I2PSession to a Set of TunnelController objects 
+    /**
+     * Map of I2PSession to a Set of TunnelController objects
      * using the session (to prevent closing the session until
      * no more tunnels are using it)
      *
      */
     private final Map<I2PSession, Set<TunnelController>> _sessions;
-    
+
     /**
      *  We keep a pool of socket handlers for all clients,
      *  as there is no need for isolation on the client side.
@@ -81,7 +83,7 @@ public class TunnelControllerGroup implements ClientApp {
      *
      *  @throws IllegalArgumentException if unable to load from i2ptunnel.config
      */
-    public static TunnelControllerGroup getInstance() { 
+    public static TunnelControllerGroup getInstance() {
         synchronized (TunnelControllerGroup.class) {
             if (_instance == null) {
                 I2PAppContext ctx = I2PAppContext.getGlobalContext();
@@ -91,7 +93,7 @@ public class TunnelControllerGroup implements ClientApp {
                         _instance.startup();
                 } // else wait for the router to start it
             }
-            return _instance; 
+            return _instance;
         }
     }
 
@@ -112,11 +114,16 @@ public class TunnelControllerGroup implements ClientApp {
         _log = _context.logManager().getLog(TunnelControllerGroup.class);
         _controllers = new ArrayList<TunnelController>();
         _controllersLock = new ReentrantReadWriteLock(true);
-        if (args == null || args.length <= 0)
+        if (args == null || args.length <= 0){
             _configFile = DEFAULT_CONFIG_FILE;
-        else if (args.length == 1)
+            _configDir = DEFAULT_CONFIG_DIRECTORY;
+        }else if (args.length == 1){
             _configFile = args[0];
-        else
+            _configDir = DEFAULT_CONFIG_DIRECTORY;
+        }else if (args.length == 2){
+            _configFile = args[0];
+            _configDir = args[1];
+        }else
             throw new IllegalArgumentException("Usage: TunnelControllerGroup [filename]");
         _sessions = new HashMap<I2PSession, Set<TunnelController>>(4);
         synchronized (TunnelControllerGroup.class) {
@@ -151,7 +158,7 @@ public class TunnelControllerGroup implements ClientApp {
      */
     public void startup() {
         try {
-            loadControllers(_configFile);
+            loadControllers(_configFile, _configDir);
         } catch (IllegalArgumentException iae) {
             if (DEFAULT_CONFIG_FILE.equals(_configFile) && !_context.isRouterContext()) {
                 // for i2ptunnel command line
@@ -251,7 +258,7 @@ public class TunnelControllerGroup implements ClientApp {
         killClientExecutor();
         changeState(STOPPED);
     }
-    
+
     /**
      * Load up all of the tunnels configured in the given file.
      * Prior to 0.9.20, also started the tunnels.
@@ -262,21 +269,23 @@ public class TunnelControllerGroup implements ClientApp {
      *
      * @throws IllegalArgumentException if unable to load from file
      */
-    public synchronized void loadControllers(String configFile) {
+    public synchronized void loadControllers(String configFile, String configDir) {
         if (_controllersLoaded)
             return;
 
-        Properties cfg = loadConfig(configFile);
+        List<Properties> cfg = loadConfig(configFile, configDir);
         int i = 0;
         _controllersLock.writeLock().lock();
         try {
-            while (true) {
-                String type = cfg.getProperty("tunnel." + i + ".type");
-                if (type == null)
-                    break;
-                TunnelController controller = new TunnelController(cfg, "tunnel." + i + ".");
-                _controllers.add(controller);
-                i++;
+            for (int j = 0; j < cfg.size(); j++) {
+                while (true) {
+                    String type = cfg.get(j).getProperty("tunnel." + i + ".type");
+                    if (type == null)
+                        break;
+                    TunnelController controller = new TunnelController(cfg.get(j), "tunnel." + i + ".", cfg.get(j).getProperty("tunnelConfigPath"));
+                    _controllers.add(controller);
+                    i++;
+                }
             }
         } finally {
             _controllersLock.writeLock().unlock();
@@ -301,7 +310,7 @@ public class TunnelControllerGroup implements ClientApp {
         startupThread.start();
         changeState(RUNNING);
     }
-    
+
     private class StartControllers implements Runnable {
         public void run() {
             synchronized(TunnelControllerGroup.this) {
@@ -322,7 +331,7 @@ public class TunnelControllerGroup implements ClientApp {
             }
         }
     }
-    
+
     /**
      * Stop all tunnels, reload config, and restart those configured to do so.
      * WARNING - Does NOT simply reload the configuration!!! This is probably not what you want.
@@ -332,10 +341,10 @@ public class TunnelControllerGroup implements ClientApp {
      */
     public synchronized void reloadControllers() {
         unloadControllers();
-        loadControllers(_configFile);
+        loadControllers(_configFile, _configDir);
         startControllers();
     }
-    
+
     /**
      * Stop and remove reference to all known tunnels (but dont delete any config
      * file or do other silly things)
@@ -391,7 +400,7 @@ public class TunnelControllerGroup implements ClientApp {
         msgs.add("Tunnel " + controller.getName() + " removed");
         return msgs;
     }
-    
+
     /**
      * Stop all tunnels. May be restarted.
      * Side effect - clears all messages from all controllers.
@@ -414,7 +423,7 @@ public class TunnelControllerGroup implements ClientApp {
         }
         return msgs;
     }
-    
+
     /**
      *  Stop all tunnels. They may not be restarted, you must reload.
      *  Caller must synch. Caller must clear controller list.
@@ -429,7 +438,7 @@ public class TunnelControllerGroup implements ClientApp {
         if (_log.shouldLog(Log.INFO))
             _log.info(_controllers.size() + " controllers stopped");
     }
-    
+
     /**
      * Start all tunnels.
      * Side effect - clears all messages from all controllers.
@@ -453,7 +462,7 @@ public class TunnelControllerGroup implements ClientApp {
         }
         return msgs;
     }
-    
+
     /**
      * Restart all tunnels.
      * Side effect - clears all messages from all controllers.
@@ -476,7 +485,7 @@ public class TunnelControllerGroup implements ClientApp {
         }
         return msgs;
     }
-    
+
     /**
      * Fetch and clear all outstanding messages from any of the known tunnels.
      *
@@ -495,9 +504,9 @@ public class TunnelControllerGroup implements ClientApp {
         }
         return msgs;
     }
-    
+
     /**
-     * Save the configuration of all known tunnels to the default config 
+     * Save the configuration of all known tunnels to the default config
      * file
      *
      */
@@ -516,7 +525,7 @@ public class TunnelControllerGroup implements ClientApp {
         File parent = cfgFile.getParentFile();
         if ( (parent != null) && (!parent.exists()) )
             parent.mkdirs();
-        
+
         Properties map = new OrderedProperties();
         _controllersLock.readLock().lock();
         try {
@@ -528,17 +537,17 @@ public class TunnelControllerGroup implements ClientApp {
         } finally {
             _controllersLock.readLock().unlock();
         }
-        
+
         DataHelper.storeProps(map, cfgFile);
     }
-    
+
     /**
      * Load up the config data from the file
      *
      * @return properties loaded
      * @throws IllegalArgumentException if unable to load from file
      */
-    private synchronized Properties loadConfig(String configFile) {
+    private synchronized Properties loadConfigFile(String configFile) {
         File cfgFile = new File(configFile);
         if (!cfgFile.isAbsolute())
             cfgFile = new File(I2PAppContext.getGlobalContext().getConfigDir(), configFile);
@@ -547,7 +556,7 @@ public class TunnelControllerGroup implements ClientApp {
                 _log.error("Unable to load the controllers from " + cfgFile.getAbsolutePath());
             throw new IllegalArgumentException("Unable to load the controllers from " + cfgFile.getAbsolutePath());
         }
-        
+
         Properties props = new Properties();
         try {
             DataHelper.loadProps(props, cfgFile);
@@ -558,7 +567,38 @@ public class TunnelControllerGroup implements ClientApp {
             throw new IllegalArgumentException("Error reading the controllers from " + cfgFile.getAbsolutePath(), ioe);
         }
     }
-    
+
+    private synchronized File[] configFilesList(String configDir) {
+        File directory = new File(I2PAppContext.getGlobalContext().getConfigDir(), configDir);
+        return directory.listFiles();
+    }
+
+    private synchronized List<Properties> loadConfig(String configFile, String configDir) {
+        List<Properties> cfgfiles = new ArrayList<Properties>();
+        try {
+            Properties prop = loadConfigFile(configFile);
+            prop.setProperty("tunnelConfigPath", configFile);
+            cfgfiles.add(prop);
+        } catch(Exception e) {
+            if (_log.shouldLog(Log.ERROR))
+                _log.error("Error reading the controllers from " + configFile, e);
+            throw new IllegalArgumentException("Error reading the controllers from " + configFile, e);
+        }
+        File[] fileList = configFilesList(configDir);
+        for (int i = 0; i < fileList.length; i++) {
+            try {
+                Properties prop = loadConfigFile(fileList[i].getAbsolutePath());
+                prop.setProperty("tunnelConfigPath", fileList[i].getAbsolutePath());
+                cfgfiles.add(prop);
+            } catch(Exception e) {
+                if (_log.shouldLog(Log.ERROR))
+                    _log.error("Error reading the controllers from " + fileList[i].getAbsolutePath(), e);
+                throw new IllegalArgumentException("Error reading the controllers from " + fileList[i].getAbsolutePath(), e);
+            }
+        }
+        return cfgfiles;
+    }
+
     /**
      * Retrieve a list of tunnels known.
      *
@@ -571,7 +611,7 @@ public class TunnelControllerGroup implements ClientApp {
     public List<TunnelController> getControllers() {
         synchronized (this) {
             if (!_controllersLoaded)
-                loadControllers(_configFile);
+                loadControllers(_configFile, _configDir);
         }
 
         _controllersLock.readLock().lock();
@@ -581,9 +621,9 @@ public class TunnelControllerGroup implements ClientApp {
             _controllersLock.readLock().unlock();
         }
     }
-    
-    
-    /** 
+
+
+    /**
      * Note the fact that the controller is using the session so that
      * it isn't destroyed prematurely.
      *
@@ -601,8 +641,8 @@ public class TunnelControllerGroup implements ClientApp {
             _log.info("Acquiring session " + session + " for " + controller);
 
     }
-    
-    /** 
+
+    /**
      * Note the fact that the controller is no longer using the session, and if
      * no other controllers are using it, destroy the session.
      *
