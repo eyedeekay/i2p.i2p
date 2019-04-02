@@ -840,7 +840,7 @@ public class TunnelConfig {
             }
         }
         if (_privKeyFile != null)
-            config.setProperty(TunnelController.PROP_FILE, _privKeyFile);
+            config.setProperty(TunnelController.PROP_SEC_KEY_FILE, _privKeyFile);
 
         if (_customOptions != null) {
             StringTokenizer tok = new StringTokenizer(_customOptions);

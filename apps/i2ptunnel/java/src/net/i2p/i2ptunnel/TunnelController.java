@@ -76,7 +76,7 @@ public class TunnelController implements Logging {
     public static final String PROP_I2CP_HOST = "i2cpHost";
     public static final String PROP_I2CP_PORT = "i2cpPort";
     public static final String PROP_INTFC = "interface";
-    public static final String PROP_FILE = "privKeyFile";
+    public static final String PROP_SEC_KEY_FILE = "privKeyFile";
     public static final String PROP_LISTEN_PORT = "listenPort";
     public static final String PROP_NAME = "name";
     public static final String PROP_PROXIES = "proxyList";
@@ -86,7 +86,7 @@ public class TunnelController implements Logging {
     public static final String PROP_TARGET_HOST = "targetHost";
     public static final String PROP_TARGET_PORT = "targetPort";
     public static final String PROP_TYPE = "type";
-    public static final String PROP_FILE = "tunnelConfigFile";
+    public static final String PROP_TUN_FILE = "tunnelConfigFile";
 
     /**
      * all of these are @since 0.9.33 (moved from TunnelConfig)
@@ -894,7 +894,7 @@ public class TunnelController implements Logging {
         }
 
         if (oldConfig != null) {
-            if (configChanged(_config, oldConfig, PROP_FILE) ||
+            if (configChanged(_config, oldConfig, PROP_SEC_KEY_FILE) ||
                 configChanged(_config, oldConfig, OPT_ALT_PKF) ||
                 configChanged(_config, oldConfig, OPT_SIG_TYPE)) {
                 log("Tunnel must be stopped and restarted for private key file changes to take effect");
@@ -1007,7 +1007,7 @@ public class TunnelController implements Logging {
     /**
      *  Probably not absolute. May be null. getPrivateKeyFile() recommended.
      */
-    public String getPrivKeyFile() { return _config.getProperty(PROP_FILE); }
+    public String getPrivKeyFile() { return _config.getProperty(PROP_SEC_KEY_FILE); }
 
     public String getListenPort() { return _config.getProperty(PROP_LISTEN_PORT); }
     public String getTargetDestination() { return _config.getProperty(PROP_DEST); }

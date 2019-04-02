@@ -1193,7 +1193,7 @@ public class IndexBean {
                     TunnelController c = getController(i);
                     if (_certSigner.equals(c.getConfig("").getProperty(TunnelController.PROP_NAME)) ||
                         _certSigner.equals(c.getConfig("").getProperty(TunnelController.PROP_SPOOFED_HOST))) {
-                        signerPKF = c.getConfig("").getProperty(TunnelController.PROP_FILE);
+                        signerPKF = c.getConfig("").getProperty(TunnelController.PROP_SEC_KEY_FILE);
                         break;
                     }
                 }

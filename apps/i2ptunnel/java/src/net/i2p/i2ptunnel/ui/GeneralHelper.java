@@ -94,7 +94,7 @@ public class GeneralHelper {
 
         List<String> msgs = new ArrayList<String>();
         String type = props.getProperty(TunnelController.PROP_TYPE);
-        msgs.add(props.getProperty(TunnelController.PROP_FILE, "i2ptunnel.config"));
+        msgs.add(props.getProperty(TunnelController.PROP_TUN_FILE, "i2ptunnel.config"));
         if (TunnelController.TYPE_STD_CLIENT.equals(type) || TunnelController.TYPE_IRC_CLIENT.equals(type)) {
             //
             // If we switch to SSL, create the keystore here, so we can store the new properties.
