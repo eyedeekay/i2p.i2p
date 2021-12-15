@@ -289,22 +289,39 @@ public class Reseeder {
             }
             _url = url;
             _bandwidths = new ArrayList<Long>(4);
+
+            boolean shouldProxySSL = _context.getBooleanProperty(PROP_SPROXY_ENABLE);
+            SSLEepGet.ProxyType sproxyType;
+
             if (_context.getBooleanProperty(PROP_PROXY_ENABLE)) {
                 _proxyHost = _context.getProperty(PROP_PROXY_HOST);
                 _proxyPort = _context.getProperty(PROP_PROXY_PORT, -1);
+            } else if (url.getHost().split(":")[0].endsWith(".onion")) {
+                if (_log.shouldLog(Log.INFO)){
+                    _log.info("Reseed: Using Tor proxy");
+                }
+                _proxyHost = "127.0.0.1";
+                _proxyPort = 9050;
+                sproxyType = SSLEepGet.ProxyType.SOCKS5;
+                shouldProxySSL = true;
             } else {
                 _proxyHost = null;
                 _proxyPort = -1;
             }
             _shouldProxyHTTP = _proxyHost != null && _proxyHost.length() > 0 && _proxyPort > 0;
 
-            boolean shouldProxySSL = _context.getBooleanProperty(PROP_SPROXY_ENABLE);
-            SSLEepGet.ProxyType sproxyType;
             if (shouldProxySSL) {
                 sproxyType = getProxyType();
                 if (sproxyType == SSLEepGet.ProxyType.INTERNAL) {
                     _sproxyHost = "localhost";
                     _sproxyPort = _context.portMapper().getPort(PortMapper.SVC_HTTP_PROXY, 4444);
+                } else if (url.getHost().split(":")[0].endsWith(".onion")) {
+                    if (_log.shouldLog(Log.INFO)){
+                        _log.info("Reseed: Using Tor proxy");
+                    }
+                    _sproxyHost = "127.0.0.1";
+                    _sproxyPort = 9050;
+                    sproxyType = SSLEepGet.ProxyType.SOCKS5;
                 } else {
                     _sproxyHost = _context.getProperty(PROP_SPROXY_HOST);
                     _sproxyPort = _context.getProperty(PROP_SPROXY_PORT, -1);
