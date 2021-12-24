@@ -15,12 +15,12 @@ import net.i2p.router.web.FormHandler;
 import net.i2p.router.web.Messages;
 
 /**
- *  @since 0.8.3
+ * @since 0.8.3
  */
 public class ConfigReseedHandler extends FormHandler {
     private final Map<String, String> changes = new HashMap<String, String>();
     private final List<String> removes = new ArrayList<String>();
-    
+
     @Override
     protected void processForm() {
 
@@ -51,7 +51,10 @@ public class ConfigReseedHandler extends FormHandler {
                 return;
             }
             try {
-                if (!checker.requestReseed(url)) {
+                if (!checker.requestOnionReseed(url)) {
+                    addFormError(_t("Tor not available, performing clearnet reseed"));
+                    addCheckerStatus(checker);
+                } else if (!checker.requestReseed(url)) {
                     addFormError(_t("Reseeding is already in progress"));
                     addCheckerStatus(checker);
                 } else {
@@ -59,7 +62,8 @@ public class ConfigReseedHandler extends FormHandler {
                     for (int i = 0; i < 40; i++) {
                         try {
                             Thread.sleep(500);
-                        } catch (InterruptedException ie) {}
+                        } catch (InterruptedException ie) {
+                        }
                         if (!checker.inProgress())
                             break;
                     }
@@ -89,8 +93,8 @@ public class ConfigReseedHandler extends FormHandler {
                     addCheckerStatus(checker);
                 } else {
                     addFormNotice(ngettext("Reseed successful, loaded {0} router info from file",
-                                           "Reseed successful, loaded {0} router infos from file",
-                                           count));
+                            "Reseed successful, loaded {0} router infos from file",
+                            count));
                 }
             } catch (IOException ioe) {
                 addFormError(_t("Reseed from file failed") + " - " + ioe);
@@ -98,19 +102,24 @@ public class ConfigReseedHandler extends FormHandler {
             } finally {
                 // it's really a ByteArrayInputStream but we'll play along...
                 if (in != null)
-                    try { in.close(); } catch (IOException ioe) {}
+                    try {
+                        in.close();
+                    } catch (IOException ioe) {
+                    }
             }
         } else if (_action.equals(_t("Save changes"))) {
             saveChanges();
         } else if (_action.equals(_t("Reset URL list"))) {
             resetUrlList();
+        } else if (_action.equals(_t("Reset Onion URL list"))) {
+            resetOnionUrlList();
         }
-        //addFormError(_t("Unsupported") + ' ' + _action + '.');
+        // addFormError(_t("Unsupported") + ' ' + _action + '.');
     }
 
     /**
-     *  @return true if anything was output
-     *  @since 0.9.33
+     * @return true if anything was output
+     * @since 0.9.33
      */
     private boolean addCheckerStatus(ReseedChecker checker) {
         String error = checker.getError();
@@ -128,7 +137,14 @@ public class ConfigReseedHandler extends FormHandler {
 
     private void resetUrlList() {
         if (_context.router().saveConfig(Reseeder.PROP_RESEED_URL, null))
-	    addFormNotice(_t("URL list reset successfully"));
+            addFormNotice(_t("URL list reset successfully"));
+        else
+            addFormError(_t("Error saving the configuration (applied but not saved) - please see the error logs"));
+    }
+
+    private void resetOnionUrlList() {
+        if (_context.router().saveConfig(Reseeder.PROP_ONION_RESEED_URL, null))
+            addFormNotice(_t("URL list reset successfully"));
         else
             addFormError(_t("Error saving the configuration (applied but not saved) - please see the error logs"));
     }
@@ -169,13 +185,23 @@ public class ConfigReseedHandler extends FormHandler {
                 changes.put(Reseeder.PROP_RESEED_URL, url);
             }
         }
+        String onionurl = getJettyString("onionReseedURL");
+        if (onionurl != null) {
+            onionurl = onionurl.trim().replace("\r\n", ",").replace("\n", ",");
+            if (onionurl.length() <= 0) {
+                addFormNotice("Restoring default URLs");
+                removes.add(Reseeder.PROP_ONION_RESEED_URL);
+            } else {
+                changes.put(Reseeder.PROP_ONION_RESEED_URL, onionurl);
+            }
+        }
         String mode = getJettyString("mode");
         boolean req = "1".equals(mode);
         boolean disabled = "2".equals(mode);
         changes.put(Reseeder.PROP_SSL_REQUIRED,
-                                           Boolean.toString(req));
+                Boolean.toString(req));
         changes.put(Reseeder.PROP_SSL_DISABLE,
-                                           Boolean.toString(disabled));
+                Boolean.toString(disabled));
         saveBoolean(Reseeder.PROP_PROXY_ENABLE, "enable");
         String pmode = getJettyString("pmode");
         boolean senable = pmode != null && pmode.length() > 0;

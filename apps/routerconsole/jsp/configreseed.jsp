@@ -154,6 +154,11 @@
 <div class="formaction" id="resetreseed"><input type="submit" name="action" class="reload" value="<%=intl._t("Reset URL list")%>" /></div>
 </td></tr>
 
+<tr><td align="right"><b><%=intl._t("Onion Reseed URLs")%>:</b></td>
+<td><textarea wrap="off" name="onionReseedURL" cols="60" rows="7" spellcheck="false"><jsp:getProperty name="reseedHelper" property="onionReseedURL" /></textarea>
+<div class="formaction" id="resetreseed"><input type="submit" name="action" class="reload" value="<%=intl._t("Reset Onion URL list")%>" /></div>
+</td></tr>
+
 <% if (reseedHelper.shouldShowHTTPSProxy()) { %>
 <tr><td align="right"><b><%=intl._t("Proxy type for HTTPS reseed URLs")%>:</b></td>
 <td><label><input type="radio" class="optbox" name="pmode" value="" <%=reseedHelper.pmodeChecked(0) %> >
