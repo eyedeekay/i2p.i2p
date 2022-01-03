@@ -590,8 +590,12 @@ public class Snark
 
   private void x_startTorrent() {
     boolean ok = _util.connect();
-    if (!ok)
-        fatalRouter("Unable to connect to I2P", null);
+    if (!ok) {
+        if (_util.getContext().isRouterContext())
+            fatalRouter(_util.getString("Unable to connect to I2P"), null);
+        else
+            fatalRouter(_util.getString("Error connecting to I2P - check your I2CP settings!") + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort(), null);
+    }
     if (coordinator == null) {
         I2PServerSocket serversocket = _util.getServerSocket();
         if (serversocket == null)
@@ -1255,7 +1259,7 @@ public class Snark
    */
   private void fatalRouter(String s, Throwable t) throws RouterException {
     _log.error(s, t);
-    stopTorrent();
+    stopTorrent(true);
     if (completeListener != null)
         completeListener.fatal(this, s);
     throw new RouterException(s, t);
