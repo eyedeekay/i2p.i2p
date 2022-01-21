@@ -51,8 +51,8 @@ public class I2PTunnelUDPServer extends I2PTunnelUDPServerBase {
         this.UDP_HOSTNAME = _udpHostname;
         this.UDP_PORT = port;
         this.sink = new UDPSink(this.UDP_HOSTNAME, this.UDP_PORT);
-
         this.source = new UDPSource(this.UDP_PORT);
+        this.setSink(this.sink);
     }
 
     @Override
