@@ -4,6 +4,10 @@ java -jar i2psnark.jar
 
 I2PSnark web ui will be at http://127.0.0.1:8002/i2psnark/ 
 
+To change or disable browser launch at startup, edit i2psnark-appctx.config.
+To change the port, edit jetty-i2psnark.xml.
+
+
 I2PSnark is GPL'ed software, based on Snark (http://www.klomp.org/) to run on top of I2P
 (https://geti2p.net/) within a webserver (such as the bundled Jetty from
 https://www.eclipse.org/jetty/).  For more information about I2PSnark, get in touch
@@ -19,7 +23,7 @@ To add RPC support:
     to the webapps/ directory in your standalone install.
 
 2b) If you do not have the i2psnark-rpc plugin installed, get the i2p.plugins.i2psnark-rpc
-    branch out of monotone, build with 'ant war', and copy the file src/build/transmission.war.jar
+    branch out of git, build with 'ant war', and copy the file src/build/transmission.war.jar
     to the file webapps/transmission.war in your standalone install.
 
 3) Start i2psnark standalone as usual. The transmission web interface will be at

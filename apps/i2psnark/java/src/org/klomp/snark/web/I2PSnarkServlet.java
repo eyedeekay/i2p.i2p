@@ -10,6 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.Collator;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -348,25 +349,24 @@ public class I2PSnarkServlet extends BasicServlet {
         out.write("</head>\n" +
                   "<body>" +
                   "<center>");
-        List<Tracker> sortedTrackers = null;
         if (isConfigure) {
             out.write("<div class=\"snarknavbar\"><a href=\"" + _contextPath + "/\" title=\"");
             out.write(_t("Torrents"));
-            out.write("\" class=\"snarkNav nav_main\">");
-            if (_contextName.equals(DEFAULT_NAME))
-                out.write(_t("I2PSnark"));
-            else
-                out.write(_contextName);
-            out.write("</a>");
         } else {
             out.write("<div class=\"snarknavbar\"><a href=\"" + _contextPath + '/' + peerString + "\" title=\"");
             out.write(_t("Refresh page"));
-            out.write("\" class=\"snarkNav nav_main\">");
-            if (_contextName.equals(DEFAULT_NAME))
-                out.write(_t("I2PSnark"));
-            else
-                out.write(_contextName);
-            out.write("</a>\n");
+        }
+        out.write("\" class=\"snarkNav nav_main\">");
+        if (_contextName.equals(DEFAULT_NAME))
+            out.write(_t("I2PSnark"));
+        else
+            out.write(_contextName);
+        if (!_context.isRouterContext()) {
+            out.write(' ' + CoreVersion.VERSION);
+        }
+        out.write("</a>");
+        List<Tracker> sortedTrackers = null;
+        if (!isConfigure) {
             sortedTrackers = _manager.getSortedTrackers();
             if (_context.isRouterContext() && _manager.hasModifiedTrackers()) {
                 for (Tracker t : sortedTrackers) {
@@ -2516,12 +2516,18 @@ public class I2PSnarkServlet extends BasicServlet {
             out.write("<select name='theme'>");
             String theme = _manager.getTheme();
             String[] themes = _manager.getThemes();
-            Arrays.sort(themes);
+            // translated sort
+            Map<String, String> tmap = new TreeMap<String, String>(Collator.getInstance());
             for (int i = 0; i < themes.length; i++) {
-                if(themes[i].equals(theme))
-                    out.write("\n<OPTION value=\"" + themes[i] + "\" SELECTED>" + themes[i]);
+                 tmap.put(_t(themes[i]), themes[i]);
+            }
+            for (Map.Entry<String, String> e : tmap.entrySet()) {
+                String tr = e.getKey();
+                String opt = e.getValue();
+                if(opt.equals(theme))
+                    out.write("\n<option value=\"" + opt + "\" SELECTED>" + tr + "</option>");
                 else
-                    out.write("\n<OPTION value=\"" + themes[i] + "\">" + themes[i]);
+                    out.write("\n<option value=\"" + opt + "\">" +  tr + "</option>");
             }
             out.write("</select>\n");
         }
@@ -4187,11 +4193,11 @@ public class I2PSnarkServlet extends BasicServlet {
         MetaInfo meta = snark.getMetaInfo();
         if (meta == null)
             return;
-        buf.append("<div id=\"snarkCommentSection\"><table class=\"snarkTorrentInfo\">\n")
+        buf.append("<div id=\"snarkCommentSection\"><table class=\"snarkTorrentInfo\">\n");
            //.append("<tr><th colspan=\"5\">")
            //.append(_t("Edit Torrent"))
            //.append("</th>")
-           .append("</tr>");
+           //.append("</tr>");
         boolean isRunning = !snark.isStopped();
         if (isRunning) {
             // shouldn't happen
