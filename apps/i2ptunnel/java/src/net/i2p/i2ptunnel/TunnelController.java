@@ -245,9 +245,9 @@ public class TunnelController implements Logging {
     }
 
     /**
-     *  The I2PTunnel
+     * The I2PTunnel
      *
-     *  @since 0.9.53 for advanced plugin usage
+     * @since 0.9.53 for advanced plugin usage
      */
     public I2PTunnel getTunnel() {
         return _tunnel;
@@ -1134,6 +1134,7 @@ public class TunnelController implements Logging {
                 TYPE_SOCKS_IRC.equals(type) ||
                 TYPE_CONNECT.equals(type) ||
                 TYPE_STREAMR_CLIENT.equals(type) ||
+                TYPE_UDP_CLIENT.equals(type) ||
                 TYPE_IRC_CLIENT.equals(type);
     }
 

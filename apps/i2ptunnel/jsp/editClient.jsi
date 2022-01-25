@@ -4,11 +4,11 @@
                 if (curTunnel >= 0) {
                     tunnelTypeName = editBean.getTunnelType(curTunnel);
                     tunnelType = editBean.getInternalType(curTunnel);
-                  %><h2><%=intl._t("Edit proxy settings")%> (<%=editBean.getTunnelName(curTunnel)%>)</h2><% 
+                  %><h2><%=intl._t("Edit proxy settings")%> (<%=editBean.getTunnelName(curTunnel)%>)</h2><%
                 } else {
                     tunnelTypeName = editBean.getTypeName(request.getParameter("type"));
                     tunnelType = net.i2p.data.DataHelper.stripHTML(request.getParameter("type"));
-                  %><h2><%=intl._t("New proxy settings")%></h2><% 
+                  %><h2><%=intl._t("New proxy settings")%></h2><%
                 } %>
                 <input type="hidden" name="tunnel" value="<%=curTunnel%>" />
                 <input type="hidden" name="nonce" value="<%=net.i2p.i2ptunnel.web.IndexBean.getNextNonce()%>" />
@@ -75,7 +75,7 @@
             String phdisabled = (canChangePort && isShared) ? "" : tstopFirst;
 %>
             <th colspan="2" <%=phdisabled%>>
-<%          if ("streamrclient".equals(tunnelType)) { %>
+<%          if ("streamrclient".equals(tunnelType) || "udpclient".equals(tunnelType)) { %>
                 <%=intl._t("Target")%>
 <%          } else { %>
                 <%=intl._t("Access Point")%>
@@ -98,7 +98,7 @@
                 <input type="text" size="6" maxlength="5" name="port" title="<%=ptext%>" value="<%=editBean.getClientPort(curTunnel)%>" class="freetext port" placeholder="required" <%=pdisabled%>/>
             </td>
 <%
-            if ("streamrclient".equals(tunnelType)) {
+            if ("streamrclient".equals(tunnelType) || "udpclient".equals(tunnelType)) {
 %>
             <td>
                 <b><%=intl._t("Host")%>:</b>
@@ -192,7 +192,7 @@
             </td>
         </tr>
 <%
-               } else if ("client".equals(tunnelType) || "ircclient".equals(tunnelType) || "streamrclient".equals(tunnelType)) {
+               } else if ("client".equals(tunnelType) || "ircclient".equals(tunnelType) || "streamrclient".equals(tunnelType) || "udpclient".equals(tunnelType)) {
 %>
         <tr>
             <th colspan="2">
@@ -210,7 +210,7 @@
                 <input type="text" size="30" id="targetDestination" name="targetDestination" title="<%=intl._t("Specify the .i2p address or destination (b32 or b64) of the tunnel here.")%>&nbsp;<%=intl._t("For a random selection from a pool, separate with commas e.g. server1.i2p,server2.i2p")%>" value="<%=editBean.getClientDestination(curTunnel)%>" class="freetext destination" placeholder="required" />
                 <%=intl._t("name, name:port, or destination")%>
 <%
-                        if ("streamrclient".equals(tunnelType)) {
+                        if ("streamrclient".equals(tunnelType) || "udpclient".equals(tunnelType)) {
                             /* deferred resolution unimplemented in streamr client */
 %>
                          - <%=intl._t("b32 not recommended")%>
@@ -222,7 +222,7 @@
 <%
             }
 
-            if (!"streamrclient".equals(tunnelType)) {
+            if (!"streamrclient".equals(tunnelType) || !"udpclient".equals(tunnelType)) {
 %>
         <tr>
             <th colspan="2" <%=phdisabled%>>
@@ -234,7 +234,7 @@
                 // we don't actually disable the field for a new tunnel, but we provide a warning
                 String shtitle = (canChangePort && isShared) ?
                                  intl._t("Traffic from all clients with this feature enabled will be routed over the same set of tunnels. This will make profiling the tunnels by an adversary more difficult, but will link the clients together.") :
-                                 (isShared ? bStopFirst : aStopFirst);               
+                                 (isShared ? bStopFirst : aStopFirst);
                 String shdisabled = canChangePort ? "" : " disabled=\"disabled\" ";
 %>
                 <label title="<%=shtitle%>">
@@ -270,7 +270,7 @@
     </table>
     <h3><%=intl._t("Advanced networking options")%></h3>
 <%
-            if (!"streamrclient".equals(tunnelType) && (canChangePort || isShared)) {
+            if (!"streamrclient".equals(tunnelType) || !"udpclient".equals(tunnelType) && (canChangePort || isShared)) {
                // no shared client tunnels for streamr
                // If running and not shared, this doesn't apply.
 %>
@@ -309,7 +309,7 @@
                     <option value="5"<%=(tunnelDepth == 5 ? " selected=\"selected\"" : "") %>><%=intl.ngettext("{0} hop tunnel", "{0} hop tunnel", 5)%></option>
                     <option value="6"<%=(tunnelDepth == 6 ? " selected=\"selected\"" : "") %>><%=intl.ngettext("{0} hop tunnel", "{0} hop tunnel", 6)%></option>
                     <option value="7"<%=(tunnelDepth == 7 ? " selected=\"selected\"" : "") %>><%=intl.ngettext("{0} hop tunnel", "{0} hop tunnel", 7)%></option>
-<%                 } else if (tunnelDepth > 3) { 
+<%                 } else if (tunnelDepth > 3) {
                 %>    <option value="<%=tunnelDepth%>" selected="selected"><%=intl.ngettext("{0} hop tunnel", "{0} hop tunnel", tunnelDepth)%></option>
 <%
                    }
@@ -355,7 +355,7 @@
                     <option value="3"<%=(tunnelBackupQuantity == 3 ? " selected=\"selected\"" : "") %>><%=intl.ngettext("{0} backup tunnel", "{0} backup tunnels", 3)%><%=editBean.unlessAdvanced("high redundancy, high resource usage")%></option>
 <%
                    if (tunnelBackupQuantity > 3) {
-                %>    <option value="<%=tunnelBackupQuantity%>" selected="selected"><%=intl.ngettext("{0} backup tunnel", "{0} backup tunnels", tunnelBackupQuantity)%></option> 
+                %>    <option value="<%=tunnelBackupQuantity%>" selected="selected"><%=intl.ngettext("{0} backup tunnel", "{0} backup tunnels", tunnelBackupQuantity)%></option>
 <%
                    }
               %></select>
@@ -393,7 +393,7 @@
             } // client
 %>
 <%
-            if (!"streamrclient".equals(tunnelType)) {
+            if (!"streamrclient".equals(tunnelType) || !"udpclient".equals(tunnelType)) {
                 // streamr client sends pings so it will never be idle
 %>
         <tr>
