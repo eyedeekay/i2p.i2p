@@ -518,6 +518,10 @@ public class TunnelController implements Logging {
             startIrcServer();
         } else if (TYPE_STREAMR_SERVER.equals(type)) {
             startStreamrServer();
+        } else if (TYPE_UDP_CLIENT.equals(type)) {
+            startUDPClient();
+        } else if (TYPE_UDP_SERVER.equals(type)) {
+            startUDPServer();
         } else {
             changeState(TunnelState.STOPPED);
             if (_log.shouldLog(Log.ERROR))
@@ -616,6 +620,29 @@ public class TunnelController implements Logging {
         String targetPort = getListenPort();
         String dest = getTargetDestination();
         _tunnel.runStreamrClient(new String[] { targetHost, targetPort, dest }, this);
+    }
+
+    /**
+     * UDP server is a UDP client, use the targetPort field for listenPort
+     */
+    private void startUDPServer() {
+        String listenOn = getListenOnInterface();
+        if ((listenOn != null) && (listenOn.length() > 0)) {
+            _tunnel.runListenOn(new String[] { listenOn }, this);
+        }
+        String listenPort = getTargetPort();
+        String privKeyFile = getPrivKeyFile();
+        _tunnel.runUDPServer(new String[] { listenPort, privKeyFile }, this);
+    }
+
+    /**
+     * UDP client is a UDP server, use the listenPort field for targetPort
+     */
+    private void startUDPClient() {
+        String targetHost = getTargetHost();
+        String targetPort = getListenPort();
+        String dest = getTargetDestination();
+        _tunnel.runUDPClient(new String[] { targetHost, targetPort, dest }, this);
     }
 
     /**

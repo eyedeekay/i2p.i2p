@@ -758,7 +758,8 @@ public class TunnelConfig {
         updateConfigGeneric(config);
 
         if ((TunnelController.isClient(_type) && !TunnelController.TYPE_STREAMR_CLIENT.equals(_type)) ||
-                TunnelController.TYPE_STREAMR_SERVER.equals(_type)) {
+                !TunnelController.TYPE_UDP_CLIENT.equals(_type) || TunnelController.TYPE_STREAMR_SERVER.equals(_type) ||
+                TunnelController.TYPE_UDP_SERVER.equals(_type)) {
             // streamrserver uses interface
             if (_reachableBy != null)
                 config.setProperty(TunnelController.PROP_INTFC, _reachableBy);
@@ -862,7 +863,8 @@ public class TunnelConfig {
 
         if (TunnelController.TYPE_IRC_CLIENT.equals(_type) ||
                 TunnelController.TYPE_STD_CLIENT.equals(_type) ||
-                TunnelController.TYPE_STREAMR_CLIENT.equals(_type)) {
+                TunnelController.TYPE_STREAMR_CLIENT.equals(_type) ||
+                TunnelController.TYPE_UDP_CLIENT.equals(_type)) {
             if (_targetDestination != null)
                 config.setProperty(TunnelController.PROP_DEST, _targetDestination);
         } else if (TunnelController.TYPE_HTTP_SERVER.equals(_type) ||
@@ -874,7 +876,8 @@ public class TunnelConfig {
                     config.setProperty(OPT + p, _otherOptions.get(p));
         }
         if (TunnelController.TYPE_HTTP_BIDIR_SERVER.equals(_type) ||
-                TunnelController.TYPE_UDP_SERVER.equals(_type)) {
+                TunnelController.TYPE_UDP_SERVER.equals(_type) ||
+                TunnelController.TYPE_UDP_CLIENT.equals(_type)) {
             if (_port >= 0)
                 config.setProperty(TunnelController.PROP_LISTEN_PORT, Integer.toString(_port));
             if (_reachableBy != null)

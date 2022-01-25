@@ -74,7 +74,7 @@
 %>
             <th colspan="2" <%=phdisabled%>>
 <%
-            if (isStreamrServer || isUDPServer) { %>
+            if (isStreamrServer || isUDPClient || isUDPServer) { %>
                 <%=intl._t("Access Point")%>
          <% } else { %>
                 <%=intl._t("Target")%>
@@ -82,7 +82,7 @@
             </th>
         </tr><tr>
 <%
-            if (!isStreamrServer || !isUDPServer) {
+            if (!isStreamrServer || !isUDPClient || !isUDPServer) {
 %>
             <td>
                 <b><%=intl._t("Host")%>:</b>
@@ -108,7 +108,7 @@
                 <%=intl._t("Use SSL to connect to target")%></label>
 <%          } /* !streamrserver */ %>
             </td>
-<%          if (isBidirServer) { %>
+<%          if (isBidirServer || isUDPServer) { %>
         </tr><tr>
             <th colspan="2" <%=phdisabled%>>
                 <%=intl._t("Access Point")%>
@@ -155,7 +155,7 @@
 %>
                 </select>
             </td>
-         <% } /* httpbidirserver || streamrserver || udpserver */ %>
+         <% } /* httpbidirserver || streamrserver */ %>
         </tr>
 <%          if ("httpserver".equals(tunnelType) || isBidirServer) {
 %>

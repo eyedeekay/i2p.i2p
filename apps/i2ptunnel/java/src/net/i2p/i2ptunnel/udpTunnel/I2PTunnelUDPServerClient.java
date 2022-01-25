@@ -92,11 +92,58 @@ public class I2PTunnelUDPServerClient extends I2PTunnelUDPServerBase {
         return pack;
     }
 
+    private void sendRawDatagamToClient(DatagramPacket pack) {
+        try {
+            DatagramSocket sock = new DatagramSocket();
+            sock.send(pack);
+        } catch (Exception e) {
+            if (_log.shouldLog(Log.WARN))
+                _log.warn("Error sending UDP datagram to client", e);
+        }
+    }
+
     @Override
     public final void startRunning() {
         super.startRunning();
-        // send subscribe-message
         l.log("I2PTunnelUDPServer server ready");
+        while (true) {
+            DatagramPacket pack = recieveRepliableDatagramFromClient();
+            if (pack == null) {
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("Error receiving UDP datagram from client");
+                continue;
+            }
+            byte[] buf = pack.getData();
+            int len = pack.getLength();
+            if (len < 4) {
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("Error receiving UDP datagram from client, length is less than 4");
+                continue;
+            }
+            int port = ((buf[0] & 0xff) << 8) | (buf[1] & 0xff);
+            int ip1 = buf[2] & 0xff;
+            int ip2 = buf[3] & 0xff;
+            int ip3 = buf[4] & 0xff;
+            int ip4 = buf[5] & 0xff;
+            InetAddress ip = null;
+            try {
+                ip = InetAddress.getByAddress(new byte[] { (byte) ip1, (byte) ip2, (byte) ip3, (byte) ip4 });
+            } catch (Exception e) {
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("Error receiving UDP datagram from client, invalid IP address", e);
+                continue;
+            }
+            if (ip == null) {
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("Error receiving UDP datagram from client, invalid IP address");
+                continue;
+            }
+            if (_log.shouldLog(Log.INFO))
+                _log.info("Received UDP datagram from client: " + ip + ":" + port);
+            DatagramPacket reply = new DatagramPacket(buf, len, ip, port);
+            sendRawDatagamToClient(reply);
+        }
+        // send subscribe-message
     }
 
     @Override

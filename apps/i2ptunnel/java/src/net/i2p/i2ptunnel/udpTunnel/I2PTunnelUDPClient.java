@@ -1,12 +1,17 @@
 package net.i2p.i2ptunnel.udpTunnel;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import net.i2p.client.I2PSession;
+import net.i2p.client.datagram.I2PDatagramDissector;
+import net.i2p.data.DataFormatException;
 import net.i2p.i2ptunnel.I2PTunnel;
 import net.i2p.i2ptunnel.Logging;
 import net.i2p.i2ptunnel.udp.I2PSink;
@@ -54,11 +59,12 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
     private final InetAddress UDP_HOSTNAME;
     // UDP port corresponding to local DatagramSocket
     private final int UDP_PORT;
+    private final int MAX_SIZE = 1024;
     private final UDPSink _sink;
-    private final UDPSource _source;
+    // private final UDPSource _source;
 
     // SourceIP/Port table
-    private ArrayList<InetSocketAddress> _sourceIPPortTable;
+    private Map<Integer, InetSocketAddress> _sourceIPPortTable = new HashMap<>();
 
     public I2PTunnelUDPClient(String host, int port, String destination, Logging l, EventDispatcher notifyThis,
             I2PTunnel tunnel) {
@@ -67,7 +73,6 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
         UDPSink sink = null;
         UDP_PORT = port;
         InetAddress udpHostname = null;
-        _sourceIPPortTable = new ArrayList<InetSocketAddress>();
         try {
             udpHostname = InetAddress.getByName(host);
         } catch (Exception e) {
@@ -89,13 +94,26 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
             sink = null;
         }
         this._sink = sink;
-        this._source = new UDPSource(this._sink.getSocket());
+        // this._source = new UDPSource(this._sink.getSocket());
         this.setSink(this._sink);
+    }
+
+    private int newSourcePort() {
+        int randomPort = (int) (Math.random() * 65535);
+        while (_sourceIPPortTable.containsKey(randomPort)) {
+            randomPort = (int) (Math.random() * 65535);
+        }
+        return randomPort;
     }
 
     private void sendRepliableI2PDatagram(DatagramPacket packet) {
         try {
-            _socket.send(packet);
+            InetSocketAddress sourceIP = new InetSocketAddress(packet.getAddress(), packet.getPort());
+            int sourcePort = this.newSourcePort();
+            _sourceIPPortTable.put(sourcePort, sourceIP);
+            if (_log.shouldLog(Log.DEBUG))
+                _log.debug("Added sourceIP/port to table: " + sourceIP.toString());
+            this.send(null, sourcePort, 0, packet.getData());
         } catch (Exception e) {
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Failed to send UDP packet", e);
@@ -103,9 +121,9 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
     }
 
     private DatagramPacket recieveRAWReplyPacket() {
-        DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
+        DatagramPacket packet = new DatagramPacket(new byte[MAX_SIZE], MAX_SIZE);
         try {
-            _socket.receive(packet);
+            this._socket.receive(packet);
         } catch (Exception e) {
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Failed to receive UDP packet", e);
@@ -117,17 +135,23 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
     public final void startRunning() {
         super.startRunning();
         while (true) {
-            DatagramPacket packet = recieveRAWReplyPacket();
-            if (packet != null) {
-                InetSocketAddress sourceIPPort = new InetSocketAddress(packet.getAddress(), packet.getPort());
-                if (_log.shouldLog(Log.DEBUG))
-                    _log.debug("Received UDP packet from " + sourceIPPort);
-                _sourceIPPortTable.add(sourceIPPort);
-                sendRepliableI2PDatagram(packet);
+            DatagramPacket outboundpacket = new DatagramPacket(new byte[MAX_SIZE], MAX_SIZE);
+            try {
+                this._socket.receive(outboundpacket);
+            } catch (Exception e) {
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("Failed to receive UDP packet", e);
+            }
+            this.sendRepliableI2PDatagram(outboundpacket);
+            while (true) {
+                DatagramPacket inboundpacket = this.recieveRAWReplyPacket();
+                if (inboundpacket.getLength() == 0)
+                    break;
+                // this._source.
+                // int sourcePort = inboundpacket.getPort();
+                // _sourceIPPortTable.remove(sourcePort);
             }
         }
-
-        // this._sink.send(src, fromPort, toPort, data);
     }
 
     @Override
