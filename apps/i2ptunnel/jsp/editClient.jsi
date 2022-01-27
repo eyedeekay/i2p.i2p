@@ -222,7 +222,7 @@
 <%
             }
 
-            if (!"streamrclient".equals(tunnelType) || !"udpclient".equals(tunnelType)) {
+            if (!"streamrclient".equals(tunnelType) && !"udpclient".equals(tunnelType)) {
 %>
         <tr>
             <th colspan="2" <%=phdisabled%>>
@@ -270,7 +270,7 @@
     </table>
     <h3><%=intl._t("Advanced networking options")%></h3>
 <%
-            if (!"streamrclient".equals(tunnelType) || !"udpclient".equals(tunnelType) && (canChangePort || isShared)) {
+            if (!"streamrclient".equals(tunnelType) && !"udpclient".equals(tunnelType) && (canChangePort || isShared)) {
                // no shared client tunnels for streamr
                // If running and not shared, this doesn't apply.
 %>
@@ -393,7 +393,7 @@
             } // client
 %>
 <%
-            if (!"streamrclient".equals(tunnelType) || !"udpclient".equals(tunnelType)) {
+            if (!"streamrclient".equals(tunnelType) && !"udpclient".equals(tunnelType)) {
                 // streamr client sends pings so it will never be idle
 %>
         <tr>

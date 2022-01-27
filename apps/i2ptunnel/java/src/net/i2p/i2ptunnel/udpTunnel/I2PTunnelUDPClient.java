@@ -5,6 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -88,6 +89,11 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
             socket = null;
         }
         _socket = socket;
+        if (!_socket.isBound()) {
+            if (_log.shouldLog(Log.WARN))
+                _log.warn("Failed to bind to UDP port: " + UDP_PORT);
+            _socket.close();
+        }
         try {
             sink = new UDPSink(socket, InetAddress.getByName(host), port);
         } catch (Exception e) {
@@ -135,14 +141,25 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
     public final void startRunning() {
         super.startRunning();
         while (true) {
-            DatagramPacket outboundpacket = new DatagramPacket(new byte[MAX_SIZE], MAX_SIZE);
-            try {
-                this._socket.receive(outboundpacket);
-            } catch (Exception e) {
-                if (_log.shouldLog(Log.WARN))
-                    _log.warn("Failed to receive UDP packet", e);
+            while (true) {
+                DatagramPacket outboundpacket = new DatagramPacket(new byte[MAX_SIZE], MAX_SIZE);
+                try {
+                    this._socket.receive(outboundpacket);
+                } catch (SocketTimeoutException ste) {
+                    if (_log.shouldLog(Log.DEBUG))
+                        _log.debug("Socket timeout, no packet received");
+                    break;
+                } catch (Exception e) {
+                    if (_log.shouldLog(Log.WARN))
+                        _log.warn("Failed to receive UDP packet", e);
+                    break;
+                }
+                if (_log.shouldLog(Log.DEBUG))
+                    _log.debug("Received UDP packet on local address: " + outboundpacket.getAddress().toString()
+                            + ", Forwarding");
+                this.sendRepliableI2PDatagram(outboundpacket);
             }
-            this.sendRepliableI2PDatagram(outboundpacket);
+
             while (true) {
                 DatagramPacket inboundpacket = this.recieveRAWReplyPacket();
                 if (inboundpacket.getLength() == 0)
@@ -152,6 +169,7 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
                 // _sourceIPPortTable.remove(sourcePort);
             }
         }
+
     }
 
     @Override

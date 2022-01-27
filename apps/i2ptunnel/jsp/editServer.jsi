@@ -82,7 +82,7 @@
             </th>
         </tr><tr>
 <%
-            if (!isStreamrServer || !isUDPClient || !isUDPServer) {
+            if (!isStreamrServer && !isUDPServer) {
 %>
             <td>
                 <b><%=intl._t("Host")%>:</b>
@@ -103,7 +103,7 @@
                        String pdisabled = canChangePort ? "" : " readonly=\"readonly\" ";
 %>
                 <input type="text" size="6" maxlength="5" id="targetPort" name="targetPort" title="<%=ptext%>" value="<%=editBean.getTargetPort(curTunnel)%>" class="freetext port" placeholder="required" <%=pdisabled%>/>
-<%          if (!isStreamrServer || !isUDPClient || !isUDPServer) { %>
+<%          if (!isStreamrServer && !isUDPServer) { %>
                 <label title="<%=intl._t("To avoid traffic sniffing if connecting to a remote server, you can enable an SSL connection. Note that the target server must be configured to accept SSL connections.")%>"><input value="1" type="checkbox" name="useSSL"<%=(editBean.isSSLEnabled(curTunnel) ? " checked=\"checked\"" : "")%> class="tickbox" />
                 <%=intl._t("Use SSL to connect to target")%></label>
 <%          } /* !streamrserver */ %>
@@ -719,7 +719,7 @@
 <%
             /* alternate dest, only if current dest is set and is DSA_SHA1 */
 
-            if (currentSigType == 0 && !"".equals(b64) && (!isStreamrServer || !isUDPClient || !isUDPServer)) {
+            if (currentSigType == 0 && !"".equals(b64) && (!isStreamrServer && !isUDPServer)) {
                 String attitle = canChangeEncType ? "" : tstopFirst;
                 String atitle = canChangeEncType ? intl._t("Path to Private Key File") : stopFirst;
                 String adisabled = canChangeEncType ? "" : " readonly=\"readonly\" ";
@@ -869,7 +869,7 @@
             </th>
         </tr>
 <%
-            if (!isStreamrServer || !isUDPClient || !isUDPServer) {
+            if (!isStreamrServer && !isUDPServer) {
 %>
         <tr>
             <th colspan="5">

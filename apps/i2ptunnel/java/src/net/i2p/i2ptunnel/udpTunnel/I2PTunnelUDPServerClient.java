@@ -81,13 +81,23 @@ public class I2PTunnelUDPServerClient extends I2PTunnelUDPServerBase {
     private DatagramPacket recieveRepliableDatagramFromClient() {
         byte[] buf = new byte[MAX_SIZE];
         DatagramPacket pack = new DatagramPacket(buf, buf.length);
+        DatagramSocket sock = null;
         try {
-            DatagramSocket sock = new DatagramSocket(0);
+            sock = new DatagramSocket(0);
             sock.receive(pack);
         } catch (Exception e) {
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Error receiving UDP datagram from client", e);
             return null;
+        } finally {
+            // pack.getData()
+            try {
+                if (sock != null)
+                    sock.close();
+            } catch (Exception e) {
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("Error closing UDP socket", e);
+            }
         }
         return pack;
     }
