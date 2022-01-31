@@ -103,12 +103,22 @@ public class I2PTunnelUDPServerClient extends I2PTunnelUDPServerBase {
     }
 
     private void sendRawDatagamToClient(DatagramPacket pack) {
+        DatagramSocket sock = null;
         try {
-            DatagramSocket sock = new DatagramSocket();
+            sock = new DatagramSocket();
             sock.send(pack);
         } catch (Exception e) {
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Error sending UDP datagram to client", e);
+        } finally {
+            // pack.getData()
+            try {
+                if (sock != null)
+                    sock.close();
+            } catch (Exception e) {
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("Error closing UDP socket", e);
+            }
         }
     }
 

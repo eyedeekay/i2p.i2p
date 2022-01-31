@@ -1492,37 +1492,83 @@ public class I2PTunnel extends EventDispatcherImpl implements Logging {
      * @throws IllegalArgumentException on config problem
      */
     public void runUDPServer(String[] args, Logging l) {
-        if (args.length == 2) {
-            int _port = -1;
+        if (args.length == 4) {
+            InetAddress _host;
             try {
-                _port = Integer.parseInt(args[0]);
+                _host = InetAddress.getByName(args[0]);
+            } catch (UnknownHostException uhe) {
+                l.log("unknown host");
+                _log.error(getPrefix() + "Error resolving " + args[0], uhe);
+                notifyEvent("udpservertunnelTaskId", Integer.valueOf(-1));
+                return;
+            }
+            int _proxyport = -1;
+            try {
+                _proxyport = Integer.parseInt(args[1]);
             } catch (NumberFormatException nfe) {
                 l.log("invalid port");
                 _log.error(getPrefix() + "Port specified is not valid: " + args[0], nfe);
-                notifyEvent("streamrtunnelTaskId", Integer.valueOf(-1));
+                notifyEvent("udpservertunnelTaskId", Integer.valueOf(-1));
             }
-            if (_port <= 0)
+            if (_proxyport <= 0)
                 throw new IllegalArgumentException(getPrefix() + "Bad port " + args[0]);
 
-            File privKeyFile = new File(args[1]);
+            int _rproxyport = -1;
+            try {
+                _rproxyport = Integer.parseInt(args[2]);
+            } catch (NumberFormatException nfe) {
+                l.log("invalid port");
+                _log.error(getPrefix() + "Port specified is not valid: " + args[2], nfe);
+                notifyEvent("udpservertunnelTaskId", Integer.valueOf(-1));
+            }
+            if (_rproxyport <= 0)
+                throw new IllegalArgumentException(getPrefix() + "Bad port " + args[2]);
+
+            File privKeyFile = new File(args[3]);
             if (!privKeyFile.isAbsolute())
                 privKeyFile = new File(_context.getConfigDir(), args[1]);
             if (!privKeyFile.canRead()) {
                 l.log("private key file does not exist");
                 _log.error(getPrefix() + "Private key file does not exist or is not readable: " + args[3]);
-                notifyEvent("serverTaskId", Integer.valueOf(-1));
+                notifyEvent("udpservertunnelTaskId", Integer.valueOf(-1));
                 return;
+            }
+
+            // I2PTunnelUDPServerClient(String host, int port, File privkey, String
+            // privkeyname, Logging l,
+            // EventDispatcher notifyThis,
+            // I2PTunnel tunnel)
+
+            // EventDispatcher notifyThis,
+            // I2PTunnel tunnel)
+
+            try {
+                I2PTunnelUDPServerClient task = new I2PTunnelUDPServerClient(_host.toString(), _proxyport, privKeyFile,
+                        privKeyFile.toString(), l, this, this);
+                task.startRunning();
+                addtask(task);
+                notifyEvent("udpServerTunnelId", Integer.valueOf(task.getId()));
+            } catch (IllegalArgumentException iae) {
+                String msg = "Invalid I2PTunnel configuration to create a UDP Server connecting to the router at "
+                        + host + ':' + port +
+                        " and sending to " + _host + ':' + _proxyport;
+                _log.error(getPrefix() + msg, iae);
+                l.log(msg);
+                notifyEvent("udpServerTunnelId", Integer.valueOf(-1));
+                throw iae;
             }
 
             // I2PTunnelUDPServerClient task = new I2PTunnelUDPServerClient(_port,
             // privKeyFile, args[1], l, this, this);
             // task.startRunning();
             // addtask(task);
-            // notifyEvent("streamrtunnelTaskId", Integer.valueOf(task.getId()));
-        } else {
+            // notifyEvent("udpservertunnelTaskId", Integer.valueOf(task.getId()));
+        } else
+
+        {
             l.log("streamrserver <port> <privkeyfile>\n" +
                     "  creates a tunnel that sends streaming data.");
-            notifyEvent("streamrtunnelTaskId", Integer.valueOf(-1));
+            notifyEvent("udpservertunnelTaskId", Integer.valueOf(-1));
         }
     }
 

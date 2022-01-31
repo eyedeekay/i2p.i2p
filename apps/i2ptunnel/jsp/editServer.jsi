@@ -67,14 +67,13 @@
             boolean canChangeDest = editBean.canChangePort(curTunnel);
             boolean isStreamrServer = "streamrserver".equals(tunnelType);
             boolean isUDPServer = "udpserver".equals(tunnelType);
-            boolean isUDPClient = "udpclient".equals(tunnelType);
             boolean isBidirServer = "httpbidirserver".equals(tunnelType);
-            boolean canChangePort = canChangeDest || !(isStreamrServer || isBidirServer || isUDPClient || isUDPServer);
+            boolean canChangePort = canChangeDest || !(isStreamrServer || isBidirServer || isUDPServer);
             String phdisabled = canChangePort ? "" : tstopFirst;
 %>
             <th colspan="2" <%=phdisabled%>>
 <%
-            if (isStreamrServer || isUDPClient || isUDPServer) { %>
+            if (isStreamrServer) { %>
                 <%=intl._t("Access Point")%>
          <% } else { %>
                 <%=intl._t("Target")%>
@@ -82,7 +81,7 @@
             </th>
         </tr><tr>
 <%
-            if (!isStreamrServer && !isUDPServer) {
+            if (!isStreamrServer) {
 %>
             <td>
                 <b><%=intl._t("Host")%>:</b>
@@ -108,7 +107,7 @@
                 <%=intl._t("Use SSL to connect to target")%></label>
 <%          } /* !streamrserver */ %>
             </td>
-<%          if (isBidirServer || isUDPServer) { %>
+<%          if (isBidirServer) { %>
         </tr><tr>
             <th colspan="2" <%=phdisabled%>>
                 <%=intl._t("Access Point")%>
@@ -129,7 +128,7 @@
                  <input type="text" size="6" maxlength="5" name="port" title="<%=dsphelp%>" value="<%=editBean.getClientPort(curTunnel)%>" class="freetext port" placeholder="required" <%=pdisabled%>/>
             </td>
 <%          } /* httpbidirserver */
-            if (isBidirServer || isStreamrServer || isUDPServer) {
+            if (isBidirServer || isStreamrServer) {
 %>
             <td>
                 <b><%=intl._t("Reachable by")%>:</b>
@@ -157,7 +156,7 @@
             </td>
          <% } /* httpbidirserver || streamrserver */ %>
         </tr>
-<%          if ("httpserver".equals(tunnelType) || isBidirServer) {
+<%          if ("httpserver".equals(tunnelType) || isBidirServer || isUDPServer) {
 %>
         <tr>
             <th>
