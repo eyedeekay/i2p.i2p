@@ -187,22 +187,26 @@ public class ReseedChecker {
      * @since 0.9.52
      */
     public boolean requestOnionReseed(URI uri) {
-        if (testTor()) {
-            String proxyHost = torHost();
-            int proxyPort = torSOCKSPort();
+        int proxyPort = torSOCKSPort();
+        String proxyHost = torHost();
+        if (testTor(proxyHost, proxyPort)) {
             return requestReseed(uri, proxyHost, proxyPort);
         } else {
             return false;
         }
     }
 
-    private boolean testTor() { // throws IOException {
+    private boolean testTor() {
+        return testTor(this._torHost, this._torSOCKSPort);
+    }
+
+    private boolean testTor(String phost, int pport) { // throws IOException {
         // test that the socks 5 proxy is there and auth, if any, works
         Socket s = null;
         OutputStream out = null;
         InputStream in = null;
-        String _phost = "127.0.0.1";
-        int _pport = 9050;
+        String _phost = phost;
+        int _pport = pport;
         String _puser = "reseed";
         String _ppw = "";
         try {
