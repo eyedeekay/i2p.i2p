@@ -111,9 +111,8 @@ public class ReseedChecker {
         File noReseedFileAlt1 = new File(new File(System.getProperty("user.home")), "noreseed.i2p");
         File noReseedFileAlt2 = new File(_context.getConfigDir(), ".i2pnoreseed");
         File noReseedFileAlt3 = new File(_context.getConfigDir(), "noreseed.i2p");
-        if (!noReseedFile.exists() && !noReseedFileAlt1.exists() && !noReseedFileAlt2.exists()
-                && !noReseedFileAlt3.exists()) {
-            if (!Addresses.isConnected()) {
+        if (!noReseedFile.exists() && !noReseedFileAlt1.exists() && !noReseedFileAlt2.exists() && !noReseedFileAlt3.exists()) {
+            if (!Addresses.isConnected() && !Addresses.isConnectedIPv6()) {
                 if (!_networkLogged) {
                     _log.logAlways(Log.WARN, "Cannot reseed, no network connection");
                     _networkLogged = true;
