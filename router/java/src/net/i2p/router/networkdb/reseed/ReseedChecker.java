@@ -316,10 +316,16 @@ public class ReseedChecker {
     }
 
     public boolean requestReseed(URI url, String proxyHost, int proxyPort) throws IllegalArgumentException {
+        if (url.getHost().endsWith(".onion")) {
+            if (proxyHost == null)
+                throw new IllegalArgumentException("Onion reseed requires a proxy host");
+            if (proxyPort <= 0)
+                throw new IllegalArgumentException("Onion reseed requires a proxy port");
+        }
         if (_inProgress.compareAndSet(false, true)) {
             Reseeder reseeder = new Reseeder(_context, this);
             try {
-                reseeder.requestOnionReseed(url, proxyHost, proxyPort);
+                reseeder.requestReseed(url, proxyHost, proxyPort);
                 return true;
             } catch (IllegalArgumentException iae) {
                 if (iae.getMessage() != null)
