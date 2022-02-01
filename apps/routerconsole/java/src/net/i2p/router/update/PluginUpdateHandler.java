@@ -9,6 +9,7 @@ import java.util.Properties;
 import net.i2p.router.RouterContext;
 import net.i2p.router.web.PluginStarter;
 import net.i2p.update.*;
+import net.i2p.util.Log;
 import net.i2p.util.SystemVersion;
 
 /**
@@ -28,9 +29,11 @@ import net.i2p.util.SystemVersion;
 class PluginUpdateHandler implements Checker, Updater {
     private final RouterContext _context;
     private final ConsoleUpdateManager _mgr;
+    private final Log _log;
 
     public PluginUpdateHandler(RouterContext ctx, ConsoleUpdateManager mgr) {
         _context = ctx;
+        _log = _context.logManager().getLog(PluginUpdateHandler.class);
         _mgr = mgr;
     }
 
@@ -51,6 +54,8 @@ class PluginUpdateHandler implements Checker, Updater {
         if (xpi2pURL != null) {
             xpi2pURL = xpi2pURL.replace("$OS", SystemVersion.getOS());
             xpi2pURL = xpi2pURL.replace("$ARCH", SystemVersion.getArch());
+            if (_log.shouldLog(Log.INFO))
+                _log.info("Checking for updates for " + appName + ": " + xpi2pURL);
             try {
                 updateSources = Collections.singletonList(new URI(xpi2pURL));
             } catch (URISyntaxException use) {}

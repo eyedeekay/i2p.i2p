@@ -137,7 +137,10 @@ public abstract class SystemVersion {
             return "linux";
         if (isAndroid())
             return "android";
-        return "unknown";
+        /** Everybody else knows if they're on a Windows machine or a
+         * Mac, so for now, assume linux here.
+         */
+        return "linux";
     }
 
     /**
