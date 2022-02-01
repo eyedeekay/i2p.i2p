@@ -9,6 +9,7 @@ import java.util.Properties;
 import net.i2p.router.RouterContext;
 import net.i2p.router.web.PluginStarter;
 import net.i2p.update.*;
+import net.i2p.util.SystemVersion;
 
 /**
  * Check for or download an updated version of a plugin.
@@ -32,7 +33,7 @@ class PluginUpdateHandler implements Checker, Updater {
         _context = ctx;
         _mgr = mgr;
     }
-    
+
     /** check a single plugin */
     @Override
     public UpdateTask check(UpdateType type, UpdateMethod method,
@@ -48,6 +49,8 @@ class PluginUpdateHandler implements Checker, Updater {
             xpi2pURL = props.getProperty("updateURL");
         List<URI> updateSources = null;
         if (xpi2pURL != null) {
+            xpi2pURL = xpi2pURL.replace("$OS", SystemVersion.getOS());
+            xpi2pURL = xpi2pURL.replace("$ARCH", SystemVersion.getArch());
             try {
                 updateSources = Collections.singletonList(new URI(xpi2pURL));
             } catch (URISyntaxException use) {}
@@ -61,7 +64,7 @@ class PluginUpdateHandler implements Checker, Updater {
         UpdateRunner update = new PluginUpdateChecker(_context, _mgr, updateSources, appName, oldVersion);
         return update;
     }
-    
+
     /** download a single plugin */
     @Override
     public UpdateTask update(UpdateType type, UpdateMethod method, List<URI> updateSources,
@@ -83,4 +86,4 @@ class PluginUpdateHandler implements Checker, Updater {
         return update;
     }
 }
-    
+
