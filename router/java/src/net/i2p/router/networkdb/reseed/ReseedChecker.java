@@ -167,6 +167,48 @@ public class ReseedChecker {
     }
 
     /**
+     * Start a reseed from the onion URL pool
+     *
+     * @return true if a reseed was started, false if already in progress
+     * @since 0.9.53
+     */
+    public boolean requestOnionReseed(){
+        if (!onionReseedsConfigured())
+            return false;
+        if (_inProgress.compareAndSet(false, true)) {
+            _alreadyRun = true;
+            try {
+                Reseeder reseeder = new Reseeder(_context, this);
+                reseeder.requestOnionReseed();
+                return true;
+            } catch (Throwable t) {
+                _log.error("Reseed failed to start", t);
+                done();
+                return false;
+            }
+        } else {
+            if (_log.shouldLog(Log.WARN))
+                _log.warn("Reseed already in progress");
+            return false;
+        }
+    }
+
+    /**
+     * Determine if a list of onion reseeds are configured with i2p.onionReseedURL
+     *
+     * @return true if at least one onion reseed is configured.
+     * @since 0.9.53
+     */
+    public boolean onionReseedsConfigured() {
+        String url = _context.getProperty(Reseeder.PROP_ONION_RESEED_URL);
+        if (url == null)
+            return false;
+        if (url.length() < 1)
+            return false;
+        return true;
+    }
+
+    /**
      * Start a reseed from a zip or su3 URI.
      *
      * @return true if a reseed was started, false if already in progress
@@ -321,10 +363,16 @@ public class ReseedChecker {
 
     public boolean requestReseed(URI url, String proxyHost, int proxyPort) throws IllegalArgumentException {
         if (url.getHost().endsWith(".onion")) {
-            if (proxyHost == null)
+            if (proxyHost == null && testTor()) {
+                proxyHost = torHost();
+            } else {
                 throw new IllegalArgumentException("Onion reseed requires a proxy host");
-            if (proxyPort <= 0)
+            }
+            if (proxyPort <= 0 && testTor()) {
+                proxyPort = torSOCKSPort();
+            } else {
                 throw new IllegalArgumentException("Onion reseed requires a proxy port");
+            }
         }
         if (_inProgress.compareAndSet(false, true)) {
             Reseeder reseeder = new Reseeder(_context, this);

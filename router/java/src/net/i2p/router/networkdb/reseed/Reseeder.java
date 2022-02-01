@@ -185,18 +185,10 @@ public class Reseeder {
         reseed.start();
     }
 
-    /**
-     * Start a reseed from a single zip or su3 URL only.
-     * Explicitly specify proxy host and port. Use it for both http and https.
-     * Threaded, nonblocking.
-     *
-     * @throws IllegalArgumentException if it doesn't end with zip or su3
-     * @since 0.9.19
-     */
-    void requestOnionReseed(URI url, String proxyHost, int proxyPort) throws IllegalArgumentException {
-        ReseedRunner reseedRunner = new ReseedRunner(url, proxyHost, proxyPort);
+    void requestOnionReseed() {
+        ReseedRunner reseedRunner = new ReseedRunner("127.0.0.1", 9050);
         // set to daemon so it doesn't hang a shutdown
-        Thread reseed = new I2PAppThread(reseedRunner, "Reseed", true);
+        Thread reseed = new I2PAppThread(reseedRunner, "OnionReseed", true);
         reseed.start();
     }
 
@@ -208,7 +200,7 @@ public class Reseeder {
      * @throws IllegalArgumentException if it doesn't end with zip or su3
      * @since 0.9.19
      */
-    void requestReseed(URI url, String proxyHost, int proxyPort) throws IllegalArgumentException {
+    void requestReseed(URI url, String proxyHost, int proxyPort) {
         ReseedRunner reseedRunner = new ReseedRunner(url, proxyHost, proxyPort);
         // set to daemon so it doesn't hang a shutdown
         Thread reseed = new I2PAppThread(reseedRunner, "Reseed", true);
@@ -315,6 +307,20 @@ public class Reseeder {
         }
 
         /**
+         * Create a ReseedRunner which specifies a proxy host and port.
+         * If the proxy is Tor(9050), use it for both HTTP and HTTPS,
+         * if not, defer to the `getProxyType()`
+         *
+         * @param proxyHost hostname or IP address of proxy
+         * @param proxyPort port of proxy
+         *
+         * @since 0.9.53
+         */
+        public ReseedRunner(String proxyHost, int proxyPort) throws IllegalArgumentException {
+            this(null, proxyHost, proxyPort);
+        }
+
+        /**
          * Start a reseed from this URL only, or null for trying one or more from the
          * default list.
          *
@@ -331,7 +337,7 @@ public class Reseeder {
             _url = url;
             _bandwidths = new ArrayList<Long>(4);
 
-            if (url.getHost().endsWith(".onion")){
+            if (_url != null && _url.getHost().endsWith(".onion") || proxyPort == 9050) {
                 _sproxyType = SSLEepGet.ProxyType.SOCKS5;
                 _shouldProxyHTTP = true;
                 _shouldProxySSL = true;
@@ -347,7 +353,11 @@ public class Reseeder {
             } else {
                 _sproxyType = getProxyType();
                 _shouldProxyHTTP = _sproxyType != SSLEepGet.ProxyType.NONE;
-                _shouldProxySSL = _context.getBooleanProperty(PROP_SPROXY_ENABLE);
+                if (proxyPort == 9050) {
+                    _shouldProxySSL = true;
+                }else{
+                    _shouldProxySSL = _context.getBooleanProperty(PROP_SPROXY_ENABLE);
+                }
                 if (proxyHost != null && !proxyHost.equals("") && proxyPort > 0) {
                     _proxyHost = proxyHost;
                     _proxyPort = proxyPort;
@@ -418,8 +428,11 @@ public class Reseeder {
                     throw new IllegalArgumentException("Must end with .zip or .su3");
                 }
             } else {
-                total = reseedOnion(false);
-                total += reseed(false);
+                if (_checker.onionReseedsConfigured()){
+                    total = reseedOnion(false);
+                } else {
+                    total = reseed(false);
+                }
             }
             if (total >= 20) {
                 String s = ngettext("Reseed successful, fetched {0} router info",
@@ -587,10 +600,9 @@ public class Reseeder {
         private int reseedOnion(boolean echoStatus) {
             boolean SSLDisable = _context.getBooleanProperty(PROP_SSL_DISABLE);
             boolean SSLRequired = _context.getBooleanProperty(PROP_ONION_SSL_REQUIRED);
-            // _proxyHost = _context.getProperty(PROP_PROXY_HOST);
-            // _proxyPort = _context.getProperty(PROP_PROXY_PORT, -1);
-            // _sproxyHost = _context.getProperty(PROP_SPROXY_HOST);
-            // _sproxyPort = _context.getProperty(PROP_SPROXY_PORT, -1);
+            String urls = _context.getProperty(PROP_ONION_RESEED_URL);
+            if (urls == null)
+                return 0;
             return reseed(echoStatus, PROP_ONION_RESEED_URL, SSLDisable, SSLRequired);
         }
 

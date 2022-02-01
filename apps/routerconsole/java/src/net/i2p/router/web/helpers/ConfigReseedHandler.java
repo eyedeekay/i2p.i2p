@@ -27,7 +27,12 @@ public class ConfigReseedHandler extends FormHandler {
         ReseedChecker checker = _context.netDb().reseedChecker();
         if (_action.equals(_t("Save changes and reseed now"))) {
             saveChanges();
-            if (!checker.requestReseed()) {
+            if (checker.onionReseedsConfigured()) {
+                if (!checker.requestOnionReseed()) {
+                    addFormError(_t("Onion reseeding is already in progress"));
+                    addCheckerStatus(checker);
+                }
+            } else if (!checker.requestReseed()) {
                 addFormError(_t("Reseeding is already in progress"));
                 addCheckerStatus(checker);
             } else {
@@ -96,7 +101,6 @@ public class ConfigReseedHandler extends FormHandler {
                         }
                     }
                 }
-
             } catch (IllegalArgumentException iae) {
                 addFormError(_t("Bad URL {0}", val) + " - " + iae.getLocalizedMessage());
             }
