@@ -117,6 +117,15 @@ public abstract class SystemVersion {
         }
     }
 
+    /**
+     * returns the OS of the system running I2P as a lower-case string
+     * for reference in clients.config and plugin.config files.
+     *
+     * matches the conventions of the Go cross compiler
+     *
+     * @return the OS of the system running I2P as a lower-case string
+     * @since 0.9.53
+     */
     public static String getOS() {
         if (isWindows())
             return "windows";
@@ -131,17 +140,26 @@ public abstract class SystemVersion {
         return "unknown";
     }
 
+    /**
+     * returns the architecture of the system running I2P as a string
+     * for reference in clients.config and plugin.config files.
+     *
+     * matches the conventions of the Go cross compiler
+     *
+     * @return the architecture of the system running I2P as a string
+     * @since 0.9.53
+     */
     public static String getArch() {
         if (is64Bit()){
             if (isARM())
                 return "arm64";
             if (isX86())
-                return "x86_64";
+                return "amd64";
         }
         if (isARM())
             return "arm";
         if (isX86())
-            return "x86";
+            return "386";
         return "unknown";
     }
 
