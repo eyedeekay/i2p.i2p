@@ -117,6 +117,35 @@ public abstract class SystemVersion {
         }
     }
 
+    public static String getOS() {
+        if (isWindows())
+            return "windows";
+        if (isMac())
+            return "mac";
+        if (isGNU())
+            return "linux"; /* actually... */
+        if (isLinuxService())
+            return "linux";
+        if (isAndroid())
+            return "android";
+        return "unknown";
+    }
+
+    public static String getArch() {
+        if (is64Bit()){
+            if (isARM())
+                return "arm64";
+            if (isX86())
+                return "x86_64";
+        }
+        if (isARM())
+            return "arm";
+        if (isX86())
+            return "x86";
+        return "unknown";
+    }
+
+
     public static boolean isWindows() {
         return _isWin;
     }

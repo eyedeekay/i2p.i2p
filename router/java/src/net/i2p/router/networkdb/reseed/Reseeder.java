@@ -430,6 +430,9 @@ public class Reseeder {
             } else {
                 if (_checker.onionReseedsConfigured()){
                     total = reseedOnion(false);
+                    if (total == 0) {
+                        total = reseed(false);
+                    }
                 } else {
                     total = reseed(false);
                 }
