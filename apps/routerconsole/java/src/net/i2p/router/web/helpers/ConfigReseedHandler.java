@@ -51,30 +51,52 @@ public class ConfigReseedHandler extends FormHandler {
                 return;
             }
             try {
-                if (!checker.requestOnionReseed(url)) {
-                    addFormError(_t("Tor not available, performing clearnet reseed"));
-                    addCheckerStatus(checker);
-                } else if (!checker.requestReseed(url)) {
-                    addFormError(_t("Reseeding is already in progress"));
-                    addCheckerStatus(checker);
-                } else {
-                    // wait a while for completion but not forever
-                    for (int i = 0; i < 40; i++) {
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException ie) {
+                if (url.getHost().endsWith(".onion")) {
+                    if (!checker.requestOnionReseed(url)) {
+                        addFormError(_t("Tor not available, unable to perform onion reseed"));
+                        addCheckerStatus(checker);
+                    } else {
+                        // wait a while for completion but not forever
+                        for (int i = 0; i < 40; i++) {
+                            try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException ie) {
+                            }
+                            if (!checker.inProgress())
+                                break;
                         }
-                        if (!checker.inProgress())
-                            break;
+                        if (!addCheckerStatus(checker)) {
+                            if (checker.inProgress()) {
+                                addFormNotice(_t("Reseed in progress, check sidebar for status"));
+                            } else {
+                                addFormNotice(_t("Reseed complete, check sidebar for status"));
+                            }
+                        }
                     }
-                    if (!addCheckerStatus(checker)) {
-                        if (checker.inProgress()) {
-                            addFormNotice(_t("Reseed in progress, check sidebar for status"));
-                        } else {
-                            addFormNotice(_t("Reseed complete, check sidebar for status"));
+                }else{
+                    if (!checker.requestReseed(url)) {
+                        addFormError(_t("Reseeding is already in progress"));
+                        addCheckerStatus(checker);
+                    } else {
+                        // wait a while for completion but not forever
+                        for (int i = 0; i < 40; i++) {
+                            try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException ie) {
+                            }
+                            if (!checker.inProgress())
+                                break;
+                        }
+                        if (!addCheckerStatus(checker)) {
+                            if (checker.inProgress()) {
+                                addFormNotice(_t("Reseed in progress, check sidebar for status"));
+                            } else {
+                                addFormNotice(_t("Reseed complete, check sidebar for status"));
+                            }
                         }
                     }
                 }
+
             } catch (IllegalArgumentException iae) {
                 addFormError(_t("Bad URL {0}", val) + " - " + iae.getLocalizedMessage());
             }

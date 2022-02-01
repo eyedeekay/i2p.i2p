@@ -331,57 +331,56 @@ public class Reseeder {
             _url = url;
             _bandwidths = new ArrayList<Long>(4);
 
-            boolean shouldProxySSL = _context.getBooleanProperty(PROP_SPROXY_ENABLE);
-            SSLEepGet.ProxyType sproxyType;
-            if (proxyHost != null && !proxyHost.equals("") && proxyPort > 0) {
-                _proxyHost = proxyHost;
-                _proxyPort = proxyPort;
+            if (url.getHost().endsWith(".onion")){
+                _sproxyType = SSLEepGet.ProxyType.SOCKS5;
                 _shouldProxyHTTP = true;
                 _shouldProxySSL = true;
-                _sproxyType = SSLEepGet.ProxyType.SOCKS5;
+                if (proxyHost != null && !proxyHost.equals("") && proxyPort > 0) {
+                    _proxyHost = proxyHost;
+                    _proxyPort = proxyPort;
+                } else {
+                    _proxyHost = "127.0.0.1";
+                    _proxyPort = 9050;
+                }
                 _sproxyHost = _proxyHost;
                 _sproxyPort = _proxyPort;
             } else {
-                if (_context.getBooleanProperty(PROP_PROXY_ENABLE)) {
-                    _proxyHost = _context.getProperty(PROP_PROXY_HOST);
-                    _proxyPort = _context.getProperty(PROP_PROXY_PORT, -1);
-                } else if (_url != null && _url.getHost().endsWith(".onion")) {
-                    if (_log.shouldLog(Log.INFO)) {
-                        _log.info("Reseed: Using Tor proxy");
+                _sproxyType = getProxyType();
+                _shouldProxyHTTP = _sproxyType != SSLEepGet.ProxyType.NONE;
+                _shouldProxySSL = _context.getBooleanProperty(PROP_SPROXY_ENABLE);
+                if (proxyHost != null && !proxyHost.equals("") && proxyPort > 0) {
+                    _proxyHost = proxyHost;
+                    _proxyPort = proxyPort;
+                    _sproxyHost = _proxyHost;
+                    _sproxyPort = _proxyPort;
+                } else if (_sproxyType == SSLEepGet.ProxyType.INTERNAL) {
+                    _proxyHost = "localhost";
+                    _proxyPort = _context.portMapper().getPort(PortMapper.SVC_HTTP_PROXY, 4444);
+                    _sproxyHost = "localhost";
+                    _sproxyPort = _context.portMapper().getPort(PortMapper.SVC_HTTP_PROXY, 4444);
+                } else if (_sproxyType != SSLEepGet.ProxyType.NONE) {
+                    if (_context.getBooleanProperty(PROP_PROXY_ENABLE)) {
+                        _proxyHost = _context.getProperty(PROP_PROXY_HOST);
+                        _proxyPort = _context.getProperty(PROP_PROXY_PORT, -1);
+                        if (_shouldProxySSL){
+                            _sproxyHost = _context.getProperty(PROP_SPROXY_HOST);
+                            _sproxyPort = _context.getProperty(PROP_SPROXY_PORT, -1);
+                        }else{
+                            _sproxyHost = null;
+                            _sproxyPort = -1;
+                        }
+                    } else {
+                        _proxyHost = null;
+                        _proxyPort = -1;
+                        _sproxyHost = null;
+                        _sproxyPort = -1;
                     }
-                    _proxyHost = "127.0.0.1";
-                    _proxyPort = 9050;
-                    sproxyType = SSLEepGet.ProxyType.SOCKS5;
-                    shouldProxySSL = true;
                 } else {
                     _proxyHost = null;
                     _proxyPort = -1;
-                }
-                _shouldProxyHTTP = _proxyHost != null && _proxyHost.length() > 0 && _proxyPort > 0;
-
-                if (shouldProxySSL) {
-                    sproxyType = getProxyType();
-                    if (sproxyType == SSLEepGet.ProxyType.INTERNAL) {
-                        _sproxyHost = "localhost";
-                        _sproxyPort = _context.portMapper().getPort(PortMapper.SVC_HTTP_PROXY, 4444);
-                    } else if (_url != null && _url.getHost().endsWith(".onion")) {
-                        if (_log.shouldLog(Log.INFO)) {
-                            _log.info("Reseed: Using Tor proxy");
-                        }
-                        _sproxyHost = "127.0.0.1";
-                        _sproxyPort = 9050;
-                        sproxyType = SSLEepGet.ProxyType.SOCKS5;
-                    } else {
-                        _sproxyHost = _context.getProperty(PROP_SPROXY_HOST);
-                        _sproxyPort = _context.getProperty(PROP_SPROXY_PORT, -1);
-                    }
-                } else {
-                    sproxyType = SSLEepGet.ProxyType.NONE;
                     _sproxyHost = null;
                     _sproxyPort = -1;
                 }
-                _shouldProxySSL = shouldProxySSL && _sproxyHost != null && _sproxyHost.length() > 0 && _sproxyPort > 0;
-                _sproxyType = _shouldProxySSL ? sproxyType : SSLEepGet.ProxyType.NONE;
             }
         }
 

@@ -207,7 +207,7 @@ public class ReseedChecker {
         InputStream in = null;
         String _phost = phost;
         int _pport = pport;
-        String _puser = "reseed";
+        String _puser = ""; //"reseed";
         String _ppw = "";
         try {
             s = new Socket();
