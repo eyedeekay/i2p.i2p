@@ -102,6 +102,24 @@ public class ShellService implements ClientApp {
         if (_log.shouldDebug())
             _log.debug("ShellService: ProcessBuilder: " + _pb.command().toString() + " is built");
 
+        File pluginDir = this.myPluginDir();
+
+
+        _errorLog = new File(pluginDir, "error.log");
+        _outputLog = new File(pluginDir, "output.log");
+        _pb.redirectOutput(_outputLog);
+        _pb.redirectError(_errorLog);
+        if (_log.shouldLog(Log.DEBUG))
+            _log.debug("ShellService: Logs: " + _errorLog.getAbsolutePath() + ", " + _outputLog.getAbsolutePath());
+
+
+        _pb.directory(pluginDir);
+        if (_log.shouldDebug())
+            _log.debug("ShellService: ProcessBuilder: " + _pb.directory() + " is set");
+        changeState(ClientAppState.INITIALIZED, "ShellService: " + getName() + " setup and initialized");
+    }
+
+    private File myPluginDir() {
         String tmp_name = this.getName();
         File pluginDir = new File(_context.getConfigDir(), PLUGIN_DIR + '/' + tmp_name);
         if (!pluginDir.exists()){
@@ -121,21 +139,9 @@ public class ShellService implements ClientApp {
                     _log.debug("ShellService: Plugin name revised to match directory: " + this.getName());
             }
         }
-
-
-        _errorLog = new File(pluginDir, "error.log");
-        _outputLog = new File(pluginDir, "output.log");
-        _pb.redirectOutput(_outputLog);
-        _pb.redirectError(_errorLog);
-        if (_log.shouldLog(Log.DEBUG))
-            _log.debug("ShellService: Logs: " + _errorLog.getAbsolutePath() + ", " + _outputLog.getAbsolutePath());
-
-
-        _pb.directory(pluginDir);
-        if (_log.shouldDebug())
-            _log.debug("ShellService: ProcessBuilder: " + _pb.directory() + " is set");
-        changeState(ClientAppState.INITIALIZED, "ShellService: " + getName() + " setup and initialized");
+        return pluginDir;
     }
+
 
     // private String[] trimArgs(String[] args) {
     private ArrayList<String> trimArgs(String[] args) {
