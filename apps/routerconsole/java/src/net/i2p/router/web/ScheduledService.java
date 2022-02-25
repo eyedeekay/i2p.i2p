@@ -40,6 +40,8 @@
  *  * `numeric-range` tasks that run at a *random* time, within a
  *   specified range, using the nonstandard(for cron) syntax `start-end`
  *
+ * $PLUGIN, $CONFIG, and $I2P variables are usable from the cron file.
+ *
  * it is deliberately *imprecise* in that it does not check if the task
  * is ready to run in real-time, instead, it checks once every minute. It
  * DOES NOT support fractional minutes, tasks that specify fractional minutes
@@ -324,7 +326,14 @@ public class ScheduledService implements ClientApp  {
         public String getCronCommand() {
             checkCronCommand();
             // command is always the **last** entry in the array
-            return cron_entries[cron_entries.length - 1].replaceAll("$PLUGIN", myPluginDir().getAbsolutePath());
+            String command = cron_entries[cron_entries.length - 1].replaceAll("$PLUGIN", myPluginDir().getAbsolutePath());
+            File configDir = _context.getConfigDir();
+            if (configDir != null)
+                command.replaceAll("$CONFIG", configDir.getAbsolutePath());
+            File baseDir = _context.getBaseDir();
+            if (baseDir != null)
+                command.replaceAll("$I2P", baseDir.getParentFile().getAbsolutePath());
+            return command;
         }
         public boolean TimeToRun() {
             //Date now_date = new Date(now);
