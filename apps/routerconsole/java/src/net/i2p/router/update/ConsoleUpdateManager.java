@@ -16,10 +16,12 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
+import net.i2p.CoreVersion;
 import net.i2p.I2PAppContext;
 import net.i2p.app.ClientAppManager;
 import net.i2p.app.ClientAppState;
 import static net.i2p.app.ClientAppState.*;
+import net.i2p.app.NotificationService;
 import net.i2p.crypto.SU3File;
 import net.i2p.crypto.TrustedUpdate;
 import net.i2p.data.DataHelper;
@@ -57,7 +59,7 @@ import net.i2p.util.VersionComparator;
  *  @since 0.9.4
  */
 public class ConsoleUpdateManager implements UpdateManager, RouterApp {
-    
+
     private final RouterContext _context;
     private final Log _log;
     private final Collection<RegisteredUpdater> _registeredUpdaters;
@@ -146,6 +148,7 @@ public class ConsoleUpdateManager implements UpdateManager, RouterApp {
         notifyInstalled(ROUTER_SIGNED, "", RouterVersion.VERSION);
         notifyInstalled(ROUTER_SIGNED_SU3, "", RouterVersion.VERSION);
         notifyInstalled(ROUTER_DEV_SU3, "", RouterVersion.FULL_VERSION);
+        notifyInstalled(API, "", CoreVersion.PUBLISHED_VERSION);
         String blist = _context.getProperty(NewsFetcher.PROP_BLOCKLIST_TIME);
         if (blist != null)
             notifyInstalled(BLOCKLIST, Blocklist.ID_FEED, blist);
@@ -193,10 +196,7 @@ public class ConsoleUpdateManager implements UpdateManager, RouterApp {
             List<URI> updateSources = uuh.getUpdateSources();
             if (updateSources != null) {
                 VersionAvailable newVA;
-                if (SystemVersion.isJava7())
-                    newVA = new VersionAvailable(newVersion, "", HTTP, updateSources);
-                else
-                    newVA = new VersionAvailable(newVersion, "Requires Java 7");
+                newVA = new VersionAvailable(newVersion, "", HTTP, updateSources);
                 _available.put(new UpdateItem(ROUTER_UNSIGNED, ""), newVA);
             }
         }
@@ -210,10 +210,7 @@ public class ConsoleUpdateManager implements UpdateManager, RouterApp {
                 List<URI> updateSources = dsuh.getUpdateSources();
                 if (updateSources != null) {
                     VersionAvailable newVA;
-                    if (SystemVersion.isJava7())
-                        newVA = new VersionAvailable(newVersion, "", HTTP, updateSources);
-                    else
-                        newVA = new VersionAvailable(newVersion, "Requires Java 7");
+                    newVA = new VersionAvailable(newVersion, "", HTTP, updateSources);
                     _available.put(new UpdateItem(ROUTER_DEV_SU3, ""), newVA);
                 }
             } else {
@@ -752,7 +749,7 @@ public class ConsoleUpdateManager implements UpdateManager, RouterApp {
             _log.info("Unregistering " + ru);
         _registeredUpdaters.remove(ru);
     }
-    
+
     public void register(Checker updater, UpdateType type, UpdateMethod method, int priority) {
         RegisteredChecker rc = new RegisteredChecker(updater, type, method, priority);
         if (_log.shouldLog(Log.INFO))
@@ -783,7 +780,7 @@ public class ConsoleUpdateManager implements UpdateManager, RouterApp {
         if (old != null && _log.shouldLog(Log.WARN))
             _log.warn("Duplicate registration " + upp);
     }
-    
+
     /**
      *  Called by the Updater, either after check() was called, or it found out on its own.
      *  Use this if there is only one UpdateMethod; otherwise use the Map method below.
@@ -896,6 +893,15 @@ public class ConsoleUpdateManager implements UpdateManager, RouterApp {
 
         if (!shouldUpdate)
             return false;
+
+        if (type == ROUTER_SIGNED_SU3 && _cmgr != null) {
+            NotificationService ns = (NotificationService) _cmgr.getRegisteredApp("desktopgui");
+            if (ns != null) {
+                ns.notify("Router", null, Log.INFO, _t("Router"), 
+                          _t("Update available") + ": " + _t("Version {0}", newVersion),
+                          null);
+            }
+        }
 
         String msg = null;
         switch (type) {
@@ -1249,7 +1255,7 @@ public class ConsoleUpdateManager implements UpdateManager, RouterApp {
         if (old != null && old.compareTo(ver) <= 0)
             _available.remove(ui);
     }
-    
+
     /** from NewsFetcher */
     boolean shouldInstall() {
         String policy = _context.getProperty(ConfigUpdateHandler.PROP_UPDATE_POLICY);
@@ -1259,7 +1265,7 @@ public class ConsoleUpdateManager implements UpdateManager, RouterApp {
         File zip = new File(_context.getRouterDir(), Router.UPDATE_FILE);
         return !zip.exists();
     }
-    
+
     /**
      *  Where to find various resources
      *  @return non-null may be empty
@@ -1381,7 +1387,7 @@ public class ConsoleUpdateManager implements UpdateManager, RouterApp {
                                 upp.updateDownloadedandVerified(updateType, ftype, actualVersion, temp);
                                 _externalRestartPending = true;
                             } else {
-                                err = "Unsupported su3 file type " + ftype;
+                                err = "Unsupported su3 file type " + ftype + " " + updateType;
                             }
                         } else {
                             err = "Unsupported su3 file type " + ftype;
