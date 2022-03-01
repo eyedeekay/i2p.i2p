@@ -1,6 +1,7 @@
 package net.i2p.router.transport.udp;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,15 +38,15 @@ import net.i2p.util.SimpleTimer2;
  *
  */
 public class PeerState {
-    private final RouterContext _context;
-    private final Log _log;
+    protected final RouterContext _context;
+    protected final Log _log;
     /**
      * The peer are we talking to.  This should be set as soon as this
      * state is created if we are initiating a connection, but if we are
      * receiving the connection this will be set only after the connection
      * is established.
      */
-    private final Hash _remotePeer;
+    protected final Hash _remotePeer;
     /**
      * The AES key used to verify packets, set only after the connection is
      * established.
@@ -136,13 +137,13 @@ public class PeerState {
      */
     private volatile int _slowStartThreshold;
     /** what IP is the peer sending and receiving packets on? */
-    private final byte[] _remoteIP;
+    protected final byte[] _remoteIP;
     /** cached IP address */
-    private volatile InetAddress _remoteIPAddress;
+    protected volatile InetAddress _remoteIPAddress;
     /** what port is the peer sending and receiving packets on? */
-    private volatile int _remotePort;
+    protected volatile int _remotePort;
     /** cached RemoteHostId, used to find the peerState by remote info */
-    private volatile RemoteHostId _remoteHostId;
+    protected volatile RemoteHostId _remoteHostId;
 
     /** if we need to contact them, do we need to talk to an introducer? */
     //private boolean _remoteRequiresIntroduction;
@@ -159,7 +160,7 @@ public class PeerState {
      */
     private long _theyRelayToUsAs;
     /** what is the largest packet we can currently send to the peer? */
-    private int _mtu;
+    protected int _mtu;
     private int _mtuReceive;
     /** what is the largest packet we will ever send to the peer? */
     private int _largeMTU;
@@ -191,7 +192,7 @@ public class PeerState {
     private boolean _mayDisconnect;
 
     /** list of InboundMessageState for active message */
-    private final Map<Long, InboundMessageState> _inboundMessages;
+    protected final Map<Long, InboundMessageState> _inboundMessages;
 
     /**
      *  Mostly messages that have been transmitted and are awaiting acknowledgement,
@@ -211,7 +212,7 @@ public class PeerState {
     /** when the retransmit timer is about to trigger */
     private long _retransmitTimer;
 
-    private final UDPTransport _transport;
+    protected final UDPTransport _transport;
 
     /** have we migrated away from this peer to another newer one? */
     private volatile boolean _dead;
@@ -378,6 +379,67 @@ public class PeerState {
         _remoteHostId = new RemoteHostId(remoteIP, remotePort);
         _bwEstimator = new SimpleBandwidthEstimator(ctx, this);
     }
+
+    /**
+     *  For SSU2
+     *
+     *  @since 0.9.54
+     */
+    protected PeerState(RouterContext ctx, UDPTransport transport,
+                        InetSocketAddress addr, Hash remotePeer, boolean isInbound, int rtt) {
+        _context = ctx;
+        _log = ctx.logManager().getLog(getClass());
+        _transport = transport;
+        long now = ctx.clock().now();
+        _keyEstablishedTime = now;
+        _lastSendTime = now;
+        _lastReceiveTime = now;
+        _slowStartThreshold = MAX_SEND_WINDOW_BYTES/2;
+        _receivePeriodBegin = now;
+        _remoteIP = addr.getAddress().getAddress();
+        _remotePort = addr.getPort();
+        if (_remoteIP.length == 4) {
+            _mtu = DEFAULT_MTU;
+            _mtuReceive = DEFAULT_MTU;
+            _largeMTU = transport.getMTU(false);
+        } else {
+            _mtu = MIN_IPV6_MTU;
+            _mtuReceive = MIN_IPV6_MTU;
+            _largeMTU = transport.getMTU(true);
+        }
+        // RFC 5681 sec. 3.1
+        if (_mtu > 1095)
+            _sendWindowBytes = 3 * _mtu;
+        else
+            _sendWindowBytes = 4 * _mtu;
+        _sendWindowBytesRemaining = _sendWindowBytes;
+
+        _lastACKSend = -1;
+
+        _rto = INIT_RTO;
+        _rtt = INIT_RTT;
+        if (rtt > 0)
+            recalculateTimeouts(rtt);
+        else
+            _rttDeviation = _rtt;
+
+        _inboundMessages = new HashMap<Long, InboundMessageState>(8);
+        _outboundMessages = new CachedIteratorCollection<OutboundMessageState>();
+        _outboundQueue = new PriBlockingQueue<OutboundMessageState>(ctx, "UDP-PeerState", 32);
+        _remotePeer = remotePeer;
+        _isInbound = isInbound;
+        _remoteHostId = new RemoteHostId(_remoteIP, _remotePort);
+        _bwEstimator = new SimpleBandwidthEstimator(ctx, this);
+        // Unused in SSU2
+        _currentACKs = null;
+        _currentACKsResend = null;
+        _ackedMessages = null;
+    }
+    
+    /**
+     * @since 0.9.54
+     */
+    public int getVersion() { return 1; }
 
     /**
      *  Caller should sync; UDPTransport must remove and add to peersByRemoteHost map

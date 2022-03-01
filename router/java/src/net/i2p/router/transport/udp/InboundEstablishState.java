@@ -1,6 +1,7 @@
 package net.i2p.router.transport.udp;
 
 import java.io.ByteArrayInputStream;
+import java.net.InetSocketAddress;
 import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -27,8 +28,8 @@ import net.i2p.util.Log;
  * TODO do all these methods need to be synchronized?
  */
 class InboundEstablishState {
-    private final RouterContext _context;
-    private final Log _log;
+    protected final RouterContext _context;
+    protected final Log _log;
     // SessionRequest message
     private byte _receivedX[];
     private byte _bobIP[];
@@ -36,9 +37,9 @@ class InboundEstablishState {
     private final DHSessionKeyBuilder _keyBuilder;
     // SessionCreated message
     private byte _sentY[];
-    private final byte _aliceIP[];
-    private final int _alicePort;
-    private long _sentRelayTag;
+    protected final byte _aliceIP[];
+    protected final int _alicePort;
+    protected long _sentRelayTag;
     private long _sentSignedOnTime;
     private SessionKey _sessionKey;
     private SessionKey _macKey;
@@ -49,23 +50,23 @@ class InboundEstablishState {
     private byte _receivedSignature[];
     private boolean _verificationAttempted;
     // sig not verified
-    private RouterIdentity _receivedUnconfirmedIdentity;
+    protected RouterIdentity _receivedUnconfirmedIdentity;
     // identical to uncomfirmed, but sig now verified
-    private RouterIdentity _receivedConfirmedIdentity;
+    protected RouterIdentity _receivedConfirmedIdentity;
     // general status 
-    private final long _establishBegin;
+    protected final long _establishBegin;
     //private long _lastReceive;
-    private long _lastSend;
-    private long _nextSend;
-    private final RemoteHostId _remoteHostId;
-    private InboundState _currentState;
+    protected long _lastSend;
+    protected long _nextSend;
+    protected final RemoteHostId _remoteHostId;
+    protected InboundState _currentState;
     private final Queue<OutNetMessage> _queuedMessages;
     // count for backoff
-    private int _createdSentCount;
+    protected int _createdSentCount;
     // default true
-    private boolean _introductionRequested = true;
+    protected boolean _introductionRequested = true;
 
-    private int _rtt;
+    protected int _rtt;
     
     public enum InboundState {
         /** nothin known yet */
@@ -82,17 +83,33 @@ class InboundEstablishState {
         /** we are explicitly failing it */
         IB_STATE_FAILED,
         /** Successful completion, PeerState created and added to transport */
-        IB_STATE_COMPLETE
+        IB_STATE_COMPLETE,
+
+        /**
+         * SSU2: We have received a token request
+         * @since 0.9.54
+         */
+        IB_STATE_TOKEN_REQUEST_RECEIVED,
+        /**
+         * SSU2: We have received a request but the token is bad
+         * @since 0.9.54
+         */
+        IB_STATE_REQUEST_BAD_TOKEN_RECEIVED,
+        /**
+         * SSU2: We have sent a retry
+         * @since 0.9.54
+         */
+        IB_STATE_RETRY_SENT,
     }
     
     /** basic delay before backoff
      *  Transmissions at 0, 3, 9 sec
      *  Previously: 1500 (0, 1.5, 4.5, 10.5)
      */
-    private static final long RETRANSMIT_DELAY = 3000;
+    protected static final long RETRANSMIT_DELAY = 3000;
 
     /** max delay including backoff */
-    private static final long MAX_DELAY = 15*1000;
+    protected static final long MAX_DELAY = 15*1000;
 
     /**
      *  @param localPort Must be our external port, otherwise the signature of the
@@ -112,7 +129,30 @@ class InboundEstablishState {
         _queuedMessages = new LinkedBlockingQueue<OutNetMessage>();
         receiveSessionRequest(req);
     }
+
+    /**
+     *  For SSU2
+     *
+     *  @since 0.9.54
+     */
+    protected InboundEstablishState(RouterContext ctx, InetSocketAddress addr) {
+        _context = ctx;
+        _log = ctx.logManager().getLog(getClass());
+        _aliceIP = addr.getAddress().getAddress();
+        _alicePort = addr.getPort();
+        _remoteHostId = new RemoteHostId(_aliceIP, _alicePort);
+        _bobPort = 0;
+        _currentState = InboundState.IB_STATE_UNKNOWN;
+        _establishBegin = ctx.clock().now();
+        _keyBuilder = null;
+        _queuedMessages = new LinkedBlockingQueue<OutNetMessage>();
+    }
     
+    /**
+     * @since 0.9.54
+     */
+    public int getVersion() { return 1; }
+
     public synchronized InboundState getState() { return _currentState; }
 
     /** @return if previously complete */
@@ -371,7 +411,7 @@ class InboundEstablishState {
      *  Have we fully received the SessionConfirmed messages from Alice?
      *  Caller must synch on this.
      */
-    private boolean confirmedFullyReceived() {
+    protected boolean confirmedFullyReceived() {
         if (_receivedIdentity != null) {
             for (int i = 0; i < _receivedIdentity.length; i++) {
                 if (_receivedIdentity[i] == null)
@@ -495,7 +535,7 @@ class InboundEstablishState {
     /**
      *  Call from synchronized method only
      */
-    private void packetReceived() {
+    protected void packetReceived() {
         _nextSend = _context.clock().now();
     }
     

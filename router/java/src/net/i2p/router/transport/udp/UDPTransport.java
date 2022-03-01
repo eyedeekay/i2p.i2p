@@ -15,13 +15,16 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import net.i2p.CoreVersion;
+import net.i2p.crypto.EncType;
 import net.i2p.crypto.HMACGenerator;
+import net.i2p.crypto.KeyPair;
 import net.i2p.crypto.SigType;
 import net.i2p.data.Base64;
 import net.i2p.data.DatabaseEntry;
@@ -30,6 +33,7 @@ import net.i2p.data.Hash;
 import net.i2p.data.router.RouterAddress;
 import net.i2p.data.router.RouterIdentity;
 import net.i2p.data.router.RouterInfo;
+import net.i2p.data.PrivateKey;
 import net.i2p.data.SessionKey;
 import net.i2p.data.i2np.DatabaseStoreMessage;
 import net.i2p.data.i2np.I2NPMessage;
@@ -46,6 +50,7 @@ import net.i2p.router.transport.TransportImpl;
 import net.i2p.router.transport.TransportUtil;
 import static net.i2p.router.transport.TransportUtil.IPv6Config.*;
 import net.i2p.router.transport.crypto.DHSessionKeyBuilder;
+import net.i2p.router.transport.crypto.X25519KeyFactory;
 import static net.i2p.router.transport.udp.PeerTestState.Role.*;
 import net.i2p.router.util.EventLog;
 import net.i2p.router.util.RandomIterator;
@@ -131,6 +136,28 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
         to store it somewhere. */
     private RouterAddress _currentOurV4Address;
     private RouterAddress _currentOurV6Address;
+
+    // SSU2
+    public static final String STYLE2 = "SSU2";
+    static final int SSU2_INT_VERSION = 2;
+    /** "2" */
+    static final String SSU2_VERSION = Integer.toString(SSU2_INT_VERSION);
+    /** "2," */
+    static final String SSU2_VERSION_ALT = SSU2_VERSION + ',';
+    private final boolean _enableSSU1;
+    private final boolean _enableSSU2;
+    private final PacketBuilder2 _packetBuilder2;
+    private final X25519KeyFactory _xdhFactory;
+    private final byte[] _ssu2StaticPubKey;
+    private final byte[] _ssu2StaticPrivKey;
+    private final byte[] _ssu2StaticIntroKey;
+    private final String _ssu2B64StaticPubKey;
+    private final String _ssu2B64StaticIntroKey;
+    /** b64 static private key */
+    public static final String PROP_SSU2_SP = "i2np.ssu2.sp";
+    /** b64 static IV */
+    public static final String PROP_SSU2_IKEY = "i2np.ssu2.ikey";
+    private static final long MIN_DOWNTIME_TO_REKEY_HIDDEN = 24*60*60*1000L;
 
     private static final int DROPLIST_PERIOD = 10*60*1000;
     public static final String STYLE = "SSU";
@@ -295,10 +322,14 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
                                                                     Status.IPV4_DISABLED_IPV6_OK);
 
 
-    public UDPTransport(RouterContext ctx, DHSessionKeyBuilder.Factory dh) {
+    /**
+     *  @param xdh non-null to enable SSU2
+     */
+    public UDPTransport(RouterContext ctx, DHSessionKeyBuilder.Factory dh, X25519KeyFactory xdh) {
         super(ctx);
         _networkID = ctx.router().getNetworkID();
         _dhFactory = dh;
+        _xdhFactory = xdh;
         _log = ctx.logManager().getLog(UDPTransport.class);
         _peersByIdent = new ConcurrentHashMap<Hash, PeerState>(128);
         _peersByRemoteHost = new ConcurrentHashMap<RemoteHostId, PeerState>(128);
@@ -322,6 +353,7 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
         }
 
         _packetBuilder = new PacketBuilder(_context, this);
+        _packetBuilder2 = (xdh != null) ? new PacketBuilder2(_context, this) : null;
         _fragments = new OutboundMessageFragments(_context, this, _activeThrottle);
         _inboundFragments = new InboundMessageFragments(_context, _fragments, this);
         //if (SHOULD_FLOOD_PEERS)
@@ -363,6 +395,63 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
         //_context.statManager().createRateStat("udp.packetAuthTimeSlow", "How long it takes to encrypt and MAC a packet for sending (when its slow)", "udp", RATES);
 
         _context.simpleTimer2().addPeriodicEvent(new PingIntroducers(), MIN_EXPIRE_TIMEOUT * 3 / 4);
+
+        // SSU2 key and IV generation if required
+        _enableSSU1 = dh != null;
+        _enableSSU2 = xdh != null;
+        byte[] ikey = null;
+        String b64Ikey = null;
+        if (_enableSSU2) {
+            byte[] priv = null;
+            boolean shouldSave = false;
+            String s = null;
+            // try to determine if we've been down for 30 days or more
+            long minDowntime = _context.router().isHidden() ? MIN_DOWNTIME_TO_REKEY_HIDDEN : MIN_DOWNTIME_TO_REKEY;
+            boolean shouldRekey = _context.getEstimatedDowntime() >= minDowntime;
+            if (!shouldRekey) {
+                s = ctx.getProperty(PROP_SSU2_SP);
+                if (s != null) {
+                    priv = Base64.decode(s);
+                }
+            }
+            if (priv == null || priv.length != SSU2Util.KEY_LEN) {
+                KeyPair keys = xdh.getKeys();
+                _ssu2StaticPrivKey = keys.getPrivate().getData();
+                _ssu2StaticPubKey = keys.getPublic().getData();
+                shouldSave = true;
+            } else {
+                _ssu2StaticPrivKey = priv;
+                _ssu2StaticPubKey = (new PrivateKey(EncType.ECIES_X25519, priv)).toPublic().getData();
+            }
+            if (!shouldSave) {
+                s = ctx.getProperty(PROP_SSU2_IKEY);
+                if (s != null) {
+                    ikey = Base64.decode(s);
+                    b64Ikey = s;
+                }
+            }
+            if (ikey == null || ikey.length != SSU2Util.INTRO_KEY_LEN) {
+                ikey = new byte[SSU2Util.INTRO_KEY_LEN];
+                do {
+                    ctx.random().nextBytes(ikey);
+                } while (DataHelper.eq(ikey, 0, SSU2Util.ZEROKEY, 0, SSU2Util.INTRO_KEY_LEN));
+                shouldSave = true;
+            }
+            if (shouldSave) {
+                Map<String, String> changes = new HashMap<String, String>(2);
+                String b64Priv = Base64.encode(_ssu2StaticPrivKey);
+                b64Ikey = Base64.encode(ikey);
+                changes.put(PROP_SSU2_SP, b64Priv);
+                changes.put(PROP_SSU2_IKEY, b64Ikey);
+                ctx.router().saveConfig(changes, null);
+            }
+        } else {
+            _ssu2StaticPrivKey = null;
+            _ssu2StaticPubKey = null;
+        }
+        _ssu2StaticIntroKey = ikey;
+        _ssu2B64StaticIntroKey = b64Ikey;
+        _ssu2B64StaticPubKey = (_ssu2StaticPubKey != null) ? Base64.encode(_ssu2StaticPubKey) : null;
     }
 
     /**
@@ -372,6 +461,7 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
     OutboundMessageFragments getOMF() {
         return _fragments;
     }
+
     
     /**
      *  Pick a port if not previously configured, so that TransportManager may
@@ -567,7 +657,7 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
             _establisher = new EstablishmentManager(_context, this);
         
         if (_handler == null)
-            _handler = new PacketHandler(_context, this, _establisher, _inboundFragments, _testManager, _introManager);
+            _handler = new PacketHandler(_context, this, _enableSSU2, _establisher, _inboundFragments, _testManager, _introManager);
         
         // See comments in DummyThrottle.java
         if (USE_PRIORITY && _refiller == null)
@@ -778,6 +868,91 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
      *
      */
     SessionKey getIntroKey() { return _introKey; }
+
+    /**
+     * The static Intro key
+     *
+     * @return null if not configured for SSU2
+     * @since 0.9.54
+     */
+    byte[] getSSU2StaticIntroKey() {
+        return _ssu2StaticIntroKey;
+    }
+
+    /**
+     * The static pub key
+     *
+     * @return null if not configured for SSU2
+     * @since 0.9.54
+     */
+    byte[] getSSU2StaticPubKey() {
+        return _ssu2StaticPubKey;
+    }
+
+    /**
+     * The static priv key
+     *
+     * @return null if not configured for SSU2
+     * @since 0.9.54
+     */
+    byte[] getSSU2StaticPrivKey() {
+        return _ssu2StaticPrivKey;
+    }
+
+    /**
+     * Get the valid SSU version of Bob's SSU address
+     * for our outbound connections as Alice.
+     *
+     * @return the valid version 1 or 2, or 0 if unusable
+     * @since 0.9.54
+     */
+    int getSSUVersion(RouterAddress addr) {
+        int rv;
+        String style = addr.getTransportStyle();
+        if (style.equals(STYLE)) {
+            if (!_enableSSU2)
+                return 1;
+            rv = 1;
+        } else if (style.equals(STYLE2)) {
+            if (!_enableSSU2)
+                return 0;
+            rv = SSU2_INT_VERSION;
+        } else {
+            return 0;
+        }
+        // check version == "2" || version starts with "2,"
+        // and static key and intro key
+        String v = addr.getOption("v");
+        if (v == null ||
+            addr.getOption("i") == null ||
+            addr.getOption("s") == null ||
+            (!v.equals(SSU2_VERSION) && !v.startsWith(SSU2_VERSION_ALT))) {
+            // his address is SSU1 or is outbound SSU2 only
+            //return (rv == 1 && _enableSSU1) ? 1 : 0;
+            return (rv == 1) ? 1 : 0;
+        }
+        // his address is SSU2
+        // do not validate the s/i b64, we will just catch it later
+        return SSU2_INT_VERSION;
+    }
+
+    /**
+     * Add the required options to the properties for a SSU2 address.
+     * Host/port must already be set in props if they are going to be.
+     * Must only be called if SSU2 is enabled.
+     *
+     * @since 0.9.54
+     */
+    private void addSSU2Options(Properties props) {
+        // only set i if we are not firewalled
+        if (props.containsKey("host")) {
+            props.setProperty("i", _ssu2B64StaticIntroKey);
+        } else {
+            props.remove("i");
+        }
+        props.setProperty("s", _ssu2B64StaticPubKey);
+        props.setProperty("v", SSU2_VERSION);
+    }
 
     /**
      *  Published or requested port
@@ -2039,10 +2214,17 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
             }
 
             // c++ bug thru 2.36.0/0.9.49, will disconnect inbound session after 5 seconds
-            if (addr.getCost() == 10) {
+            int cost = addr.getCost();
+            if (cost == 10) {
                 if (VersionComparator.comp(toAddress.getVersion(), "0.9.49") <= 0) {
                     //if (_log.shouldDebug())
                     //    _log.debug("Not bidding to: " + toAddress);
+                    markUnreachable(to);
+                    return null;
+                }
+            } else if (cost == 9) {
+                // c++ bug in 2.40.0/0.9.52, drops SSU messages
+                if (toAddress.getVersion().equals("0.9.52")) {
                     markUnreachable(to);
                     return null;
                 }
@@ -2106,12 +2288,12 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
             } else if (preferUDP()) {
                 return _cachedBid[SLOW_BID];
             } else if (haveCapacity()) {
-                if (addr.getCost() > DEFAULT_COST)
+                if (cost > DEFAULT_COST)
                     return _cachedBid[SLOWEST_COST_BID];
                 else
                     return _cachedBid[SLOWEST_BID];
             } else {
-                if (addr.getCost() > DEFAULT_COST)
+                if (cost > DEFAULT_COST)
                     return _cachedBid[NEAR_CAPACITY_COST_BID];
                 else
                     return _cachedBid[NEAR_CAPACITY_BID];
@@ -2128,6 +2310,8 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
         List<RouterAddress> addrs = getTargetAddresses(target);
         for (int i = 0; i < addrs.size(); i++) {
             RouterAddress addr = addrs.get(i);
+            //if (getSSUVersion(addr) == 0)
+            //    continue;
             if (addr.getOption("ihost0") == null) {
                 byte[] ip = addr.getIP();
                 int port = addr.getPort();
@@ -2168,6 +2352,16 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
     public static final int MIN_EXPIRE_TIMEOUT = 165*1000;
     
     public String getStyle() { return STYLE; }
+
+    /**
+     * An alternate supported style, or null.
+     * @since 0.9.54
+     */
+    @Override
+    public String getAltStyle() {
+        return _enableSSU2 ? STYLE2 : null;
+    }
+
 
     @Override
     public void send(OutNetMessage msg) { 
@@ -2513,6 +2707,8 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
             else
                 caps = CAP_IPV4;
             options.setProperty(UDPAddress.PROP_CAPACITY, caps);
+            if (_enableSSU2)
+                addSSU2Options(options);
             RouterAddress current = getCurrentAddress(false);
             RouterAddress addr = new RouterAddress(STYLE, options, SSU_OUTBOUND_COST);
             if (!addr.deepEquals(current)) {
@@ -2613,6 +2809,8 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
                 else if (config == IPV6_NOT_PREFERRED)
                     cost++;
             }
+            if (_enableSSU2)
+                addSSU2Options(options);
             RouterAddress addr = new RouterAddress(STYLE, options, cost);
 
             RouterAddress current = getCurrentAddress(isIPv6);
@@ -2643,6 +2841,8 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
                     // Also make an empty "6" address
                     OrderedProperties opts = new OrderedProperties(); 
                     opts.setProperty(UDPAddress.PROP_CAPACITY, CAP_IPV6);
+                    if (_enableSSU2)
+                        addSSU2Options(opts);
                     RouterAddress addr6 = new RouterAddress(STYLE, opts, SSU_OUTBOUND_COST);
                     replaceAddress(addr6);
                 }
@@ -3198,6 +3398,14 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
     DHSessionKeyBuilder.Factory getDHFactory() {
         return _dhFactory;
     }
+
+    /**
+     *  @return null if not configured for SSU2
+     *  @since 0.9.54
+     */
+    X25519KeyFactory getXDHFactory() {
+        return _xdhFactory;
+    }
     
     /**
      *  @return the SSU HMAC
@@ -3213,6 +3421,14 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
      */
     PacketBuilder getBuilder() {
         return _packetBuilder;
+    }
+
+    /**
+     *  @return null if not configured for SSU2
+     *  @since 0.9.54
+     */
+    PacketBuilder2 getBuilder2() {
+        return _packetBuilder2;
     }
 
     /**
@@ -3544,6 +3760,9 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
         List<PeerState> peers = new ArrayList<PeerState>(_peersByIdent.values());
         for (Iterator<PeerState> iter = new RandomIterator<PeerState>(peers); iter.hasNext(); ) {
             PeerState peer = iter.next();
+            // Skip SSU2 until we have support for peer test
+            if (peer.getVersion() != 1)
+                continue;
             if ( (dontInclude != null) && (dontInclude.equals(peer.getRemoteHostId())) )
                 continue;
             // enforce IPv4/v6 connection if we are ALICE looking for a BOB
