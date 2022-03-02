@@ -25,7 +25,7 @@
  * In this way it differs from `cron` or other solutions.
  *
  * It uses a config file with an intentionally cron-like syntax. Unlike
- * with cron he config file must contain exactly one task. This config
+ * with cron the config file must contain exactly one task. This config
  * file is passed in the `args` field of the `ScheduledService`
  * clients.config, and may have any name and run any task present on the
  * system or shipped with the hypothetical ScheduledService plugin.
