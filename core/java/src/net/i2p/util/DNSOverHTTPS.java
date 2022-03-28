@@ -29,6 +29,7 @@ import org.minidns.record.Record.TYPE;
 import net.i2p.I2PAppContext;
 import net.i2p.data.Base64;
 import net.i2p.data.DataHelper;
+import net.i2p.util.Addresses;
 
 /**
  *  Simple implemetation of DNS over HTTPS.
@@ -63,8 +64,12 @@ public class DNSOverHTTPS implements EepGet.StatusListener {
     // consecutive failures
     private static final ObjectCounter<String> fails = new ObjectCounter<String>();
 
-    // ESR version of Firefox, same as Tor Browser
-    private static final String UA_CLEARNET = "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0";
+    /**
+     *  ESR version of Firefox, same as Tor Browser
+     *
+     *  @since public since 0.9.54 for i2ptunnel
+     */
+    public static final String UA_CLEARNET = "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0";
 
     private static final int MAX_RESPONSE_SIZE = 2048;
     private static final boolean DEBUG = false;
@@ -157,11 +162,13 @@ public class DNSOverHTTPS implements EepGet.StatusListener {
     }
 
     /**
-     *  V4_ONLY
+     *  V4_ONLY unless we have only IPv6 address, then V6_ONLY
      *  @return null if not found
      */
     public String lookup(String host) {
-        return lookup(host, Type.V4_ONLY);
+        Set<AddressType> addrs = Addresses.getConnectedAddressTypes();
+        Type type = (addrs.contains(AddressType.IPV4) || !addrs.contains(AddressType.IPV6)) ? Type.V4_ONLY : Type.V6_ONLY;
+        return lookup(host, type);
     }
 
     /**

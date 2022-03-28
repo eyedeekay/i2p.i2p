@@ -79,11 +79,11 @@ class PeerTestEvent extends SimpleTimer2.TimedEvent {
 
     private void locked_runTest(boolean isIPv6) {
         _lastTestIPv6 = isIPv6;
-        PeerState bob = _transport.pickTestPeer(BOB, isIPv6, null);
+        PeerState bob = _transport.pickTestPeer(BOB, 0, isIPv6, null);
         if (bob != null) {
             if (_log.shouldLog(Log.INFO))
                 _log.info("Running periodic test with bob = " + bob);
-            _testManager.runTest(bob.getRemoteIPAddress(), bob.getRemotePort(), bob.getCurrentCipherKey(), bob.getCurrentMACKey());
+            _testManager.runTest(bob);
             setLastTested(isIPv6);
         } else {
             if (_log.shouldLog(Log.WARN))

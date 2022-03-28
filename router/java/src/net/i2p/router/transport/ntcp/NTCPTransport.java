@@ -52,6 +52,7 @@ import net.i2p.router.transport.TransportUtil;
 import static net.i2p.router.transport.TransportUtil.IPv6Config.*;
 import net.i2p.router.transport.crypto.DHSessionKeyBuilder;
 import net.i2p.router.transport.crypto.X25519KeyFactory;
+import net.i2p.router.transport.udp.UDPTransport;
 import net.i2p.router.util.DecayingHashSet;
 import net.i2p.router.util.DecayingBloomFilter;
 import net.i2p.router.util.EventLog;
@@ -297,22 +298,35 @@ public class NTCPTransport extends TransportImpl {
      *  Pick a port if not previously configured.
      *  Only if UDP is disabled.
      *
+     *  @return the port or -1
      *  @since 0.9.39
      */
-    private void setupPort() {
+    private int setupPort() {
         if (_context.getBooleanPropertyDefaultTrue(TransportManager.PROP_ENABLE_UDP))
-            return;
+            return -1;
         int port = getRequestedPort();
         if (port > 0 && !TransportUtil.isValidPort(port)) {
             TransportUtil.logInvalidPort(_log, STYLE, port);
+            port = -1;
+        }
+        if (port <= 0) {
+            // If we previously had a UDP port, use it
+            port = _context.getProperty(UDPTransport.PROP_INTERNAL_PORT, -1);
+            if (port <= 0)
+                port = _context.getProperty(UDPTransport.PROP_EXTERNAL_PORT, -1);
+            if (port > 0 && !TransportUtil.isValidPort(port)) {
+                TransportUtil.logInvalidPort(_log, STYLE, port);
+                port = -1;
+            }
+            if (port > 0)
+                _context.router().saveConfig(PROP_I2NP_NTCP_PORT, Integer.toString(port));
         }
         if (port <= 0) {
             port = TransportUtil.selectRandomPort(_context, STYLE);
-            Map<String, String> changes = new HashMap<String, String>(2);
-            changes.put(PROP_I2NP_NTCP_PORT, Integer.toString(port));
-            _context.router().saveConfig(changes, null);
+            _context.router().saveConfig(PROP_I2NP_NTCP_PORT, Integer.toString(port));
             _log.logAlways(Log.INFO, "NTCP selected random port " + port);
         }
+        return port;
     }
 
     /**
@@ -329,10 +343,28 @@ public class NTCPTransport extends TransportImpl {
             old = _conByIdent.put(peer, con);
         }
         if (con.isIPv6()) {
+            long last = _lastInboundIPv6;
+            Status oldStatus;
+            if (last <= 0)
+                oldStatus = getReachabilityStatus();
+            else
+                oldStatus = null;
             _lastInboundIPv6 = con.getCreated();
+            // Get that "R" cap in the netdb ASAP, esp. when SSU disabled
+            if (last <= 0)
+                addressChanged(oldStatus);
             _context.statManager().addRateData("ntcp.inboundIPv6Conn", 1);
         } else {
+            long last = _lastInboundIPv4;
+            Status oldStatus;
+            if (last <= 0)
+                oldStatus = getReachabilityStatus();
+            else
+                oldStatus = null;
             _lastInboundIPv4 = con.getCreated();
+            // Get that "R" cap in the netdb ASAP, esp. when SSU disabled
+            if (last <= 0)
+                addressChanged(oldStatus);
             _context.statManager().addRateData("ntcp.inboundIPv4Conn", 1);
         }
         return old;
@@ -807,7 +839,7 @@ public class NTCPTransport extends TransportImpl {
     private static final int MIN_CONCURRENT_READERS = 2;  // unless < 32MB
     private static final int MIN_CONCURRENT_WRITERS = 2;  // unless < 32MB
     private static final int MAX_CONCURRENT_READERS = 4;
-    private static final int MAX_CONCURRENT_WRITERS = 4;
+    private static final int MAX_CONCURRENT_WRITERS = 3;
 
     /**
      *  Called by TransportManager.
@@ -824,10 +856,13 @@ public class NTCPTransport extends TransportImpl {
 
         startIt();
         RouterAddress addr = configureLocalAddress();
+        boolean ssuDisabled = !_context.getBooleanPropertyDefaultTrue(TransportManager.PROP_ENABLE_UDP);
         int port;
         if (addr != null)
             // probably not set
             port = addr.getPort();
+        else if (ssuDisabled)
+            port = setupPort();
         else
             // received by externalAddressReceived() from TransportManager
             port = _ssuPort;
@@ -849,7 +884,7 @@ public class NTCPTransport extends TransportImpl {
                 boolean skipv6 = false;
                 for (InetAddress ia : addrs) {
                     boolean ipv6 = ia instanceof Inet6Address;
-                    if ((ipv6 && (isIPv6Firewalled() || _context.getBooleanProperty(PROP_IPV6_FIREWALLED))) ||
+                    if ((ipv6 && (isIPv6Firewalled() || (_context.getBooleanProperty(PROP_IPV6_FIREWALLED) && !ssuDisabled))) ||
                         (!ipv6 && isIPv4Firewalled())) {
                         if (ipv6)
                             skipv6 = true;
@@ -878,6 +913,13 @@ public class NTCPTransport extends TransportImpl {
             }
         } else {
             setOutboundNTCP2Address();
+        }
+        if (ssuDisabled) {
+            // Since we don't have peer testing, start out reachable,
+            // so peers will attempt to connect to us
+            long now = _context.clock().now();
+            _lastInboundIPv4 = now;
+            _lastInboundIPv6 = now;
         }
         // TransportManager.startListening() calls router.rebuildRouterInfo()
     }
@@ -1440,7 +1482,7 @@ public class NTCPTransport extends TransportImpl {
             // must be set before isValid() call
             _haveIPv6Address = true;
         }
-        if (ip != null && !isValid(ip)) {
+        if (ip != null && !isValid(ip) && !allowLocal()) {
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Invalid address: " + Addresses.toString(ip, port) + " from: " + source);
             return;

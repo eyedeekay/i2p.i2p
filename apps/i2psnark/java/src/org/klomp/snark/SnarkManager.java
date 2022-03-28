@@ -1718,21 +1718,31 @@ public class SnarkManager implements CompleteListener, ClientApp, DisconnectList
         String link = linkify(torrent);
         if (!dontAutoStart && shouldAutoStart() && running) {
             if (!_util.connected()) {
-                addMessage(_t("Connecting to I2P"));
+                String msg = _t("Connecting to I2P");
+                addMessage(msg);
+                if (!_context.isRouterContext())
+                    System.out.println(msg);
                 boolean ok = _util.connect();
                 if (!ok) {
-                    if (_context.isRouterContext())
+                    if (_context.isRouterContext()) {
                         addMessage(_t("Unable to connect to I2P"));
-                    else
-                        addMessage(_t("Error connecting to I2P - check your I2CP settings!") + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort());
+                    } else {
+                        msg = _t("Error connecting to I2P - check your I2CP settings!") + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort();
+                        addMessage(msg);
+                        System.out.println(msg);
+                    }
                     // this would rename the torrent to .BAD
                     //return false;
                 }
             }
             torrent.startTorrent();
             addMessageNoEscape(_t("Torrent added and started: {0}", link));
+            if (!_context.isRouterContext())
+                System.out.println(_t("Torrent added and started: {0}", torrent.getBaseName()));
         } else {
             addMessageNoEscape(_t("Torrent added: {0}", link));
+            if (!_context.isRouterContext())
+                System.out.println(_t("Torrent added: {0}", torrent.getBaseName()));
         }
         return true;
     }
@@ -2554,6 +2564,9 @@ public class SnarkManager implements CompleteListener, ClientApp, DisconnectList
                     // Test if the router is there
                     // For standalone, this will probe the router every 60 seconds if not connected
                     boolean oldOK = routerOK;
+                    // standalone, first time only
+                    if (doMagnets && !_context.isRouterContext())
+                        dtgNotify(Log.INFO, _t("Connecting to I2P") + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort());
                     routerOK = getBWLimit();
                     if (routerOK) {
                         autostart = shouldAutoStart();
@@ -2564,17 +2577,29 @@ public class SnarkManager implements CompleteListener, ClientApp, DisconnectList
                                 String prop = config.getProperty(PROP_META_RUNNING);
                                 if (prop == null || Boolean.parseBoolean(prop)) {
                                     if (!_util.connected()) {
-                                        addMessage(_t("Connecting to I2P"));
+                                        String msg = _t("Connecting to I2P");
+                                        addMessage(msg);
+                                        if (!_context.isRouterContext())
+                                            dtgNotify(Log.INFO, msg + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort());
                                         // getBWLimit() was successful so this should work
                                         boolean ok = _util.connect();
                                         if (!ok) {
-                                            if (_context.isRouterContext())
+                                            if (_context.isRouterContext()) {
                                                 addMessage(_t("Unable to connect to I2P"));
-                                            else
-                                                addMessage(_t("Error connecting to I2P - check your I2CP settings!") + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort());
+                                            } else {
+                                                msg = _t("Error connecting to I2P - check your I2CP settings!") + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort();
+                                                addMessage(msg);
+                                                dtgNotify(Log.ERROR, msg);
+                                            }
                                             routerOK = false;
                                             autostart = false;
                                             break;
+                                        } else {
+                                            if (!_context.isRouterContext()) {
+                                                msg = "Connected to I2P at " + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort();
+                                                addMessage(msg);
+                                                dtgNotify(Log.INFO, msg);
+                                            }
                                         }
                                     }
                                     addMessageNoEscape(_t("Starting up torrent {0}", linkify(snark)));
@@ -2623,10 +2648,13 @@ public class SnarkManager implements CompleteListener, ClientApp, DisconnectList
                     if (ok)
                         cleanupTorrentStatus();
                     if (!routerOK) {
-                        if (_context.isRouterContext())
+                        if (_context.isRouterContext()) {
                             addMessage(_t("Unable to connect to I2P"));
-                        else
-                            addMessage(_t("Error connecting to I2P - check your I2CP settings!") + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort());
+                        } else {
+                            String msg = _t("Error connecting to I2P - check your I2CP settings!") + ' ' + _util.getI2CPHost() + ':' + _util.getI2CPPort();
+                            addMessage(msg);
+                            dtgNotify(Log.ERROR, msg);
+                        }
                     }
                 }
                 try { Thread.sleep(60*1000); } catch (InterruptedException ie) {}
@@ -2646,15 +2674,9 @@ public class SnarkManager implements CompleteListener, ClientApp, DisconnectList
             return;
         if (snark.getDownloaded() > 0) {
             addMessageNoEscape(_t("Download finished: {0}", linkify(snark)));
-            ClientAppManager cmgr = _context.clientAppManager();
-            if (cmgr != null) {
-                NotificationService ns = (NotificationService) cmgr.getRegisteredApp("desktopgui");
-                if (ns != null) {
-                    ns.notify("I2PSnark", null, Log.INFO, _t("I2PSnark"), 
-                              _t("Download finished: {0}", snark.getName()),
-                              "/i2psnark/" + linkify(snark));
-                }
-            }
+            dtgNotify(Log.INFO,
+                      _t("Download finished: {0}", snark.getName()),
+                      "/i2psnark/" + linkify(snark));
         }
         updateStatus(snark);
     }
@@ -2744,6 +2766,38 @@ public class SnarkManager implements CompleteListener, ClientApp, DisconnectList
     public void gotPiece(Snark snark) {}
 
     // End Snark.CompleteListeners
+
+    /**
+     *  Send a notification to the user via desktopgui and,
+     *  if standalone, on the console.
+     *
+     *  @param priority log level
+     *  @param message translated
+     *  @since 0.9.54
+     */
+    private void dtgNotify(int priority, String message) {
+        dtgNotify(priority, message, null);
+    }
+
+    /**
+     *  Send a notification to the user via desktopgui and,
+     *  if standalone, on the console.
+     *
+     *  @param priority log level
+     *  @param message translated
+     *  @param path in console for more information, starting with /, must be URL-escaped, or null
+     *  @since 0.9.54
+     */
+    private void dtgNotify(int priority, String message, String path) {
+        ClientAppManager cmgr = _context.clientAppManager();
+        if (cmgr != null) {
+            NotificationService ns = (NotificationService) cmgr.getRegisteredApp("desktopgui");
+            if (ns != null)
+                ns.notify("I2PSnark", null, priority, _t("I2PSnark"), message, path);
+        }
+        if (!_context.isRouterContext())
+            System.out.println(message);
+    }
 
     /**
      * An HTML link to the file if complete and a single file,

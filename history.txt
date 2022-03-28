@@ -1,3 +1,137 @@
+2022-03-27 zzz
+ * Crypto: Fix CertUtil loading EdDSA certs, check sigs
+ * Router: Validate family sig at startup
+ * SSU: Increase min pending establish states limit
+ * SSU2: Misc. fixes, prep for fragmented RI
+
+2022-03-26 zzz
+ * Crypto: Add official EdDSA OIDs to provider
+ * SSU: Reduce ack delay to minimize addition to measured RTT
+ * SSU2: Hook in IMF Bloom filter to detect dups
+
+2022-03-25 zzz
+ * Console: Prevent creating a family that another router is using
+
+2022-03-23 zzz
+ * I2CP: Synch fixes
+ * SSU2: Refactor tokens
+
+2022-03-22 zzz
+ * Router family fixes
+
+2022-03-20 zzz
+ * NetDB:
+   - Refactor family validation
+   - Remove duplicate store in FloodOnlyLookupMatchJob
+   - Don't store an entry which is older
+
+2022-03-18 zzz
+ * Console: Fix rare IAE on destination sort
+ * SSU2: Implement peer test state machine
+
+2022-03-17 zzz
+ * SSU: Peer Test refactor
+ * SSU2: Relay and Peer Test WIP
+
+2022-03-15 zzz
+ * SSU2: Fixes
+
+2022-03-13 zzz
+ * SSU2: Fixes, stubs for relay and peer test (phase 2)
+
+2022-03-12 zzz
+ * SSU2: Fixes
+ * Tunnels: Reduce build reply timeout
+
+2022-03-11 zzz
+ * i2psnark standalone: Add DTG
+
+2022-03-10 zzz
+ * SSU2: Fixes
+
+2022-03-09 zzz
+ * DTG: Add new ExternalMain class for app context use
+
+2022-03-08 zzz
+ * I2NP: Fix TunnelGatewayMessage.calculateWrittenLength()
+ * SSU2: Fixes
+
+2022-03-06 zzz
+ * Console: Improve class selection on /configlogging
+ * SSU2: Fixes
+
+2022-03-04 zzz
+ * Console: Add SSU version column to /peers
+ * i2psnark: Add js theme preview
+ * i2psnark standalone: Add more CLI messages, increase memory
+ * NTCP: Fix port selection when SSU disabled
+ * Transport: Fix wasUnreachable() for transports with alt style
+
+2022-03-03 zzz
+ * NetDB: Load reseed RI if newer than in-memory
+ * NTCP: Start out reachable if SSU disabled
+
+2022-03-02 zzz
+ * SSU: Finish initial implementation of SSU2
+   Unit tested only, testnet testing to follow
+   Data phase retransmissions unimplemented
+
+2022-03-01 zzz
+ * NetDB: Add new reseeds
+ * Util: More efficient detection of connectivity
+
+2022-02-25 zzz
+ * Sybil: Family analysis improvements
+
+2022-02-24 zzz
+ * SSU: SSU2 classes and keys (WIP)
+
+2022-02-23 zzz
+ * i2psnark: Load system mime types if available
+ * SSU: More SSU2 prep and support (WIP)
+
+2022-02-22 zzz
+ * BOB: Remove source
+ * Crypto: Prep for SSU2
+ * NetDB: Prevent rare deadlock via FloodfillMonitorJob at startup
+ * NTCP: Reduce max writer threads
+ * SSU: PacketHandler cleanup (prep for SSU2)
+ * SSU: Start of SSU2 support
+ * Update: Add notification for new version
+ * Util: Speed up PRNG nextInt() and nextLong()
+
+2022-02-21 1.7.0 released
+
+2022-02-18 zzz
+ * Update translations
+
+2022-02-17 zzz
+ * i2psnark standalone: Increase open files ulimit
+
+2022-02-09 zzz
+ * NTCP: Fixes for SSU disabled
+
+2022-02-03 zzz
+ * SSU: Don't bid on connection to buggy routers
+ * Tunnels: Avoid buggy routers
+
+2022-01-30 zzz
+ * Reseed, DoH: Fixes for IPv6-only
+
+2022-01-26 zzz
+ * NTCP: Clock skew handling improvements
+
+2022-01-25 zzz
+ * Tunnels:
+   - Enable tunnel testing by default
+   - Use tunnel builds as a tunnel test
+ * NTCP: Ban IP if RI signature fails
+ * UDP: Pass priority through the packet builder,
+   add priority to UDP-Sender queue
+
+2022-01-21 zzz
+ * Util: Fix leak of SimpleTimer2 shutdown task
+
 2022-01-06 zzz
  * Router: Prevent deadlock at startup
 

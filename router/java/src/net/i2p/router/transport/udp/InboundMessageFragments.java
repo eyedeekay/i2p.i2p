@@ -68,6 +68,8 @@ class InboundMessageFragments /*implements UDPTransport.PartialACKSource */{
 
     /**
      * Pull the fragments and ACKs out of the authenticated data packet
+     *
+     * SSU 1 only.
      */
     public void receiveData(PeerState from, UDPPacketReader.DataReader data) {
         try {
@@ -79,6 +81,32 @@ class InboundMessageFragments /*implements UDPTransport.PartialACKSource */{
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Bad pkt from: " + from, ioobe);
         }
+    }
+
+    /**
+     * This message was received.
+     * SSU 2 only.
+     * No stats updated here, caller should handle stats.
+     *
+     * @return true if this message was a duplicate
+     * @since 0.9.54
+     */
+
+    public boolean messageReceived(long messageID) {
+        return _recentlyCompletedMessages.add(messageID);
+    }
+
+    /**
+     * Was this message recently received?
+     * SSU 2 only.
+     * No stats updated here, caller should handle stats.
+     *
+     * @return true if this message was recently received.
+     * @since 0.9.54
+     */
+
+    public boolean wasRecentlyReceived(long messageID) {
+        return _recentlyCompletedMessages.isKnown(messageID);
     }
 
     /**

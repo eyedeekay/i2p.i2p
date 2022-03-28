@@ -973,10 +973,12 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     public LeaseSet store(Hash key, LeaseSet leaseSet) throws IllegalArgumentException {
         if (!_initialized) return null;
         
-        LeaseSet rv = null;
+        LeaseSet rv;
         try {
             rv = (LeaseSet)_ds.get(key);
-            if ( (rv != null) && (rv.equals(leaseSet)) ) {
+            if (rv != null && rv.getEarliestLeaseDate() >= leaseSet.getEarliestLeaseDate()) {
+                if (_log.shouldDebug())
+                    _log.debug("Not storing older " + key);
                 // if it hasn't changed, no need to do anything
                 // except copy over the flags
                 Hash to = leaseSet.getReceivedBy();
@@ -1125,12 +1127,24 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         }
         FamilyKeyCrypto fkc = _context.router().getFamilyKeyCrypto();
         if (fkc != null) {
-            boolean validFamily = fkc.verify(routerInfo);
-            if (!validFamily) {
-                if (_log.shouldInfo())
-                    _log.info("Bad family sig: " + routerInfo.getHash());
+            FamilyKeyCrypto.Result r = fkc.verify(routerInfo);
+            switch (r) {
+                case BAD_KEY:
+                case INVALID_SIG:
+                    Hash h = routerInfo.getHash();
+                    // never fail our own router, that would cause a restart and rekey
+                    if (h.equals(_context.routerHash()))
+                        break;
+                    return "Bad family " + r + ' ' + h;
+
+                case NO_SIG:
+                    // Routers older than 0.9.54 that added a family and haven't restarted
+                    break;
+
+                case BAD_SIG:
+                    // To be investigated
+                    break;
             }
-            // todo store in RI
         }
         return validate(routerInfo);
     }
@@ -1192,7 +1206,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
             // Just check all the addresses, faster than getting just the SSU ones
             for (RouterAddress ra : routerInfo.getAddresses()) {
                 // Introducers change often, introducee will ping introducer for 2 hours
-                if (ra.getOption("ihost0") != null)
+                if (ra.getOption("itag0") != null)
                     return "Old peer with SSU Introducers";
             }
         }
@@ -1234,11 +1248,13 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     RouterInfo store(Hash key, RouterInfo routerInfo, boolean persist) throws IllegalArgumentException {
         if (!_initialized) return null;
         
-        RouterInfo rv = null;
+        RouterInfo rv;
         try {
             rv = (RouterInfo)_ds.get(key, persist);
-            if ( (rv != null) && (rv.equals(routerInfo)) ) {
-                // no need to validate
+            if (rv != null && rv.getPublished() >= routerInfo.getPublished()) {
+                if (_log.shouldDebug())
+                    _log.debug("Not storing older " + key);
+                // quick check without calling validate()
                 return rv;
             }
         } catch (ClassCastException cce) {

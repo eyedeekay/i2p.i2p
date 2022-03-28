@@ -57,7 +57,7 @@ public class Main implements RouterApp, NotificationService {
      */
     public Main() {
         _appContext = I2PAppContext.getGlobalContext();
-        if (_appContext instanceof RouterContext)
+        if (_appContext.isRouterContext())
             _context = (RouterContext) _appContext;
         else
             _context = null;
@@ -77,7 +77,7 @@ public class Main implements RouterApp, NotificationService {
         if (_context != null)
             trayManager = new InternalTrayManager(_context, this, useSwing);
         else
-            trayManager = new ExternalTrayManager(_appContext, this, useSwing);
+            trayManager = new ExternalTrayManager(_appContext, useSwing);
         trayManager.startManager();
         _trayManager = trayManager;
         changeState(RUNNING);

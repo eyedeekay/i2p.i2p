@@ -32,6 +32,7 @@ import net.i2p.router.tunnel.HopConfig;
 import net.i2p.router.tunnel.TunnelCreatorConfig;
 import static net.i2p.router.tunnel.pool.BuildExecutor.Result.*;
 import net.i2p.util.Log;
+import net.i2p.util.SystemVersion;
 import net.i2p.util.VersionComparator;
 
 /**
@@ -69,7 +70,7 @@ abstract class BuildRequestor {
      *  so can we use a successfully built tunnel anyway.
      *
      */
-    static final int REQUEST_TIMEOUT = 13*1000;
+    static final int REQUEST_TIMEOUT = SystemVersion.isSlow() ? 10*1000 : 5*1000;
 
     /** make this shorter than REQUEST_TIMEOUT */
     private static final int FIRST_HOP_TIMEOUT = 10*1000;
@@ -240,7 +241,14 @@ abstract class BuildRequestor {
             return false;
         }
         
-        //cfg.setPairedTunnel(pairedTunnel);
+        // store the ID of the paired GW so we can credit/blame the paired tunnel,
+        // see TunnelPool.updatePairedProfile()
+        if (pairedTunnel.getLength() > 1) {
+            TunnelId gw = pairedTunnel.isInbound() ?
+                          pairedTunnel.getReceiveTunnelId(0) :
+                          pairedTunnel.getSendTunnelId(0);
+            cfg.setPairedGW(gw);
+        }
         
         //long beforeDispatch = System.currentTimeMillis();
         if (cfg.isInbound()) {

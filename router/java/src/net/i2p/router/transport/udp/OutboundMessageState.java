@@ -87,11 +87,18 @@ class OutboundMessageState implements CDPQEntry {
         //_expiration = msg.getExpiration();
 
         // now "fragment" it
-        int totalSize = _i2npMessage.getRawMessageSize();
+        int totalSize;
+        if (_peer.getVersion() == 2)
+            totalSize = _i2npMessage.getMessageSize() - 7;  // NTCP2 style, 9 byte header
+        else
+            totalSize = _i2npMessage.getRawMessageSize();
         if (totalSize > MAX_MSG_SIZE)
             throw new IllegalArgumentException("Size too large! " + totalSize);
         _messageBuf = new byte[totalSize];
-        _i2npMessage.toRawByteArray(_messageBuf);
+        if (_peer.getVersion() == 2)
+            _i2npMessage.toRawByteArrayNTCP2(_messageBuf, 0);  // NTCP2 style, 9 byte header
+        else
+            _i2npMessage.toRawByteArray(_messageBuf);
         _fragmentSize = _peer.fragmentSize();
         int numFragments = totalSize / _fragmentSize;
         if (numFragments * _fragmentSize < totalSize)
@@ -104,6 +111,11 @@ class OutboundMessageState implements CDPQEntry {
         _fragmentAcks = _numFragments < 64 ? mask(_numFragments) - 1L : -1L;
         _fragmentSends = (numFragments > 1) ? new byte[numFragments] : null;
     }
+    
+    /**
+     * @since 0.9.54
+     */
+    public int getVersion() { return _peer.getVersion(); }
 
     /**
      *  @param fragment 0-63
@@ -295,6 +307,9 @@ class OutboundMessageState implements CDPQEntry {
         return rv;
     }
 
+    /**
+     * @return true if the fragment has not been ACKed
+     */
     public synchronized boolean needsSending(int fragment) {
         return (_fragmentAcks & mask(fragment)) != 0;
     }
@@ -313,6 +328,18 @@ class OutboundMessageState implements CDPQEntry {
             if (bitfield.received(i))
                 _fragmentAcks &= ~mask(i);
         }
+        return isComplete();
+    }
+
+    /**
+     * Ack this fragment number.
+     * For SSU 2 only.
+     *
+     * @return true if the message was completely ACKed
+     * @since 0.9.54
+     */
+    public synchronized boolean acked(int fragmentNum) {
+        _fragmentAcks &= ~mask(fragmentNum);
         return isComplete();
     }
 
@@ -500,7 +527,7 @@ class OutboundMessageState implements CDPQEntry {
      *  @since 0.9.3
      */
     public int getPriority() {
-        return _message != null ? _message.getPriority() : 1000;
+        return _message != null ? _message.getPriority() : PacketBuilder.PRIORITY_HIGH;
     }
 
     @Override
