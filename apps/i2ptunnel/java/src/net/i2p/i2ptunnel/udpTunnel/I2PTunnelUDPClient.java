@@ -25,14 +25,14 @@ import net.i2p.util.Log;
 
 /**
  *
- * Client side:
+ * Client side(I2PTunnelUDPClient.java):
  *
  * - permanent DatagramSocket at e.g. localhost:5353
  * - For EVERY incoming IP datagram request, assign a new I2CP source port,
  * store the source IP/port in a table keyed by the I2CP source port
  * - send a REPLIABLE datagram to the server with the I2CP source port
  *
- * Server side:
+ * Server side(I2PTunnelUDPServerClient.java):
  *
  * - receive request, store source I2P Dest/port associated with the request
  * - For EVERY incoming I2P datagram request, open a NEW DatagramSocket on
@@ -62,11 +62,12 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
     private final int UDP_PORT;
     private final int MAX_SIZE = 1024;
     private final UDPSink _sink;
-    // private final UDPSource _source;
 
     // SourceIP/Port table
     private Map<Integer, InetSocketAddress> _sourceIPPortTable = new HashMap<>();
 
+    // Constructor, host is localhost(usually) or the host of the UDP client, port
+    // is the port of the UDP client
     public I2PTunnelUDPClient(String host, int port, String destination, Logging l, EventDispatcher notifyThis,
             I2PTunnel tunnel) {
         // super(host, port,
@@ -130,6 +131,9 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
         DatagramPacket packet = new DatagramPacket(new byte[MAX_SIZE], MAX_SIZE);
         try {
             this._socket.receive(packet);
+        } catch (SocketTimeoutException ste) {
+            if (_log.shouldLog(Log.DEBUG))
+                _log.debug("Socket timeout, no packet received");
         } catch (Exception e) {
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Failed to receive UDP packet", e);
@@ -137,39 +141,55 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
         return packet;
     }
 
+    private final synchronized void send() {
+        while (true) {
+            DatagramPacket outboundpacket = new DatagramPacket(new byte[MAX_SIZE], MAX_SIZE);
+            try {
+                this._socket.receive(outboundpacket);
+            } catch (SocketTimeoutException ste) {
+                if (_log.shouldLog(Log.DEBUG))
+                    _log.debug("Socket timeout, no packet received");
+                break;
+            } catch (Exception e) {
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("Failed to receive UDP packet", e);
+                break;
+            }
+            if (_log.shouldLog(Log.DEBUG))
+                _log.debug("Received UDP packet on local address: " + outboundpacket.getAddress().toString()
+                        + ", Forwarding");
+            this.sendRepliableI2PDatagram(outboundpacket);
+        }
+    }
+
+    private final synchronized void receive() {
+        while (true) {
+            DatagramPacket packet = new DatagramPacket(new byte[MAX_SIZE], MAX_SIZE);
+            try {
+                this._socket.receive(packet);
+            } catch (SocketTimeoutException ste) {
+                if (_log.shouldLog(Log.DEBUG))
+                    _log.debug("Socket timeout, no packet received");
+                break;
+            } catch (Exception e) {
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("Failed to receive UDP packet", e);
+                break;
+            }
+            if (_log.shouldLog(Log.DEBUG))
+                _log.debug("Received UDP packet on local address: " + packet.getAddress().toString()
+                        + ", Forwarding");
+            this.sendRepliableI2PDatagram(packet);
+        }
+    }
+
     @Override
     public final void startRunning() {
         super.startRunning();
         while (true) {
-            while (true) {
-                DatagramPacket outboundpacket = new DatagramPacket(new byte[MAX_SIZE], MAX_SIZE);
-                try {
-                    this._socket.receive(outboundpacket);
-                } catch (SocketTimeoutException ste) {
-                    if (_log.shouldLog(Log.DEBUG))
-                        _log.debug("Socket timeout, no packet received");
-                    break;
-                } catch (Exception e) {
-                    if (_log.shouldLog(Log.WARN))
-                        _log.warn("Failed to receive UDP packet", e);
-                    break;
-                }
-                if (_log.shouldLog(Log.DEBUG))
-                    _log.debug("Received UDP packet on local address: " + outboundpacket.getAddress().toString()
-                            + ", Forwarding");
-                this.sendRepliableI2PDatagram(outboundpacket);
-            }
-
-            while (true) {
-                DatagramPacket inboundpacket = this.recieveRAWReplyPacket();
-                if (inboundpacket.getLength() == 0)
-                    break;
-                // this._source.
-                // int sourcePort = inboundpacket.getPort();
-                // _sourceIPPortTable.remove(sourcePort);
-            }
+            this.send();
+            this.receive();
         }
-
     }
 
     @Override
