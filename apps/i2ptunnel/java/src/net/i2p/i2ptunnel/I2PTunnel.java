@@ -1468,7 +1468,7 @@ public class I2PTunnel extends EventDispatcherImpl implements Logging {
                     addtask(task);
                     notifyEvent("udpClientTunnelId", Integer.valueOf(task.getId()));
                 } catch (IllegalArgumentException iae) {
-                    String msg = "Invalid I2PTunnel configuration to create a Streamr Client connecting to the router at "
+                    String msg = "Invalid I2PTunnel configuration to create a UDP Client connecting to the router at "
                             + host + ':' + port +
                             " and sending to " + _host + ':' + _port;
                     _log.error(getPrefix() + msg, iae);
