@@ -54,8 +54,8 @@ class SAMHandlerFactory {
             sock.setSoTimeout(0);
             line = buf.toString();
             if (SecureSession != null) {
-                if (SecureSession.getSAMUserInput()) {
-
+                if (!SecureSession.getSAMUserInput()) {
+                    throw new SAMException("SAM connection cancelled by user request");
                 }
             }
         } catch (SocketTimeoutException e) {
