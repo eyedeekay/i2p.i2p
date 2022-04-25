@@ -871,6 +871,8 @@ public class SAMBridge implements Runnable, ClientApp {
      * Returns the interactive Secure Session manager which requires SAM
      * applications to seek "approval" for their initial connections from the user
      * before they can start the session.
+     *
+     * @since 1.8.0
      */
     public SAMSecureSessionInterface secureSession() {
         return _secureSession;
