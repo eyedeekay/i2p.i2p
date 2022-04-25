@@ -15,9 +15,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Properties;
 
 import net.i2p.I2PAppContext;
-import net.i2p.data.DataHelper;
 import net.i2p.util.Log;
-import net.i2p.util.PasswordManager;
 import net.i2p.util.VersionComparator;
 
 /**
@@ -53,11 +51,6 @@ class SAMHandlerFactory {
             ReadLine.readLine(sock, buf, HELLO_TIMEOUT);
             sock.setSoTimeout(0);
             line = buf.toString();
-            if (SecureSession != null) {
-                if (!SecureSession.getSAMUserInput()) {
-                    throw new SAMException("SAM connection cancelled by user request");
-                }
-            }
         } catch (SocketTimeoutException e) {
             throw new SAMException("Timeout waiting for HELLO VERSION", e);
         } catch (IOException e) {
@@ -96,25 +89,14 @@ class SAMHandlerFactory {
             return null;
         }
 
-        if (Boolean.parseBoolean(i2cpProps.getProperty(SAMBridge.PROP_AUTH))) {
-            String user = props.getProperty("USER");
-            String pw = props.getProperty("PASSWORD");
-            if (user == null || pw == null) {
-                if (user == null)
-                    log.logAlways(Log.WARN, "SAM authentication failed");
-                else
-                    log.logAlways(Log.WARN, "SAM authentication failed, user: " + user);
-                throw new SAMException("USER and PASSWORD required");
+        if (SecureSession == null) {
+            if (Boolean.parseBoolean(i2cpProps.getProperty(SAMBridge.PROP_AUTH))) {
+                SecureSession = new SAMSecureSession();
             }
-            String savedPW = i2cpProps.getProperty(SAMBridge.PROP_PW_PREFIX + user + SAMBridge.PROP_PW_SUFFIX);
-            if (savedPW == null) {
-                log.logAlways(Log.WARN, "SAM authentication failed, user: " + user);
-                throw new SAMException("Authorization failed");
-            }
-            PasswordManager pm = new PasswordManager(I2PAppContext.getGlobalContext());
-            if (!pm.checkHash(savedPW, pw)) {
-                log.logAlways(Log.WARN, "SAM authentication failed, user: " + user);
-                throw new SAMException("Authorization failed");
+        }
+        if (SecureSession != null) {
+            if (!SecureSession.approveOrDenySecureSession(i2cpProps, props)) {
+                throw new SAMException("SAM connection cancelled by user request");
             }
         }
 

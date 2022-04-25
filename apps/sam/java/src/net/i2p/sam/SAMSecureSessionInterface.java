@@ -1,5 +1,7 @@
 package net.i2p.sam;
 
+import java.util.Properties;
+
 /**
  * SAMSecureSessionInterface is used for implementing interactive authentication
  * to SAM applications. It needs to be implemented by a class for Desktop and
@@ -18,7 +20,8 @@ public interface SAMSecureSessionInterface {
      *
      * if the connection is approved by user input:
      *
+     * @since 1.8.0
      * @return true
      */
-    public boolean getSAMUserInput();
+    public boolean approveOrDenySecureSession(Properties i2cpProps, Properties props) throws SAMException;
 }

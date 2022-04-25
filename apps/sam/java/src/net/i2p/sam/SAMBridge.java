@@ -180,6 +180,8 @@ public class SAMBridge implements Runnable, ClientApp {
      * @param persistFile   location to store/load named keys to/from
      * @param secureSession an instance of a Secure Session to use
      * @throws RuntimeException if a server socket can't be opened
+     *
+     * @since 1.8.0
      */
     public SAMBridge(String listenHost, int listenPort, boolean isSSL, Properties i2cpProps,
             String persistFile, File configFile, SAMSecureSessionInterface secureSession) {
@@ -188,12 +190,7 @@ public class SAMBridge implements Runnable, ClientApp {
         _listenHost = listenHost;
         _listenPort = listenPort;
         _useSSL = isSSL;
-        if (secureSession == null) {
-            secureSession = new SAMSecureSession(false);
-            _secureSession = secureSession;
-        } else {
-            _secureSession = secureSession;
-        }
+        _secureSession = secureSession;
 
         if (_useSSL && !SystemVersion.isJava7())
             throw new IllegalArgumentException("SSL requires Java 7 or higher");
