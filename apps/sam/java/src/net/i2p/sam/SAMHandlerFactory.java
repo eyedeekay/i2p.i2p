@@ -93,12 +93,10 @@ class SAMHandlerFactory {
             try {
                 boolean approval = SecureSession.approveOrDenySecureSession(i2cpProps, props);
                 if (!approval) {
-                    SAMHandler.writeString("HELLO REPLY RESULT=DENIED\n", s);
                     throw new SAMException("SAM connection cancelled by user request");
                 }
             } catch (SAMException e) {
-                SAMHandler.writeString("HELLO REPLY RESULT=DENIED\n", s);
-                return null;
+                throw e;
             }
         }
 
