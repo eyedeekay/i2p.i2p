@@ -42,7 +42,7 @@ class SAMHandlerFactory {
             SAMBridge parent) throws SAMException {
         String line;
         Log log = I2PAppContext.getGlobalContext().logManager().getLog(SAMHandlerFactory.class);
-        SAMSecureSessionInterface SecureSession = parent.secureSession();
+        SAMSecureSessionInterface secureSession = parent.secureSession();
 
         try {
             Socket sock = s.socket();
@@ -89,9 +89,9 @@ class SAMHandlerFactory {
             return null;
         }
 
-        if (SecureSession != null) {
+        if (secureSession != null) {
             try {
-                boolean approval = SecureSession.approveOrDenySecureSession(i2cpProps, props);
+                boolean approval = secureSession.approveOrDenySecureSession(i2cpProps, props);
                 if (!approval) {
                     throw new SAMException("SAM connection cancelled by user request");
                 }

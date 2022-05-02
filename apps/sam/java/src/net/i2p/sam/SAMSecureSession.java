@@ -19,16 +19,12 @@ import net.i2p.util.PasswordManager;
 public class SAMSecureSession implements SAMSecureSessionInterface {
     private final Log log = I2PAppContext.getGlobalContext().logManager().getLog(SAMHandlerFactory.class);
 
-    public SAMSecureSession() {
-    }
-
     /**
      * Authenticate based on the i2cp username/password.
      *
      * @since 1.8.0
      */
     public boolean approveOrDenySecureSession(Properties i2cpProps, Properties props) throws SAMException {
-        boolean _useSecureSession = false;
         String user = props.getProperty("USER");
         String pw = props.getProperty("PASSWORD");
         if (user == null || pw == null) {
@@ -48,7 +44,6 @@ public class SAMSecureSession implements SAMSecureSessionInterface {
             log.logAlways(Log.WARN, "SAM authentication failed, user: " + user);
             throw new SAMException("Authorization failed");
         }
-        _useSecureSession = true;
-        return _useSecureSession;
+        return true;
     }
 }
