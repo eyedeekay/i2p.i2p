@@ -90,13 +90,9 @@ class SAMHandlerFactory {
         }
 
         if (secureSession != null) {
-            try {
-                boolean approval = secureSession.approveOrDenySecureSession(i2cpProps, props);
-                if (!approval) {
-                    throw new SAMException("SAM connection cancelled by user request");
-                }
-            } catch (SAMException e) {
-                throw e;
+            boolean approval = secureSession.approveOrDenySecureSession(i2cpProps, props);
+            if (!approval) {
+                throw new SAMException("SAM connection cancelled by user request");
             }
         }
 
