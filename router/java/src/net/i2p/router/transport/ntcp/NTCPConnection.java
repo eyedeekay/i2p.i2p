@@ -345,6 +345,15 @@ public class NTCPConnection implements Closeable {
             return _context.clock().now() -_establishedOn; 
     }
 
+    /**
+     * @since 0.9.55
+     */
+    public long getEstablishedOn() {
+        if (!isEstablished())
+            return 0;
+        return _establishedOn;
+    }
+
     public int getMessagesSent() { return _messagesWritten.get(); }
 
     public int getMessagesReceived() { return _messagesRead.get(); }
@@ -806,9 +815,9 @@ public class NTCPConnection implements Closeable {
     /**
      *  NTCP2 only
      *
-     *  @since 0.9.36
+     *  @since 0.9.36, pkg private since 0.9.55 for EventPumper
      */
-    private void sendOurRouterInfo(boolean shouldFlood) {
+    void sendOurRouterInfo(boolean shouldFlood) {
         RouterInfo ri = _context.router().getRouterInfo();
         if (ri == null)
             return;
@@ -1386,7 +1395,7 @@ public class NTCPConnection implements Closeable {
             _context.statManager().addRateData("ntcp.inboundEstablishedDuplicate", toClose.getUptime());
             toClose.close();
         }
-        enqueueInfoMessage();
+        //enqueueInfoMessage();
     }
 
     /** 
@@ -1641,10 +1650,13 @@ public class NTCPConnection implements Closeable {
             _messagesRead.incrementAndGet();
             try {
                 Hash h = ri.getHash();
+                if (h.equals(_context.routerHash()))
+                    return;
                 RouterInfo old = _context.netDb().store(h, ri);
                 if (flood && !ri.equals(old)) {
                     FloodfillNetworkDatabaseFacade fndf = (FloodfillNetworkDatabaseFacade) _context.netDb();
-                    if (fndf.floodConditional(ri)) {
+                    if ((old == null || ri.getPublished() > old.getPublished()) &&
+                        fndf.floodConditional(ri)) {
                         if (_log.shouldDebug())
                             _log.debug("Flooded the RI: " + h);
                     } else {
@@ -1653,7 +1665,8 @@ public class NTCPConnection implements Closeable {
                     }
                 }
             } catch (IllegalArgumentException iae) {
-                throw new DataFormatException("RI store fail: " + ri, iae);
+                if (_log.shouldWarn())
+                    _log.warn("RI store fail: " + ri, iae);
             }
         }
 

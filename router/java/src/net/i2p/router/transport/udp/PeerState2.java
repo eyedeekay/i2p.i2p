@@ -23,6 +23,7 @@ import net.i2p.data.i2np.I2NPMessage;
 import net.i2p.data.i2np.I2NPMessageException;
 import net.i2p.data.i2np.I2NPMessageImpl;
 import net.i2p.router.RouterContext;
+import net.i2p.router.networkdb.kademlia.FloodfillNetworkDatabaseFacade;
 import net.i2p.router.transport.udp.InboundMessageFragments.ModifiableLong;
 import static net.i2p.router.transport.udp.SSU2Util.*;
 import net.i2p.util.HexDump;
@@ -43,6 +44,7 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     private final long _sendConnID;
     private final long _rcvConnID;
     private final AtomicInteger _packetNumber = new AtomicInteger();
+    private final AtomicInteger _lastAckHashCode = new AtomicInteger(-1);
     private final CipherState _sendCha;
     private final CipherState _rcvCha;
     private final byte[] _sendHeaderEncryptKey1;
@@ -58,10 +60,11 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     private final SSU2Bitfield _ackedMessages;
     private final ConcurrentHashMap<Long, List<PacketBuilder.Fragment>> _sentMessages;
     private long _sentMessagesLastExpired;
+    private byte[] _ourIP;
+    private int _ourPort;
 
     // Session Confirmed retransmit
-    private byte[] _sessConfForReTX;
-    private List<SSU2Payload.RIBlock> _riFragsForReTX;
+    private byte[][] _sessConfForReTX;
     private long _sessConfSentTime;
     private int _sessConfSentCount;
 
@@ -241,10 +244,6 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     // SSU 1 unsupported things
 
     @Override
-    void setCurrentMACKey(SessionKey key) { throw new UnsupportedOperationException(); }
-    @Override
-    void setCurrentCipherKey(SessionKey key) { throw new UnsupportedOperationException(); }
-    @Override
     List<Long> getCurrentFullACKs() { throw new UnsupportedOperationException(); }
     @Override
     List<Long> getCurrentResendACKs() { throw new UnsupportedOperationException(); }
@@ -268,6 +267,12 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     byte[] getRcvHeaderEncryptKey1() { return _rcvHeaderEncryptKey1; }
     byte[] getSendHeaderEncryptKey2() { return _sendHeaderEncryptKey2; }
     byte[] getRcvHeaderEncryptKey2() { return _rcvHeaderEncryptKey2; }
+
+    void setOurAddress(byte[] ip, int port) {
+        _ourIP = ip; _ourPort = port;
+    }
+    byte[] getOurIP() { return _ourIP; }
+    int getOurPort() { return _ourPort; }
 
     SSU2Bitfield getReceivedMessages() {
         // logged in PacketBuilder2
@@ -302,7 +307,7 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
             }
             if (header.getDestConnID() != _rcvConnID) {
                 if (_log.shouldWarn())
-                    _log.warn("bad Dest Conn id " + header.getDestConnID() + " size " + len + " on " + this);
+                    _log.warn("bad Dest Conn id " + header + " size " + len + " on " + this);
                 return;
             }
             if (header.getType() != DATA_FLAG_BYTE) {
@@ -372,6 +377,28 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     }
 
     public void gotRI(RouterInfo ri, boolean isHandshake, boolean flood) throws DataFormatException {
+        if (_log.shouldDebug())
+            _log.debug("Got updated RI");
+        try {
+            Hash h = ri.getHash();
+            if (h.equals(_context.routerHash()))
+                return;
+            RouterInfo old = _context.netDb().store(h, ri);
+            if (flood && !ri.equals(old)) {
+                FloodfillNetworkDatabaseFacade fndf = (FloodfillNetworkDatabaseFacade) _context.netDb();
+                if ((old == null || ri.getPublished() > old.getPublished()) &&
+                    fndf.floodConditional(ri)) {
+                    if (_log.shouldDebug())
+                        _log.debug("Flooded the RI: " + h);
+                } else {
+                    if (_log.shouldInfo())
+                        _log.info("Flood request but we didn't: " + h);
+                }
+            }
+        } catch (IllegalArgumentException iae) {
+            if (_log.shouldWarn())
+                _log.warn("RI store fail: " + ri, iae);
+        }
     }
 
     public void gotRIFragment(byte[] data, boolean isHandshake, boolean flood, boolean isGzipped, int frag, int totalFrags) {
@@ -379,9 +406,7 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     }
 
     public void gotAddress(byte[] ip, int port) {
-    }
-
-    public void gotIntroKey(byte[] key) {
+        _ourIP = ip; _ourPort = port;
     }
 
     public void gotRelayTagRequest() {
@@ -405,22 +430,33 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     public void gotRelayRequest(byte[] data) {
         if (!ENABLE_RELAY)
             return;
+        _transport.getIntroManager().receiveRelayRequest(this, data);
+        // Relay blocks are ACK-eliciting
+        messagePartiallyReceived();
     }
 
     public void gotRelayResponse(int status, byte[] data) {
         if (!ENABLE_RELAY)
             return;
+        _transport.getIntroManager().receiveRelayResponse(this, status, data);
+        // Relay blocks are ACK-eliciting
+        messagePartiallyReceived();
     }
 
     public void gotRelayIntro(Hash aliceHash, byte[] data) {
         if (!ENABLE_RELAY)
             return;
+        _transport.getIntroManager().receiveRelayIntro(this, aliceHash, data);
+        // Relay blocks are ACK-eliciting
+        messagePartiallyReceived();
     }
 
     public void gotPeerTest(int msg, int status, Hash h, byte[] data) {
         if (!ENABLE_PEER_TEST)
             return;
         _transport.getPeerTestManager().receiveTest(_remoteHostId, this, msg, status, h, data);
+        // Peer Test block is ACK-eliciting
+        messagePartiallyReceived();
     }
 
     public void gotToken(long token, long expires) {
@@ -525,17 +561,32 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     }
 
     public void gotACK(long ackThru, int acks, byte[] ranges) {
-        SSU2Bitfield ackbf;
-        ackbf = SSU2Bitfield.fromACKBlock(ackThru, acks, ranges, (ranges != null ? ranges.length / 2 : 0));
-        if (_log.shouldDebug())
-            _log.debug("Got ACK block: " + SSU2Bitfield.toString(ackThru, acks, ranges, (ranges != null ? ranges.length / 2 : 0)));
-        // calls bitSet() below
-        ackbf.forEachAndNot(_ackedMessages, this);
+        int hc = (((int) ackThru) << 8) ^ (acks << 24) ^ DataHelper.hashCode(ranges);
+        if (_lastAckHashCode.getAndSet(hc) == hc) {
+            //if (_log.shouldDebug())
+            //    _log.debug("Got dup ACK block: " + SSU2Bitfield.toString(ackThru, acks, ranges, (ranges != null ? ranges.length / 2 : 0)));
+            return;
+        }
+        try {
+            SSU2Bitfield ackbf = SSU2Bitfield.fromACKBlock(ackThru, acks, ranges, (ranges != null ? ranges.length / 2 : 0));
+            if (_log.shouldDebug())
+                _log.debug("Got new ACK block from " +
+                           _remotePeer.toBase64().substring(0,6) + ' ' +
+                           SSU2Bitfield.toString(ackThru, acks, ranges, (ranges != null ? ranges.length / 2 : 0)));
+            // calls bitSet() below
+            ackbf.forEachAndNot(_ackedMessages, this);
+        } catch (Exception e) {
+            // IllegalArgumentException, buggy ack block, let the other blocks get processed
+            if (_log.shouldWarn())
+                _log.warn("Bad ACK block\n" + SSU2Bitfield.toString(ackThru, acks, ranges, (ranges != null ? ranges.length / 2 : 0)) +
+                          "\nAck through " + ackThru + " acnt " + acks + (ranges != null ? " Ranges:\n" + HexDump.dump(ranges) : "") +
+                          "from " + this, e);
+        }
     }
 
     public void gotTermination(int reason, long count) {
-        if (_log.shouldWarn())
-            _log.warn("Got TERMINATION block, reason: " + reason + " count: " + count);
+        if (_log.shouldInfo())
+            _log.info("Got TERMINATION block, reason: " + reason + " count: " + count + " on " + this);
         _transport.getEstablisher().receiveSessionDestroy(_remoteHostId, this);
     }
 
@@ -591,8 +642,8 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
             if (_log.shouldWarn())
                 _log.warn("Dup send of pkt " + pktNum + " on " + this);
         } else {
-            if (_log.shouldWarn())
-                _log.warn("New data pkt " + pktNum + " sent with " + fragments.size() + " fragments on " + this);
+            if (_log.shouldDebug())
+                _log.debug("New data pkt " + pktNum + " sent with " + fragments.size() + " fragments on " + this);
         }
     }
 
@@ -639,23 +690,13 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     }
 
     /**
-     * note that we just sent the SessionConfirmed packet
-     * and save it for retransmission.
+     * Note that we just sent the SessionConfirmed packets
+     * and save them for retransmission.
      *
-     * @param riFrags if non-null, the RI was fragmented, and these are the
-     *                remaining fragments to be sent and saved for retransmission.
      */
-    public synchronized void confirmedPacketSent(byte[] data, List<SSU2Payload.RIBlock> riFrags) {
+    synchronized void confirmedPacketsSent(byte[][] data) {
         if (_sessConfForReTX == null)
             _sessConfForReTX = data;
-        if (riFrags != null) {
-            if (_riFragsForReTX == null)
-                _riFragsForReTX = riFrags;
-            for (SSU2Payload.RIBlock block : riFrags) {
-                UDPPacket pkt = _transport.getBuilder2().buildPacket(Collections.emptyList(), Collections.singletonList(block), this);
-                _transport.send(pkt);
-            }
-        }
         _sessConfSentTime = _context.clock().now();
         _sessConfSentCount++;
     }
@@ -666,26 +707,20 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
     private synchronized UDPPacket[] getRetransmitSessionConfirmedPackets() {
         if (_sessConfForReTX == null)
             return null;
-        UDPPacket packet = UDPPacket.acquire(_context, false);
-        int count = 1;
-        if (_riFragsForReTX != null)
-            count += _riFragsForReTX.size();
-        UDPPacket[] rv = new UDPPacket[count];
-        rv[0] = packet;
-        DatagramPacket pkt = packet.getPacket();
-        byte data[] = pkt.getData();
-        int off = pkt.getOffset();
-        System.arraycopy(_sessConfForReTX, 0, data, off, _sessConfForReTX.length);
-        pkt.setLength(_sessConfForReTX.length);
-        pkt.setAddress(_remoteIPAddress);
-        pkt.setPort(_remotePort);
-        packet.setMessageType(PacketBuilder2.TYPE_CONF);
-        packet.setPriority(PacketBuilder2.PRIORITY_HIGH);
-        if (_riFragsForReTX != null) {
-            int i = 1;
-            for (SSU2Payload.RIBlock block : _riFragsForReTX) {
-                rv[i++] = _transport.getBuilder2().buildPacket(Collections.emptyList(), Collections.singletonList(block), this);
-            }
+        UDPPacket[] rv = new UDPPacket[_sessConfForReTX.length];
+        InetAddress addr = getRemoteIPAddress();
+        for (int i = 0; i < rv.length; i++) {
+            UDPPacket packet = UDPPacket.acquire(_context, false);
+            rv[i] = packet;
+            DatagramPacket pkt = packet.getPacket();
+            byte data[] = pkt.getData();
+            int off = pkt.getOffset();
+            System.arraycopy(_sessConfForReTX[i], 0, data, off, _sessConfForReTX[i].length);
+            pkt.setLength(_sessConfForReTX.length);
+            pkt.setAddress(addr);
+            pkt.setPort(_remotePort);
+            packet.setMessageType(PacketBuilder2.TYPE_CONF);
+            packet.setPriority(PacketBuilder2.PRIORITY_HIGH);
         }
         return rv;
     }

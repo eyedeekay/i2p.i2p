@@ -17,6 +17,7 @@ import java.util.Properties;
 
 import net.i2p.client.naming.HostTxtEntry;
 import net.i2p.data.DataHelper;
+import net.i2p.data.Destination;
 import net.i2p.util.SecureFile;
 import net.i2p.util.SecureFileOutputStream;
 import net.i2p.util.SystemVersion;
@@ -25,9 +26,9 @@ import net.i2p.util.SystemVersion;
  * Utility class providing methods to parse and write files in a hosts.txt file
  * format, and subscription file format.
  * 
- * @since 0.9.26 modified from ConfigParser
+ * @since 0.9.26 modified from ConfigParser, public since 0.9.55 for CLI
  */
-class HostTxtParser {
+public class HostTxtParser {
 
     private static final boolean isWindows = SystemVersion.isWindows();
 
@@ -255,8 +256,23 @@ class HostTxtParser {
             System.exit(2);
         }
         if (!e.hasValidSig()) {
-            if (!quiet)
-                System.err.println("Bad signature");
+            if (!quiet) {
+                System.err.println("Bad signature for " + e.getName());
+                String dest = e.getDest();
+                try {
+                    Destination d = new Destination(dest);
+                    System.err.println(dest);
+                    System.err.println(d.toString());
+                } catch (Exception ex) {
+                    System.err.println("Invalid destination: " + dest);
+                }
+                Properties p = e.getProps();
+                if (p != null) {
+                    for (Map.Entry<?,?> m : p.entrySet()) {
+                        System.err.println(m.getKey() + "=" + m.getValue());
+                    }
+                }
+            }
             System.exit(3);
         }
         Properties p = e.getProps();
@@ -266,14 +282,30 @@ class HostTxtParser {
                 p.containsKey(HostTxtEntry.PROP_OLDNAME) ||
                 p.containsKey(HostTxtEntry.PROP_OLDSIG)) {
                 if (!e.hasValidSig()) {
-                    if (!quiet)
-                        System.err.println("Bad inner signature");
+                    if (!quiet) {
+                        System.err.println("Bad inner signature for " + e.getName());
+                        for (Map.Entry<?,?> m : p.entrySet()) {
+                            System.err.println(m.getKey() + "=" + m.getValue());
+                        }
+                    }
                     System.exit(4);
                 }
             }
         }
-        if (!quiet)
+        if (!quiet) {
             System.err.println("Good signature for " + e.getName());
+            try {
+                String dest = e.getDest();
+                Destination d = new Destination(dest);
+                System.err.println(dest);
+                System.err.println(d.toString());
+            } catch (Exception ex) {}
+            if (p != null) {
+                for (Map.Entry<?,?> m : p.entrySet()) {
+                    System.err.println(m.getKey() + "=" + m.getValue());
+                }
+            }
+        }
         System.exit(0);
     }
 

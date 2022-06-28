@@ -110,7 +110,7 @@ class OutboundEstablishState {
          */
         OB_STATE_RETRY_RECEIVED,
         /**
-         * SSU2: We have sent a second token request with a new token
+         * SSU2: We have sent a session request after receiving a retry
          * @since 0.9.54
          */
         OB_STATE_REQUEST_SENT_NEW_TOKEN
@@ -177,7 +177,7 @@ class OutboundEstablishState {
      *
      *  @since 0.9.54
      */
-    public OutboundEstablishState(RouterContext ctx, RemoteHostId claimedAddress,
+    protected OutboundEstablishState(RouterContext ctx, RemoteHostId claimedAddress,
                                   RemoteHostId remoteHostId,
                                   RouterIdentity remotePeer,
                                   boolean needIntroduction,
@@ -257,6 +257,9 @@ class OutboundEstablishState {
             if (m.getType() == DatabaseStoreMessage.MESSAGE_TYPE) {
                DatabaseStoreMessage dsm = (DatabaseStoreMessage) m;
                if (dsm.getKey().equals(_context.routerHash())) {
+                   // version 2 sends our RI in handshake
+                   if (getVersion() > 1)
+                       return;
                    _isFirstMessageOurDSM = true;
                }
            }
@@ -609,8 +612,8 @@ class OutboundEstablishState {
         }
         _confirmedSentCount++;
         _nextSend = _lastSend + delay;
-        if (_log.shouldLog(Log.DEBUG))
-            _log.debug("Send confirm packets, nextSend in " + delay);
+        if (_log.shouldDebug())
+            _log.debug("Send confirm packets, nextSend in " + delay + " on " + this);
         if (_currentState == OutboundState.OB_STATE_UNKNOWN || 
             _currentState == OutboundState.OB_STATE_PENDING_INTRO ||
             _currentState == OutboundState.OB_STATE_INTRODUCED ||
@@ -639,7 +642,7 @@ class OutboundEstablishState {
         _requestSentCount++;
         _nextSend = _lastSend + delay;
         if (_log.shouldLog(Log.DEBUG))
-            _log.debug("Send a request packet, nextSend in " + delay);
+            _log.debug("Send a request packet, nextSend in " + delay + " on " + this);
         if (_currentState == OutboundState.OB_STATE_UNKNOWN ||
             _currentState == OutboundState.OB_STATE_INTRODUCED)
             _currentState = OutboundState.OB_STATE_REQUEST_SENT;
@@ -768,7 +771,7 @@ class OutboundEstablishState {
     /** @since 0.8.9 */
     @Override
     public String toString() {
-        return "OES " + _remoteHostId +
+        return "OES " + _remotePeer.getHash().toBase64().substring(0, 6) + ' ' + _remoteHostId +
                " lifetime: " + DataHelper.formatDuration(getLifetime()) +
                ' ' + _currentState;
     }

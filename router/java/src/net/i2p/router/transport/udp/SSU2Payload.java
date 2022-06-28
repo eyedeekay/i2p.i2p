@@ -39,12 +39,12 @@ class SSU2Payload {
     private static final int BLOCK_NEXTNONCE = 11;
     private static final int BLOCK_ACK = 12;
     private static final int BLOCK_ADDRESS = 13;
-    private static final int BLOCK_INTROKEY= 14;
     private static final int BLOCK_RELAYTAGREQ = 15;
     private static final int BLOCK_RELAYTAG = 16;
     private static final int BLOCK_NEWTOKEN = 17;
     private static final int BLOCK_PATHCHALLENGE = 18;
     private static final int BLOCK_PATHRESP = 19;
+    private static final int BLOCK_CONGESTION = 21;
     private static final int BLOCK_PADDING = 254;
 
     /**
@@ -89,8 +89,6 @@ class SSU2Payload {
         public void gotRIFragment(byte[] data, boolean isHandshake, boolean flood, boolean isGzipped, int frag, int totalFrags);
 
         public void gotAddress(byte[] ip, int port);
-
-        public void gotIntroKey(byte[] key);
 
         public void gotRelayTagRequest();
 
@@ -288,7 +286,7 @@ class SSU2Payload {
                 case BLOCK_RELAYRESP: {
                     if (isHandshake)
                         throw new IOException("Illegal block in handshake: " + type);
-                    if (len < 62) // 22 byte data w/ IPv4 + 40 byte DSA sig
+                    if (len < 52) // 12 byte data w/o IP or token + 40 byte DSA sig
                         throw new IOException("Bad length for RELAYRESP: " + len);
                     int resp = payload[i + 1] & 0xff; // skip flag
                     byte[] data = new byte[len - 2];
@@ -312,7 +310,7 @@ class SSU2Payload {
                 case BLOCK_PEERTEST: {
                     if (isHandshake)
                         throw new IOException("Illegal block in handshake: " + type);
-                    if (len < 20) // 20 byte data w/ IPv4 (hash and sig optional)
+                    if (len < 19) // 19 byte data w/ IPv4 (hash and sig optional)
                         throw new IOException("Bad length for PEERTEST: " + len);
                     int mnum = payload[i] & 0xff;
                     if (mnum == 0 || mnum > 7)

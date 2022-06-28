@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package net.i2p.router.transport;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.Inet6Address;
@@ -683,9 +684,9 @@ public class UPnP extends ControlPoint implements DeviceChangeListener, EventLis
 	/**
 	 * Get the addresses we want to bind to
 	 *
-	 * @since 0.9.46
+	 * @since 0.9.46, public since 0.9.55 for HTTPServerList
 	 */
-	static Set<String> getLocalAddresses() {
+	public static Set<String> getLocalAddresses() {
 		// older miniupnpd will send ipv6 ssdp search response to ipv4 address,
 		// but newer ones won't. So we need to bind to an ipv6 address
 		// to get his ipv6 address so we can bind to OUR ipv6 address
@@ -724,12 +725,17 @@ public class UPnP extends ControlPoint implements DeviceChangeListener, EventLis
 				int slash = addr.indexOf('/');
 				if (slash >= 0)
 					addr = addr.substring(slash + 1);
+				int pct = addr.indexOf('%');
+				if (pct > 0)
+					addr = addr.substring(0, pct);
 				if (!addrs.contains(addr)) {
 					iter.remove();
 					skt.close();
 					skt.stop();
 					if (_log.shouldWarn())
 						_log.warn("Closed HTTP server socket: " + addr);
+				} else if (_log.shouldDebug()) {
+					_log.debug("Retained HTTP server socket: " + addr);
 				}
 				oldaddrs.add(addr);
 			}
@@ -758,6 +764,9 @@ public class UPnP extends ControlPoint implements DeviceChangeListener, EventLis
 			for (Iterator<SSDPSearchResponseSocket> iter = list.iterator(); iter.hasNext(); ) {
 				SSDPSearchResponseSocket skt = iter.next();
 				String addr = skt.getLocalAddress();
+				int pct = addr.indexOf('%');
+				if (pct > 0)
+					addr = addr.substring(0, pct);
 				if (!addrs.contains(addr)) {
 					iter.remove();
 					skt.setControlPoint(null);
@@ -765,6 +774,8 @@ public class UPnP extends ControlPoint implements DeviceChangeListener, EventLis
 					skt.stop();
 					if (_log.shouldWarn())
 						_log.warn("Closed SSDP search response socket: " + addr);
+				} else if (_log.shouldDebug()) {
+					_log.debug("Retained SSDP search response socket: " + addr);
 				}
 				oldaddrs.add(addr);
 			}
@@ -785,6 +796,9 @@ public class UPnP extends ControlPoint implements DeviceChangeListener, EventLis
 			for (Iterator<SSDPNotifySocket> iter = nlist.iterator(); iter.hasNext(); ) {
 				SSDPNotifySocket skt = iter.next();
 				String addr = skt.getLocalAddress();
+				int pct = addr.indexOf('%');
+				if (pct > 0)
+					addr = addr.substring(0, pct);
 				if (!addrs.contains(addr)) {
 					iter.remove();
 					skt.setControlPoint(null);
@@ -792,20 +806,29 @@ public class UPnP extends ControlPoint implements DeviceChangeListener, EventLis
 					skt.stop();
 					if (_log.shouldWarn())
 						_log.warn("Closed SSDP notify socket: " + addr);
+				} else if (_log.shouldDebug()) {
+					_log.debug("Retained SSDP notify socket: " + addr);
 				}
 				oldaddrs.add(addr);
 			}
 			for (String addr : addrs) {
 				if (!oldaddrs.contains(addr)) {
-					// TODO this calls open() in constructor, fails silently
-					SSDPNotifySocket socket = new SSDPNotifySocket(addr);
-					socket.setControlPoint(this);
-					socket.start();
-					nlist.add(socket);
-					if (_log.shouldWarn())
-						_log.warn("Added SSDP notify socket: " + addr);
+					try {
+						SSDPNotifySocket socket = new SSDPNotifySocket(addr);
+						socket.setControlPoint(this);
+						socket.start();
+						nlist.add(socket);
+						if (_log.shouldWarn())
+							_log.warn("Added SSDP notify socket: " + addr);
+					} catch (IOException ioe) {
+						if (_log.shouldWarn())
+							_log.warn("Failed to add SSDP notify socket: " + addr, ioe);
+					}
 				}
 			}
+
+			if (_log.shouldDebug())
+				_log.debug("Current sockets:\nHTTP: " + hlist + "\nSearch response: " + list + "\nNotify: " + nlist);
 		}
 	}
 
@@ -1562,7 +1585,8 @@ public class UPnP extends ControlPoint implements DeviceChangeListener, EventLis
 		Service service;
 		synchronized(lock) {
 			if(!isNATPresent()) {
-				_log.error("Can't removeMapping: " + isNATPresent() + " " + _router);
+                                if (_log.shouldWarn())
+				    _log.warn("Can't removeMapping: " + isNATPresent() + " " + _router);
 				return false;
 			}
 			service = fp.isIP6 ? _service6 : _service;

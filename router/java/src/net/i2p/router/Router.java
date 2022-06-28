@@ -1069,8 +1069,9 @@ public class Router implements RouterClock.ClockShiftListener {
                 if (!_familyKeyCryptoFail) {
                     try {
                         _familyKeyCrypto = new FamilyKeyCrypto(_context);
-                    } catch (GeneralSecurityException gse) {
-                        _log.error("Failed to initialize family key crypto", gse);
+                    } catch (Exception e) {
+                        // Could be IllegalArgumentException from key problems
+                        _log.error("Failed to initialize family key crypto", e);
                         _familyKeyCryptoFail = true;
                     }
                 }
@@ -1826,8 +1827,9 @@ public class Router implements RouterClock.ClockShiftListener {
             changeState(State.RESTARTING);
         }
         ((RouterClock) _context.clock()).removeShiftListener(this);
-        // Let's not stop accepting tunnels, etc
-        //_started = _context.clock().now();
+        // Stop accepting tunnels, etc.
+        // This also prevents netdb from immediately expiring all the RIs
+        _started = System.currentTimeMillis();
         synchronized(_configFileLock) {
             _downtime = 1;
         }

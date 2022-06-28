@@ -1,3 +1,153 @@
+2022-06-25 zzz
+ * SSU: MTU fixes for IPv6 and SSU2
+
+2022-06-24 zzz
+ * SSU2: Peer test message 1 checks
+
+2022-06-23 zzz
+ * Debian: Update apparmor profile
+ * JBigI: Drop 32-bit OSX libs
+
+2022-06-22 zzz
+ * SSU: PMTU improvements
+
+2022-06-20 zzz
+ * SSU2:
+   - Fix overhead calculation for followon fragments
+   - First fragments can be 5 bytes larger than followon fragments
+   - Fix peer test connection ids
+
+2022-06-19 zzz
+ * SSU2:
+   - Add delayed lookup of RI for relay and peer test
+   - Don't delete empty ipv6 address at startup
+ * Util: HostTxtParser CLI improvements
+
+2022-06-17 zzz
+ * Crypto: Fix equality checking of ECParameterSpecs
+ * SusiDNS: Fix classloading on Java 11+
+ * Util: ArraySet improvements, prep for use
+
+2022-06-16 zzz
+ * SSU2: Hole punch processing and fixes
+
+2022-06-14 zzz
+ * SSU2:
+   - Add per-introducer relay state machine
+   - Enable relay
+
+2022-06-12 zzz
+ * SSU2:
+   - Fix peer test msg 1 signature
+   - Relay fixes
+
+2022-06-11 zzz
+ * SSU: Don't send SSU1 relay request to SSU2 peer
+
+2022-06-10 zzz
+ * SSU: Fix for HMAC NPE take 2
+ * SSU2: Continue work on relay
+
+2022-06-08 zzz
+ * NetDb: Bypass checks on lookups of our router hash
+ * SSU: Request RI from introducers if missing
+ * SSU2: Set timer to remove peer test state
+
+2022-06-07 zzz
+ * SSU: Ban IP on bad handshake signature
+ * SSU2: Peer test fixes
+ * Transport:
+   - Don't requeue message after multiple failures
+   - Don't remove from netdb after a failure
+
+2022-06-06 zzz
+ * Console: Add deadlock detector
+ * SSU: Don't allow Android introducers
+ * SSU2: Continue work on relay
+ * SSU2: Peer test fixes
+
+2022-06-03 zzz
+ * SSU: Possible fix for rare HMAC NPE
+ * Transports: Periodically send RI to connected peers
+   (Gitlab ticket #356)
+
+2022-06-02 zzz
+ * SSU2: Relay partial implementation
+
+2022-06-01 zzz
+ * SSU2: Enable peer test
+
+2022-05-30 zzz
+ * SSLEepGet: Send Host header to HTTPS proxy
+
+2022-05-29 zzz
+ * SSU2: Remove role field from peer test block
+
+2022-05-28 zzz
+ * Console: Require full restart on transport enable/disable
+ * Crypto: Handle conversion from Java JCA 15+ EdEC keys
+ * I2CP: Only send one notification to each session listener
+ * i2psnark: Fix DHT not restarting after router restart
+ * i2psnark: Fix scrollbar hiding X box on Firefox 100
+ * Router: Don't fail to start up on unchecked family key errors
+
+2022-05-27 zzz
+ * Streaming: Improve error message on unsupported sig type
+ * UPnP: Don't bind HTTP listen sockets to all addresses at startup
+
+2022-05-26 zzz
+ * Addressbook: Add CLI handler
+
+2022-05-25 zzz
+ * Crypto: Throw checked exception from ElGamal
+   so console key import reports the correct error
+
+2022-05-23 1.8.0 released
+
+2022-05-19 zzz
+ * Pull translations from Transifex
+
+2022-05-17 zzz
+ * i2psnark: Fix remaining size calculation causing tracker errors
+
+2022-05-11 zzz
+ * Transport: Fix thrashing of UPnP IPv6 listen sockets
+ * Util: Rename modified apache classes (Gitlab ticket #353)
+
+2022-05-02 zzz
+ * GeoIP 2022-05-01
+ * Tomcat 9.0.62
+
+2022-04-27 zzz
+ * SSU2: Peer test updates and fixes
+
+2022-04-24 zzz
+ * SSU: Publish empty IPv6 address when missing introducers
+ * SSU2: Finish peer test implementation
+
+2022-04-17 zzz
+ * More soft restart fixes
+
+2022-04-14 zzz
+ * Startup: Don't set our RI loaded from disk if too old
+
+2022-04-13 zzz
+ * Router:
+   - Reset uptime on soft restart
+   - Don't rekey after failure to store our RI due to clock skew
+   - Change comm system state during soft restart
+
+2022-04-12 zzz
+ * Console: Fix Sybil closest hash tabs
+ * Transport: Fix UPnP deadlock
+ * Tunnels: Don't build client tunnels less than min length
+
+2022-04-11 zzz
+ * I2CP: Fix external I2CP broken when session ID is 0
+
+2022-04-05 zzz
+ * SSU2: Fragmented Session Confirmed
+
 2022-03-27 zzz
  * Crypto: Fix CertUtil loading EdDSA certs, check sigs
  * Router: Validate family sig at startup

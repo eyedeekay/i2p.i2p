@@ -847,7 +847,7 @@ public class TransportManager implements TransportEventListener {
             throw new IllegalArgumentException("Bids for a message bound to ourselves?");
 
         List<TransportBid> rv = new ArrayList<TransportBid>(_transports.size());
-        Set<String> failedTransports = msg.getFailedTransports();
+        List<String> failedTransports = msg.getFailedTransports();
         for (Transport t : _transports.values()) {
             if (failedTransports.contains(t.getStyle())) {
                 if (_log.shouldLog(Log.DEBUG))
@@ -873,7 +873,7 @@ public class TransportManager implements TransportEventListener {
     TransportBid getNextBid(OutNetMessage msg) {
         int unreachableTransports = 0;
         Hash peer = msg.getTarget().getIdentity().calculateHash();
-        Set<String> failedTransports = msg.getFailedTransports();
+        List<String> failedTransports = msg.getFailedTransports();
         TransportBid rv = null;
         for (Transport t : _transports.values()) {
             if (t.isUnreachable(peer)) {
@@ -977,7 +977,10 @@ public class TransportManager implements TransportEventListener {
                         _upnpUpdateQueued = true;
                         _context.simpleTimer2().addEvent(new UpdatePorts(), 3250);
                     } else {
-                        _upnpManager.update(getPorts());
+                        // throw onto timer to avoid deadlock
+                        //_upnpManager.update(getPorts());
+                        _upnpUpdateQueued = true;
+                        _context.simpleTimer2().addEvent(new UpdatePorts(), 0);
                     }
                 }
             }
@@ -991,9 +994,10 @@ public class TransportManager implements TransportEventListener {
      */
     private class UpdatePorts implements SimpleTimer.TimedEvent {
         public void timeReached() {
+            Set<Port> ports = getPorts();
             synchronized (_upnpManager) {
                 _upnpUpdateQueued = false;
-                _upnpManager.update(getPorts());
+                _upnpManager.update(ports);
             }
         }
     }

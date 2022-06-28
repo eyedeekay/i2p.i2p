@@ -310,8 +310,13 @@ public abstract class TransportImpl implements Transport {
         else
             msg.timestamp("afterSend(failed)");
 
-        if (!sendSuccessful)
-            msg.transportFailed(getStyle());
+        if (!sendSuccessful) {
+            int prev = msg.transportFailed(getStyle());
+            // This catches the usual case with two enabled transports
+            // GetBidsJob will check against actual transport count
+            if (prev > 0)
+                allowRequeue = false;
+        }
 
         if (msToSend > 1500) {
             if (debug)
@@ -705,8 +710,6 @@ public abstract class TransportImpl implements Transport {
             rv = target.getTargetAddresses(getStyle(), alt);
         else
             rv = target.getTargetAddresses(getStyle());
-        if (rv.isEmpty())
-            return rv;
         if (rv.size() > 1) {
             // Shuffle so everybody doesn't use the first one
             Collections.shuffle(rv, _context.random());
@@ -726,8 +729,8 @@ public abstract class TransportImpl implements Transport {
 
                   case IPV6_NOT_PREFERRED:
                     adj = 1; break;
-                  default:
 
+                  default:
                   case IPV6_ENABLED:
                     adj = 0; break;
 

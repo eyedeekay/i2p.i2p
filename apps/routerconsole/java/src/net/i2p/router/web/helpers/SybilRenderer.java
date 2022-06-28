@@ -716,7 +716,7 @@ public class SybilRenderer {
      *
      */
     private void renderIPGroupsFamily(Writer out, StringBuilder buf, Map<String, List<RouterInfo>> map) throws IOException {
-        buf.append("<h3 id=\"samefamily\" class=\"sybils\">Routers in the same Family</h3><div class=\"sybil_container\">");
+        buf.append("<h3 id=\"samefamily\" class=\"sybils\">Routers in the same family</h3><div class=\"sybil_container\">");
         List<String> foo = new ArrayList<String>(map.keySet());
         Collections.sort(foo, new FoofComparator(map));
         FamilyKeyCrypto fkc = _context.router().getFamilyKeyCrypto();
@@ -759,8 +759,9 @@ public class SybilRenderer {
         for (int i = 0; i < count; i++) {
             RouterInfo ri = ris.get(i);
             double dist = renderRouterInfo(buf, ri, us, false, false);
-            if (dist < MIN_CLOSE)
-                break;
+            // just show all 10 so we get the total stats right
+            //if (dist > MIN_CLOSE)
+            //    break;
             if (dist < avgMinDist) {
                 if (i == 0) {
                     //buf.append("<p><b>Not to worry, but above router is closer than average minimum distance " + fmt.format(avgMinDist) + "</b></p>");
@@ -825,7 +826,7 @@ public class SybilRenderer {
             buf.append("<th colspan=\"2\"><a name=\"our-info\" ></a><b>" + _t("Our info") + ":</b> <code>").append(hash)
                .append("</code></th></tr>\n<tr><td class=\"sybilinfo_params\" colspan=\"2\"><div class=\"sybilinfo_container\">");
         } else {
-            buf.append("<th><b>" + _t("Router") + ":</b> <a href=\"netdb?r=").append(hash, 0, 6).append("\"><code>").append(hash).append("</code></a>\n");
+            buf.append("<th><b>" + _t("Router") + ":</b> <a href=\"netdb?r=").append(hash).append("\"><code>").append(hash).append("</code></a>\n");
 
             String country = _context.commSystem().getCountry(info.getIdentity().getHash());
             buf.append("</th><th>");
@@ -836,8 +837,8 @@ public class SybilRenderer {
                            " src=\"/flags.jsp?c=").append(country).append("\"> ").append("</a>");
             }
             if (!full) {
-                buf.append("<a title=\"View extended router info\" class=\"viewfullentry\" href=\"netdb?r=")
-                   .append(hash, 0, 6).append("\" >[").append(_t("Full entry")).append("]</a>");
+                buf.append("<a title=\"").append(_t("View extended router info")).append("\" class=\"viewfullentry\" href=\"netdb?r=")
+                   .append(hash).append("\" >[").append(_t("Full entry")).append("]</a>");
                 buf.append("<a title=\"View profile data\" class=\"viewfullentry\" href=\"viewprofile?peer=")
                    .append(hash).append("\" >[").append(_t("profile")).append("]</a>");
                 buf.append("<a title=\"").append(_t("Configure peer")).append("\" class=\"viewfullentry\" href=\"configpeer?peer=")

@@ -425,7 +425,13 @@ class OutboundMessageFragments {
             int queued = state.push(toSend);
             // per-state stats
             if (queued > 0 && state.getMaxSends() > 1) {
-                peer.messageRetransmitted(queued);
+                int maxPktSz = state.fragmentSize(0);
+                if (peer.getVersion() == 1)
+                    maxPktSz += (peer.isIPv6() ? PacketBuilder.MIN_IPV6_DATA_PACKET_OVERHEAD : PacketBuilder.MIN_DATA_PACKET_OVERHEAD);
+                else
+                    maxPktSz += SSU2Payload.BLOCK_HEADER_SIZE +
+                                (peer.isIPv6() ? PacketBuilder2.MIN_IPV6_DATA_PACKET_OVERHEAD : PacketBuilder2.MIN_DATA_PACKET_OVERHEAD);
+                peer.messageRetransmitted(queued, maxPktSz);
                 // _packetsRetransmitted += toSend; // lifetime for the transport
                 _context.statManager().addRateData("udp.peerPacketsRetransmitted", peer.getPacketsRetransmitted(), peer.getPacketsTransmitted());
                 _context.statManager().addRateData("udp.packetsRetransmitted", state.getLifetime(), peer.getPacketsTransmitted());
@@ -457,6 +463,8 @@ class OutboundMessageFragments {
             if (_log.shouldDebug())
                 _log.debug("Building packet for " + next + " to " + peer);
             int curTotalDataSize = state.fragmentSize(next.num);
+            if (next.num > 0 && peer.getVersion() > 1)
+                curTotalDataSize += SSU2Util.DATA_FOLLOWON_EXTRA_SIZE;
             // now stuff in more fragments if they fit
             if (i +1 < toSend.size()) {
                 int maxAvail;
@@ -469,6 +477,8 @@ class OutboundMessageFragments {
                     for (int j = i + 1; j < toSend.size(); j++) {
                         next = toSend.get(j);
                         int nextDataSize = next.state.fragmentSize(next.num);
+                        if (next.num > 0 && peer.getVersion() > 1)
+                            nextDataSize += SSU2Util.DATA_FOLLOWON_EXTRA_SIZE;
                         //if (PacketBuilder.canFitAnotherFragment(peer, sendNext.size(), curTotalDataSize, nextDataSize)) {
                         //if (_builder.canFitAnotherFragment(peer, sendNext.size(), curTotalDataSize, nextDataSize)) {
                         if (nextDataSize <= maxAvail) {

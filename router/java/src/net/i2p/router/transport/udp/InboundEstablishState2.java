@@ -52,6 +52,7 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
     private byte[] _sendHeaderEncryptKey2;
     private byte[] _rcvHeaderEncryptKey2;
     private byte[] _sessCrForReTX;
+    private byte[][] _sessConfFragments;
     private long _timeReceived;
     // not adjusted for RTT
     private long _skew;
@@ -108,6 +109,7 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
             chacha.setNonce(n);
             chacha.decryptWithAd(data, off, LONG_HEADER_SIZE,
                                  data, off + LONG_HEADER_SIZE, data, off + LONG_HEADER_SIZE, len - LONG_HEADER_SIZE);
+            chacha.destroy();
             processPayload(data, off + LONG_HEADER_SIZE, len - (LONG_HEADER_SIZE + MAC_LEN), true);
             _sendHeaderEncryptKey2 = introKey;
             do {
@@ -168,6 +170,8 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
             throw new GeneralSecurityException("Skew exceeded in Session/Token Request: " + _skew);
         }
         packetReceived();
+        if (_log.shouldDebug())
+            _log.debug("New " + this);
     }
 
     @Override
@@ -177,7 +181,7 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
         try {
             int blocks = SSU2Payload.processPayload(_context, this, payload, offset, length, isHandshake);
             if (_log.shouldDebug())
-                _log.debug("Processed " + blocks + " blocks");
+                _log.debug("Processed " + blocks + " blocks on " + this);
         } catch (Exception e) {
             _log.error("IES2 payload error\n" + net.i2p.util.HexDump.dump(payload, 0, length), e);
             throw new GeneralSecurityException("IES2 payload error", e);
@@ -198,8 +202,8 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
     }
 
     public void gotRI(RouterInfo ri, boolean isHandshake, boolean flood) throws DataFormatException {
-        if (_log.shouldDebug())
-            _log.debug("Got RI block: " + ri);
+        //if (_log.shouldDebug())
+        //    _log.debug("Got RI block: " + ri);
         if (isHandshake)
             throw new DataFormatException("RI in Sess Req");
         if (_receivedUnconfirmedIdentity != null)
@@ -236,7 +240,7 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
         }
 
         if (ra == null)
-            throw new DataFormatException("no SSU2 addr");
+            throw new DataFormatException("no SSU2 addr, ipv6? " + isIPv6 + ": " + ri);
         String siv = ra.getOption("i");
         if (siv == null)
             throw new DataFormatException("no SSU2 IKey");
@@ -271,7 +275,9 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
                     mtu = PeerState2.DEFAULT_SSU_IPV4_MTU;
             }
         } else {
-            // TODO if too small, give up now
+            // if too small, give up now
+            if (mtu < PeerState2.MIN_MTU)
+                throw new DataFormatException("MTU too small " + mtu);
             if (ra.getTransportStyle().equals(UDPTransport.STYLE2)) {
                 mtu = Math.min(Math.max(mtu, PeerState2.MIN_MTU), PeerState2.MAX_MTU);
             } else {
@@ -311,8 +317,8 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
     public void gotRIFragment(byte[] data, boolean isHandshake, boolean flood, boolean isGzipped, int frag, int totalFrags) {
         if (_log.shouldDebug())
             _log.debug("Got RI fragment " + frag + " of " + totalFrags);
-        if (isHandshake)
-            throw new IllegalStateException("RI in Sess Req");
+        // not supported, we fragment the whole message now
+        throw new IllegalStateException("fragmented RI");
     }
 
     public void gotAddress(byte[] ip, int port) {
@@ -321,11 +327,6 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
         _bobIP = ip;
         // final, see super
         //_bobPort = port;
-    }
-
-    public void gotIntroKey(byte[] key) {
-        if (_log.shouldDebug())
-            _log.debug("Got Intro key: " + Base64.encode(key));
     }
 
     public void gotRelayTagRequest() {
@@ -370,6 +371,8 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
     }
 
     public void gotToken(long token, long expires) {
+        if (_log.shouldDebug())
+            _log.debug("Got token: " + token + " expires " + DataHelper.formatTime(expires) + " on " + this);
         if (_receivedConfirmedIdentity == null)
             throw new IllegalStateException("RI must be first");
         _transport.getEstablisher().addOutboundToken(_remoteHostId, token, expires);
@@ -485,8 +488,11 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
         if (sid != _sendConnID)
             throw new GeneralSecurityException("Conn ID mismatch: 1: " + _sendConnID + " 2: " + sid);
         long token = DataHelper.fromLong8(data, off + 24);
-        if (token != _token)
-            throw new GeneralSecurityException("Token mismatch: 1: " + _token + " 2: " + token);
+        if (token != _token) {
+            // most likely a retransmitted session request with the old invalid token
+            // TODO should we retransmit retry in this case?
+            throw new GeneralSecurityException("Token mismatch: expected: " + _token + " got: " + token);
+        }
         _handshakeState.start();
         _handshakeState.mixHash(data, off, 32);
         //if (_log.shouldDebug())
@@ -521,12 +527,16 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
     }
 
     /**
-     * Receive the last message in the handshake, and create the PeerState.
+     * Receive the last messages in the handshake, and create the PeerState.
+     * If the message is fragmented, store the data for reassembly and return,
+     * unless this was the last one.
      *
-     * @return the new PeerState2, may also be retrieved from getPeerState()
+     * @return the new PeerState2 if are done, may also be retrieved from getPeerState(),
+     *         or null if more fragments to go
      */
     public synchronized PeerState2 receiveSessionConfirmed(UDPPacket packet) throws GeneralSecurityException {
-        if (_currentState != InboundState.IB_STATE_CREATED_SENT)
+        if (_currentState != InboundState.IB_STATE_CREATED_SENT &&
+            _currentState != InboundState.IB_STATE_CONFIRMED_PARTIALLY)
             throw new GeneralSecurityException("Bad state for Session Confirmed: " + _currentState);
         DatagramPacket pkt = packet.getPacket();
         SocketAddress from = pkt.getSocketAddress();
@@ -538,7 +548,74 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
         long rid = DataHelper.fromLong8(data, off);
         if (rid != _rcvConnID)
             throw new GeneralSecurityException("Conn ID mismatch: req: " + _rcvConnID + " conf: " + rid);
-        _handshakeState.mixHash(data, off, 16);
+        byte fragbyte = data[off + SHORT_HEADER_FLAGS_OFFSET];
+        int frag = (fragbyte >> 4) & 0x0f;
+        // allow both 0/0 (development) and 0/1 to indicate sole fragment
+        int totalfrag = fragbyte & 0x0f;
+        if (totalfrag > 0 && frag > totalfrag - 1)
+            throw new GeneralSecurityException("Bad sess conf fragment " + frag + " of " + totalfrag);
+        if (totalfrag > 1) {
+            // Fragment processing. Save fragment.
+            // If we have all fragments, reassemble and continue,
+            // else return to await more.
+            if (_sessConfFragments == null) {
+                _sessConfFragments = new byte[totalfrag][];
+                // change state so we will no longer retransmit session created
+                _currentState = InboundState.IB_STATE_CONFIRMED_PARTIALLY;
+                _sessCrForReTX = null;
+                // force past expiration, we don't have anything to send until we have everything
+                _nextSend = _lastSend + 60*1000;
+            } else {
+                if (_sessConfFragments.length != totalfrag) // total frag changed
+                    throw new GeneralSecurityException("Bad sess conf fragment " + frag + " of " + totalfrag);
+                if (_sessConfFragments[frag] != null) {
+                    if (_log.shouldWarn())
+                        _log.warn("Got dup sess conf frag " + frag + " on " + this);
+                    // there is no facility to ack individual fragments
+                    //packetReceived();
+                    return null;
+                }
+            }
+            if (_log.shouldWarn())
+                _log.warn("Got sess conf frag " + frag + '/' + totalfrag + " len " + len + " on " + this);
+            byte[] fragdata;
+            if (frag == 0) {
+                // preserve header
+                fragdata = new byte[len];
+                System.arraycopy(data, off, fragdata, 0, len);
+            } else {
+                // discard header
+                len -= SHORT_HEADER_SIZE;
+                fragdata = new byte[len];
+                System.arraycopy(data, off + SHORT_HEADER_SIZE, fragdata, 0, len);
+            }
+            _sessConfFragments[frag] = fragdata;
+            int totalsize = 0;
+            for (int i = 0; i < totalfrag; i++) {
+                if (_sessConfFragments[i] == null) {
+                    if (_log.shouldWarn())
+                        _log.warn("Still missing at least one sess conf frag on " + this);
+                    // there is no facility to ack individual fragments
+                    //packetReceived();
+                    return null;
+                }
+                totalsize += _sessConfFragments[i].length;
+            }
+            // we have all the fragments
+            // make a jumbo packet and process it through noise
+            len = totalsize;
+            off = 0;
+            data = new byte[len];
+            int joff = 0;
+            for (int i = 0; i < totalfrag; i++) {
+                byte[] f = _sessConfFragments[i];
+                System.arraycopy(f, 0, data, joff, f.length);
+                joff += f.length;
+            }
+            if (_log.shouldWarn())
+                _log.warn("Have all " + totalfrag + " sess conf frags, total length " + len + " on " + this);
+        }
+        _handshakeState.mixHash(data, off, SHORT_HEADER_SIZE);
         //if (_log.shouldDebug())
         //    _log.debug("State after mixHash 3: " + _handshakeState);
 
@@ -618,6 +695,11 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
         // PS2.super adds CLOCK_SKEW_FUDGE that doesn't apply here
         _pstate.adjustClockSkew(_skew - (_rtt / 2) - PeerState.CLOCK_SKEW_FUDGE);
         _pstate.setHisMTU(_mtu);
+        // set our address. _bobIP and _bobPort in super are not set for SSU2
+        boolean isIPv6 = _aliceIP.length == 16;
+        RouterAddress ra = _transport.getCurrentExternalAddress(isIPv6);
+        if (ra != null)
+            _pstate.setOurAddress(ra.getIP(), ra.getPort());
     }
 
     /**
@@ -637,7 +719,7 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
     }
 
     /**
-     * @return null if not sent or already got the session created
+     * @return null if not sent or already got the session confirmed
      */
     public synchronized UDPPacket getRetransmitSessionCreatedPacket() {
         if (_sessCrForReTX == null)
@@ -713,7 +795,8 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
         buf.append(" lifetime: ").append(DataHelper.formatDuration(getLifetime()));
         buf.append(" Rcv ID: ").append(_rcvConnID);
         buf.append(" Send ID: ").append(_sendConnID);
-        buf.append(" RelayTag: ").append(_sentRelayTag);
+        if (_sentRelayTag > 0)
+            buf.append(" RelayTag: ").append(_sentRelayTag);
         buf.append(' ').append(_currentState);
         return buf.toString();
     }

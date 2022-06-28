@@ -51,23 +51,17 @@ public class PeerState {
      * The AES key used to verify packets, set only after the connection is
      * established.
      */
-    private SessionKey _currentMACKey;
+    private final SessionKey _currentMACKey;
     /**
      * The AES key used to encrypt/decrypt packets, set only after the
      * connection is established.
      */
-    private SessionKey _currentCipherKey;
+    private final SessionKey _currentCipherKey;
     /**
      * The pending AES key for verifying packets if we are rekeying the
      * connection, or null if we are not in the process of rekeying.
      */
     private SessionKey _nextMACKey;
-    /**
-     * The pending AES key for encrypting/decrypting packets if we are
-     * rekeying the connection, or null if we are not in the process
-     * of rekeying.
-     */
-    private SessionKey _nextCipherKey;
 
     /** when were the current cipher and MAC keys established/rekeyed? */
     protected final long _keyEstablishedTime;
@@ -164,6 +158,7 @@ public class PeerState {
     private int _mtuReceive;
     /** what is the largest packet we will ever send to the peer? */
     private int _largeMTU;
+    private final int _minMTU;
     /* how many consecutive packets at or under the min MTU have been received */
     private long _consecutiveSmall;
     private int _mtuIncreases;
@@ -299,6 +294,10 @@ public class PeerState {
      */
     public static final int MAX_MTU = Math.max(LARGE_MTU, MAX_IPV6_MTU);
 
+    // amount to adjust up or down in adjustMTU()
+    // should be multiple of 16, at least for SSU 1
+    private static final int MTU_STEP = 64;
+
     private static final int MIN_RTO = 1000;
     private static final int INIT_RTO = 1000;
     private static final int INIT_RTT = 0;
@@ -326,10 +325,13 @@ public class PeerState {
     private static final int FAST_RTX_ACKS = 3;
 
     /**
+     *  SSU 1 only.
+     *
      *  @param rtt from the EstablishState, or 0 if not available
      */
     public PeerState(RouterContext ctx, UDPTransport transport,
-                     byte[] remoteIP, int remotePort, Hash remotePeer, boolean isInbound, int rtt) {
+                     byte[] remoteIP, int remotePort, Hash remotePeer, boolean isInbound, int rtt,
+                     SessionKey cipherKey, SessionKey macKey) {
         _context = ctx;
         _log = ctx.logManager().getLog(PeerState.class);
         _transport = transport;
@@ -346,10 +348,12 @@ public class PeerState {
             _mtu = DEFAULT_MTU;
             _mtuReceive = DEFAULT_MTU;
             _largeMTU = transport.getMTU(false);
+            _minMTU = MIN_MTU;
         } else {
             _mtu = MIN_IPV6_MTU;
             _mtuReceive = MIN_IPV6_MTU;
             _largeMTU = transport.getMTU(true);
+            _minMTU = MIN_IPV6_MTU;
         }
         // RFC 5681 sec. 3.1
         if (_mtu > 1095)
@@ -376,6 +380,8 @@ public class PeerState {
         _isInbound = isInbound;
         _remoteHostId = new RemoteHostId(remoteIP, remotePort);
         _bwEstimator = new SimpleBandwidthEstimator(ctx, this);
+        _currentCipherKey = cipherKey;
+        _currentMACKey = macKey;
     }
 
     /**
@@ -399,10 +405,11 @@ public class PeerState {
         _mtu = PeerState2.MIN_MTU;
         _mtuReceive = PeerState2.MIN_MTU;
         if (_remoteIP.length == 4) {
-            _largeMTU = transport.getMTU(false);
+            _largeMTU = transport.getSSU2MTU(false);
         } else {
-            _largeMTU = transport.getMTU(true);
+            _largeMTU = transport.getSSU2MTU(true);
         }
+        _minMTU = PeerState2.MIN_MTU;
         // RFC 5681 sec. 3.1
         _sendWindowBytes = 3 * _mtu;
         _sendWindowBytesRemaining = _sendWindowBytes;
@@ -425,6 +432,8 @@ public class PeerState {
         _currentACKs = null;
         _currentACKsResend = null;
         _ackedMessages = null;
+        _currentCipherKey = null;
+        _currentMACKey = null;
     }
     
     /**
@@ -444,10 +453,7 @@ public class PeerState {
     }
 
     /**
-     * The peer are we talking to.  This should be set as soon as this
-     * state is created if we are initiating a connection, but if we are
-     * receiving the connection this will be set only after the connection
-     * is established.
+     * The peer are we talking to. Non-null.
      */
     public Hash getRemotePeer() { return _remotePeer; }
     /**
@@ -484,9 +490,12 @@ public class PeerState {
      *
      * @return null always, rekeying unimplemented
      */
-    SessionKey getNextCipherKey() { return _nextCipherKey; }
+    SessionKey getNextCipherKey() { return null; }
 
-    /** when were the current cipher and MAC keys established/rekeyed? */
+    /**
+     * When were the current cipher and MAC keys established/rekeyed?
+     * This is the connection uptime.
+     */
     public long getKeyEstablishedTime() { return _keyEstablishedTime; }
 
     /**
@@ -567,18 +576,6 @@ public class PeerState {
      *  It is used only for the HTML status.
      */
     public int getReceiveMTU() { return _mtuReceive; }
-
-    /**
-     * The AES key used to verify packets, set only after the connection is
-     * established.
-     */
-    void setCurrentMACKey(SessionKey key) { _currentMACKey = key; }
-
-    /**
-     * The AES key used to encrypt/decrypt packets, set only after the
-     * connection is established.
-     */
-    void setCurrentCipherKey(SessionKey key) { _currentCipherKey = key; }
 
     /**
      *  Update the moving-average clock skew based on the current difference.
@@ -1127,7 +1124,7 @@ public class PeerState {
      *  We sent a message which was ACKed containing the given # of bytes.
      *  Caller should synch on this
      */
-    private void locked_messageACKed(int bytesACKed, long lifetime, int numSends, boolean anyPending, boolean anyQueued) {
+    private void locked_messageACKed(int bytesACKed, int maxPktSz, long lifetime, int numSends, boolean anyPending, boolean anyQueued) {
         _consecutiveFailedSends = 0;
         // _lastFailedSendPeriod = -1;
         if (numSends < 2) {
@@ -1170,12 +1167,12 @@ public class PeerState {
         if (numSends < 2) {
             // caller synchs
             recalculateTimeouts(lifetime);
-            adjustMTU();
+            adjustMTU(maxPktSz, true);
         }
 
         if (!anyPending) {
-            if (_log.shouldLog(Log.DEBUG))
-                _log.debug(_remotePeer + " nothing pending, cancelling timer");
+            //if (_log.shouldLog(Log.DEBUG))
+            //    _log.debug(_remotePeer + " nothing pending, cancelling timer");
             _retransmitTimer = 0;
             exitFastRetransmit();
         } else {
@@ -1193,9 +1190,9 @@ public class PeerState {
     /**
      *  We sent a message which was ACKed containing the given # of bytes.
      */
-    protected void messageACKed(int bytesACKed, long lifetime, int numSends, boolean anyPending, boolean anyQueued) {
+    private void messageACKed(int bytesACKed, int maxPktSz, long lifetime, int numSends, boolean anyPending, boolean anyQueued) {
         synchronized(this) {
-            locked_messageACKed(bytesACKed, lifetime, numSends, anyPending, anyQueued);
+            locked_messageACKed(bytesACKed, maxPktSz, lifetime, numSends, anyPending, anyQueued);
         }
         _bwEstimator.addSample(bytesACKed);
         if (numSends >= 2 && _log.shouldDebug())
@@ -1227,26 +1224,40 @@ public class PeerState {
     }
 
     /**
+     *  Adjust upward if a large packet was successfully sent without retransmission.
+     *  Adjust downward if a packet was retransmitted.
+     *
      *  Caller should synch on this
+     *
+     *  @param maxPktSz the largest packet that was sent
+     *  @param success was it sent successfully?
      */
-    private void adjustMTU() {
-        double retransPct = 0;
-        if (_packetsTransmitted > 10) {
-            retransPct = (double)_packetsRetransmitted/(double)_packetsTransmitted;
-            boolean wantLarge = retransPct < .30d; // heuristic to allow fairly lossy links to use large MTUs
-            if (wantLarge && _mtu != _largeMTU) {
-                if (_context.random().nextLong(_mtuDecreases) <= 0) {
-                    _mtu = _largeMTU;
+    private void adjustMTU(int maxPktSz, boolean success) {
+        if (_packetsTransmitted > 0) {
+            // heuristic to allow fairly lossy links to use large MTUs
+            boolean wantLarge = success &&
+                                (float)_packetsRetransmitted / (float)_packetsTransmitted < 0.10f;
+            // we only increase if the size was close to the limit
+            if (wantLarge) {
+                if (_mtu < _largeMTU && maxPktSz > _mtu - (MTU_STEP * 2) &&
+                    (_mtuDecreases <= 1 || _context.random().nextInt(_mtuDecreases) <= 0)){
+                    _mtu = Math.min(_mtu + MTU_STEP, _largeMTU);
                     _mtuIncreases++;
+                    _mtuDecreases = 0;
                     _context.statManager().addRateData("udp.mtuIncrease", _mtuIncreases);
-		}
-	    } else if (!wantLarge && _mtu == _largeMTU) {
-                _mtu = getVersion() == 2 ? PeerState2.MIN_MTU : (_remoteIP.length == 4 ? MIN_MTU : MIN_IPV6_MTU);
-                _mtuDecreases++;
-                _context.statManager().addRateData("udp.mtuDecrease", _mtuDecreases);
-	    }
-        } else {
-            _mtu = getVersion() == 2 ? PeerState2.MIN_MTU : (_remoteIP.length == 4 ? MIN_MTU : MIN_IPV6_MTU);
+                    if (_log.shouldDebug())
+                        _log.debug("Increased MTU after " + maxPktSz + " byte packet acked on " + this);
+                }
+            } else {
+                if (_mtu > _minMTU) {
+                    _mtu = Math.max(_mtu - MTU_STEP, _minMTU);
+                    _mtuDecreases++;
+                    _mtuIncreases = 0;
+                    _context.statManager().addRateData("udp.mtuDecrease", _mtuDecreases);
+                    if (_log.shouldDebug())
+                        _log.debug("Decreased MTU after " + maxPktSz + " byte packet retx on " + this);
+                }
+            }
         }
     }
 
@@ -1254,22 +1265,21 @@ public class PeerState {
      *  @since 0.9.2
      */
     synchronized void setHisMTU(int mtu) {
-        if (mtu <= MIN_MTU || mtu >= _largeMTU ||
-            (_remoteIP.length == 16 && mtu <= MIN_IPV6_MTU) ||
-            (getVersion() == 2 && mtu <= PeerState2.MIN_MTU))
+        if (mtu <= _minMTU || mtu >= _largeMTU)
             return;
-        _largeMTU = mtu;
+        if (mtu < _largeMTU)
+            _largeMTU = mtu;
         if (mtu < _mtu)
             _mtu = mtu;
     }
 
     /** we are resending a packet, so lets jack up the rto */
-    synchronized void messageRetransmitted(int packets) {
+    synchronized void messageRetransmitted(int packets, int maxPktSz) {
         _context.statManager().addRateData("udp.congestionOccurred", _sendWindowBytes);
         _context.statManager().addRateData("udp.congestedRTO", _rto, _rttDeviation);
         _packetsRetransmitted += packets;
         congestionOccurred();
-        adjustMTU();
+        adjustMTU(maxPktSz, false);
     }
 
     synchronized void packetsTransmitted(int packets) {
@@ -1319,18 +1329,15 @@ public class PeerState {
      */
     synchronized void packetReceived(int size) {
         _packetsReceived++;
-        int minMTU;
         if (_remoteIP.length == 4) {
             size += OVERHEAD_SIZE;
-            minMTU = getVersion() == 2 ? PeerState2.MIN_MTU : MIN_MTU;
         } else {
             size += IPV6_OVERHEAD_SIZE;
-            minMTU = getVersion() == 2 ? PeerState2.MIN_MTU : MIN_IPV6_MTU;
         }
-        if (size <= minMTU) {
+        if (size <= _minMTU) {
             _consecutiveSmall++;
             if (_consecutiveSmall >= MTU_RCV_DISPLAY_THRESHOLD)
-                _mtuReceive = minMTU;
+                _mtuReceive = _minMTU;
         } else {
             _consecutiveSmall = 0;
             if (size > _mtuReceive)
@@ -1869,7 +1876,9 @@ public class PeerState {
                 _ackedMessages.put(Integer.valueOf((int) messageId), Long.valueOf(sn));
             }
             // this adjusts the rtt/rto/window/etc
-            messageACKed(state.getUnackedSize(), lifetime, numSends, anyPending, anyQueued);
+            int maxPktSz = state.fragmentSize(0) +
+                           (isIPv6() ? PacketBuilder.MIN_IPV6_DATA_PACKET_OVERHEAD : PacketBuilder.MIN_DATA_PACKET_OVERHEAD);
+            messageACKed(state.getUnackedSize(), maxPktSz, lifetime, numSends, anyPending, anyQueued);
         } else {
             // dupack, likely
             Long seq;
@@ -1971,7 +1980,7 @@ public class PeerState {
                     }
                 }
                 // this adjusts the rtt/rto/window/etc
-                messageACKed(ackedSize, lifetime, numSends, anyPending, anyQueued);
+                messageACKed(ackedSize, 0, lifetime, numSends, anyPending, anyQueued);
             }
             // we do this even if only partial
             long sn = state.getSeqNum();
@@ -2092,7 +2101,10 @@ public class PeerState {
             }
         }
         // this adjusts the rtt/rto/window/etc
-        messageACKed(ackedSize, lifetime, numSends, anyPending, anyQueued);
+        int maxPktSz = state.fragmentSize(0) +
+                       SSU2Payload.BLOCK_HEADER_SIZE +
+                       (isIPv6() ? PacketBuilder2.MIN_IPV6_DATA_PACKET_OVERHEAD : PacketBuilder2.MIN_DATA_PACKET_OVERHEAD);
+        messageACKed(ackedSize, maxPktSz, lifetime, numSends, anyPending, anyQueued);
         return true;
     }
 
@@ -2191,7 +2203,7 @@ public class PeerState {
     /**
      * Transfer the basic activity/state from the old peer to the current peer
      *
-     *  SSU 1 only.
+     *  SSU 1 or 2.
      *
      * @param oldPeer non-null
      */
@@ -2203,45 +2215,49 @@ public class PeerState {
         _sendWindowBytes = oldPeer._sendWindowBytes;
         oldPeer._dead = true;
 
-        List<Long> tmp = new ArrayList<Long>();
-        // AIOOBE from concurrent access
-        //tmp.addAll(oldPeer._currentACKs);
-        for (Long l : oldPeer._currentACKs) {
-            tmp.add(l);
+        if (getVersion() == 1 && oldPeer.getVersion() == 1) {
+            List<Long> tmp = new ArrayList<Long>();
+            // AIOOBE from concurrent access
+            //tmp.addAll(oldPeer._currentACKs);
+            for (Long l : oldPeer._currentACKs) {
+                tmp.add(l);
+            }
+            oldPeer._currentACKs.clear();
+
+            if (!_dead) {
+                _currentACKs.addAll(tmp);
+            }
+
+            List<ResendACK> tmp3 = new ArrayList<ResendACK>();
+            tmp3.addAll(oldPeer._currentACKsResend);
+            oldPeer._currentACKsResend.clear();
+
+            if (!_dead) {
+                _currentACKsResend.addAll(tmp3);
+            }
         }
-        oldPeer._currentACKs.clear();
 
-        if (!_dead) {
-            _currentACKs.addAll(tmp);
-	}
+        if (getVersion() == oldPeer.getVersion()) {
+            Map<Long, InboundMessageState> msgs = new HashMap<Long, InboundMessageState>();
+            synchronized (oldPeer._inboundMessages) {
+                msgs.putAll(oldPeer._inboundMessages);
+                oldPeer._inboundMessages.clear();
+            }
+            if (!_dead) {
+                synchronized (_inboundMessages) { _inboundMessages.putAll(msgs); }
+            }
+            msgs.clear();
 
-        List<ResendACK> tmp3 = new ArrayList<ResendACK>();
-        tmp3.addAll(oldPeer._currentACKsResend);
-        oldPeer._currentACKsResend.clear();
-
-        if (!_dead) {
-            _currentACKsResend.addAll(tmp3);
-	}
-
-        Map<Long, InboundMessageState> msgs = new HashMap<Long, InboundMessageState>();
-        synchronized (oldPeer._inboundMessages) {
-            msgs.putAll(oldPeer._inboundMessages);
-            oldPeer._inboundMessages.clear();
-        }
-        if (!_dead) {
-            synchronized (_inboundMessages) { _inboundMessages.putAll(msgs); }
-	}
-        msgs.clear();
-
-        List<OutboundMessageState> tmp2 = new ArrayList<OutboundMessageState>();
-        OutboundMessageState retransmitter = null;
-        synchronized (oldPeer._outboundMessages) {
-            tmp2.addAll(oldPeer._outboundMessages);
-            oldPeer._outboundMessages.clear();
-        }
-        if (!_dead) {
-            synchronized (_outboundMessages) {
-                _outboundMessages.addAll(tmp2);
+            List<OutboundMessageState> tmp2 = new ArrayList<OutboundMessageState>();
+            OutboundMessageState retransmitter = null;
+            synchronized (oldPeer._outboundMessages) {
+                tmp2.addAll(oldPeer._outboundMessages);
+                oldPeer._outboundMessages.clear();
+            }
+            if (!_dead) {
+                synchronized (_outboundMessages) {
+                    _outboundMessages.addAll(tmp2);
+                }
             }
         }
     }
@@ -2378,8 +2394,7 @@ public class PeerState {
     public String toString() {
         StringBuilder buf = new StringBuilder(256);
         buf.append(_remoteHostId.toString());
-        if (_remotePeer != null)
-            buf.append(" ").append(_remotePeer.toBase64().substring(0,6));
+        buf.append(' ').append(_remotePeer.toBase64().substring(0,6));
 
         if (getVersion() == 2)
             buf.append(_isInbound? " IB2 " : " OB2 ");
@@ -2393,6 +2408,8 @@ public class PeerState {
         buf.append(" lifetime: ").append(DataHelper.formatDuration(now - _keyEstablishedTime));
         buf.append(" RTT: ").append(_rtt);
         buf.append(" RTO: ").append(_rto);
+        buf.append(" MTU: ").append(_mtu);
+        buf.append(" LMTU: ").append(_largeMTU);
         buf.append(" cwin: ").append(_sendWindowBytes);
         buf.append(" acwin: ").append(_sendWindowBytesRemaining);
         buf.append(" SST: ").append(_slowStartThreshold);
@@ -2405,6 +2422,10 @@ public class PeerState {
         buf.append(" IBM: ").append(_inboundMessages.size());
         buf.append(" OBQ: ").append(_outboundQueue.size());
         buf.append(" OBL: ").append(_outboundMessages.size());
+        if (_weRelayToThemAs > 0)
+            buf.append(" weRelayToThemAs: ").append(_weRelayToThemAs);
+        if (_theyRelayToUsAs > 0)
+            buf.append(" theyRelayToUsAs: ").append(_theyRelayToUsAs);
         return buf.toString();
     }
 }

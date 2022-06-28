@@ -19,8 +19,8 @@ final class SSU2Util {
     public static final int PROTOCOL_VERSION = 2;
 
     // features
-    public static final boolean ENABLE_RELAY = false;
-    public static final boolean ENABLE_PEER_TEST = false;
+    public static final boolean ENABLE_RELAY = true;
+    public static final boolean ENABLE_PEER_TEST = true;
     public static final boolean ENABLE_PATH_CHALLENGE = false;
 
     // lengths
@@ -106,6 +106,7 @@ final class SSU2Util {
     public static final byte PEER_TEST_FLAG_BYTE = UDPPacket.PAYLOAD_TYPE_TEST;
     public static final byte RETRY_FLAG_BYTE = 9;
     public static final byte TOKEN_REQUEST_FLAG_BYTE = 10;
+    public static final byte HOLE_PUNCH_FLAG_BYTE = 11;
 
     public static final String INFO_CREATED =   "SessCreateHeader";
     public static final String INFO_CONFIRMED = "SessionConfirmed";
@@ -124,6 +125,7 @@ final class SSU2Util {
     public static final int TEST_REJECT_BOB_NO_CHARLIE = 2;
     public static final int TEST_REJECT_BOB_LIMIT = 3;
     public static final int TEST_REJECT_BOB_SIGFAIL = 4;
+    public static final int TEST_REJECT_BOB_ADDRESS = 5;
     public static final int TEST_REJECT_CHARLIE_UNSPEC = 64;
     public static final int TEST_REJECT_CHARLIE_ADDRESS = 65;
     public static final int TEST_REJECT_CHARLIE_LIMIT = 66;
@@ -131,6 +133,45 @@ final class SSU2Util {
     public static final int TEST_REJECT_CHARLIE_CONNECTED = 68;
     public static final int TEST_REJECT_CHARLIE_BANNED = 69;
     public static final int TEST_REJECT_CHARLIE_UNKNOWN_ALICE = 70;
+
+    public static final int RELAY_ACCEPT = 0;
+    public static final int RELAY_REJECT_BOB_UNSPEC = 1;
+    public static final int RELAY_REJECT_BOB_BANNED_CHARLIE = 2;
+    public static final int RELAY_REJECT_BOB_LIMIT = 3;
+    public static final int RELAY_REJECT_BOB_SIGFAIL = 4;
+    public static final int RELAY_REJECT_BOB_NO_TAG = 5;
+    public static final int RELAY_REJECT_BOB_UNKNOWN_ALICE = 6;
+    public static final int RELAY_REJECT_CHARLIE_UNSPEC = 64;
+    public static final int RELAY_REJECT_CHARLIE_ADDRESS = 65;
+    public static final int RELAY_REJECT_CHARLIE_LIMIT = 66;
+    public static final int RELAY_REJECT_CHARLIE_SIGFAIL = 67;
+    public static final int RELAY_REJECT_CHARLIE_CONNECTED = 68;
+    public static final int RELAY_REJECT_CHARLIE_BANNED = 69;
+    public static final int RELAY_REJECT_CHARLIE_UNKNOWN_ALICE = 70;
+
+    // termination reason codes
+    public static final int REASON_UNSPEC = 0;
+    public static final int REASON_TERMINATION = 1;
+    public static final int REASON_TIMEOUT = 2;
+    public static final int REASON_SHUTDOWN = 3;
+    public static final int REASON_AEAD = 4;
+    public static final int REASON_OPTIONS = 5;
+    public static final int REASON_SIGTYPE = 6;
+    public static final int REASON_SKEW = 7;
+    public static final int REASON_PADDING = 8;
+    public static final int REASON_FRAMING = 9;
+    public static final int REASON_PAYLOAD = 10;
+    public static final int REASON_MSG1 = 11;
+    public static final int REASON_MSG2 = 12;
+    public static final int REASON_MSG3 = 13;
+    public static final int REASON_FRAME_TIMEOUT = 14;
+    public static final int REASON_SIGFAIL = 15;
+    public static final int REASON_S_MISMATCH = 16;
+    public static final int REASON_BANNED = 17;
+    public static final int REASON_TOKEN = 18;
+    public static final int REASON_LIMITS = 19;
+    public static final int REASON_VERSION = 20;
+    public static final int REASON_NETID = 21;
 
     private SSU2Util() {}
 
@@ -149,31 +190,107 @@ final class SSU2Util {
      *
      *  @param h to be included in sig, not included in data
      *  @param h2 may be null, to be included in sig, not included in data
+     *  @param role unused
      *  @param ip may be null
      *  @return null on failure
      */
     public static byte[] createPeerTestData(I2PAppContext ctx, Hash h, Hash h2,
                                             PeerTestState.Role role, long nonce, byte[] ip, int port,
                                             SigningPrivateKey spk) {
-        int datalen = 13 + ip.length;
+        int datalen = 12 + (ip != null ? ip.length : 0);
         byte[] data = new byte[datalen + spk.getType().getSigLen()];
-        if (role == PeerTestState.Role.BOB)
-            throw new IllegalArgumentException();
-        data[0] = (byte) ((role == PeerTestState.Role.ALICE) ? 1 : 3);
-        data[1] = 2;  // version
-        DataHelper.toLong(data, 2, 4, nonce);
-        DataHelper.toLong(data, 6, 4, ctx.clock().now() / 1000);
+        data[0] = 2;  // version
+        DataHelper.toLong(data, 1, 4, nonce);
+        DataHelper.toLong(data, 5, 4, ctx.clock().now() / 1000);
         int iplen = (ip != null) ? ip.length : 0;
-        data[10] = (byte) iplen;
-        if (ip != null)
-            System.arraycopy(ip, 0, data, 11, iplen);
-        DataHelper.toLong(data, 11 + iplen, 2, port);
+        data[9] = (byte) (ip != null ? iplen + 2 : 0);
+        if (ip != null) {
+            DataHelper.toLong(data, 10, 2, port);
+            System.arraycopy(ip, 0, data, 12, iplen);
+        }
         Signature sig = sign(ctx, PEER_TEST_PROLOGUE, h, h2, data, datalen, spk);
         if (sig == null)
             return null;
         byte[] s = sig.getData();
         System.arraycopy(s, 0, data, datalen, s.length);
         return data;
+    }
+
+    /**
+     *  Make the data for the relay request block
+     *
+     *  @param h Bob hash to be included in sig, not included in data
+     *  @param h2 Charlie hash to be included in sig, not included in data
+     *  @param ip non-null
+     *  @return null on failure
+     *  @since 0.9.55
+     */
+    public static byte[] createRelayRequestData(I2PAppContext ctx, Hash h, Hash h2,
+                                                long nonce, long tag, byte[] ip, int port,
+                                                SigningPrivateKey spk) {
+        int datalen = 16 + ip.length;
+        byte[] data = new byte[datalen];
+        DataHelper.toLong(data, 0, 4, nonce);
+        DataHelper.toLong(data, 4, 4, tag);
+        DataHelper.toLong(data, 8, 4, ctx.clock().now() / 1000);
+        data[12] = 2;  // version
+        data[13] = (byte) (ip.length + 2);
+        DataHelper.toLong(data, 14, 2, port);
+        System.arraycopy(ip, 0, data, 16, ip.length);
+        Signature sig = sign(ctx, RELAY_REQUEST_PROLOGUE, h, h2, data, datalen, spk);
+        if (sig == null)
+            return null;
+        int len = 1 + datalen + spk.getType().getSigLen();
+        byte[] rv = new byte[len];
+        //rv[0] = 0;  // flag
+        System.arraycopy(data, 0, rv, 1, data.length);
+        byte[] s = sig.getData();
+        System.arraycopy(s, 0, rv, 1 + datalen, s.length);
+        return rv;
+    }
+
+    /**
+     *  Make the data for the relay response block
+     *
+     *  @param h Bob hash to be included in sig, not included in data
+     *  @param ip may be null
+     *  @param port ignored if ip is null
+     *  @param token if nonzero, append it
+     *  @return null on failure
+     *  @since 0.9.55
+     */
+    public static byte[] createRelayResponseData(I2PAppContext ctx, Hash h, int code,
+                                                 long nonce, byte[] ip, int port,
+                                                 SigningPrivateKey spk, long token) {
+        int datalen = 10;
+        if (ip != null)
+            datalen += 2 + ip.length;
+        byte[] data = new byte[datalen];
+        DataHelper.toLong(data, 0, 4, nonce);
+        DataHelper.toLong(data, 4, 4, ctx.clock().now() / 1000);
+        data[8] = 2;  // version
+        if (ip != null) {
+            data[9] = (byte) (ip.length + 2);
+            DataHelper.toLong(data, 10, 2, port);
+            System.arraycopy(ip, 0, data, 12, ip.length);
+        } else {
+            // data[9] = 0;
+        }
+        Signature sig = sign(ctx, RELAY_RESPONSE_PROLOGUE, h, null, data, datalen, spk);
+        if (sig == null)
+            return null;
+        int len = 2 + datalen + spk.getType().getSigLen();
+        if (token != 0)
+            len += 8;
+        byte[] rv = new byte[len];
+        //rv[0] = 0;  // flag
+        rv[1] = (byte) code;
+        System.arraycopy(data, 0, rv, 2, data.length);
+        byte[] s = sig.getData();
+        System.arraycopy(s, 0, rv, 2 + datalen, s.length);
+        if (token != 0)
+            DataHelper.toLong8(rv, 2 + datalen + s.length, token);
+        return rv;
     }
 
     /**
@@ -195,7 +312,6 @@ final class SSU2Util {
         byte[] buf = new byte[len];
         System.arraycopy(prologue, 0, buf, 0, prologue.length);
         System.arraycopy(h.getData(), 0, buf, prologue.length, Hash.HASH_LENGTH);
-        System.arraycopy(h.getData(), 0, buf, prologue.length, Hash.HASH_LENGTH);
         int off = prologue.length + Hash.HASH_LENGTH;
         if (h2 != null) {
             System.arraycopy(h2.getData(), 0, buf, off, Hash.HASH_LENGTH);
@@ -211,6 +327,7 @@ final class SSU2Util {
      *  and then the provided data which ends with a signature of the specified type.
      *
      *  @param h2 may be null
+     *  @param data not including relay response token
      */
     public static boolean validateSig(I2PAppContext ctx, byte[] prologue, Hash h, Hash h2, byte[] data, SigningPublicKey spk) {
         SigType type = spk.getType();

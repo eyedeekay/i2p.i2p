@@ -82,10 +82,13 @@ public class CommSystemFacadeImpl extends CommSystemFacade {
     }
     
     public synchronized void restart() {
-        if (!_wasStarted)
+        if (!_wasStarted) {
             startup();
-        else
+        } else {
+            _wasStarted = false;
             _manager.restart();
+            _wasStarted = true;
+        }
     }
 
     /**
@@ -619,7 +622,7 @@ public class CommSystemFacadeImpl extends CommSystemFacade {
     /** Provide a consistent "look" for displaying router IDs in the console */
     @Override
     public String renderPeerHTML(Hash peer) {
-        String h = peer.toBase64().substring(0, 4);
+        String h = peer.toBase64();
         StringBuilder buf = new StringBuilder(128);
         String c = getCountry(peer);
         if (c != null) {
@@ -636,7 +639,7 @@ public class CommSystemFacadeImpl extends CommSystemFacade {
         boolean found = _context.netDb().lookupRouterInfoLocally(peer) != null;
         if (found)
             buf.append("<a title=\"").append(_t("NetDb entry")).append("\" href=\"netdb?r=").append(h).append("\">");
-        buf.append(h);
+        buf.append(h, 0, 4);
         if (found)
             buf.append("</a>");
         buf.append("</tt>");

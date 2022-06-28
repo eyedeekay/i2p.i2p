@@ -42,6 +42,7 @@ import net.i2p.crypto.provider.I2PProvider;
 import net.i2p.data.Base64;
 import net.i2p.data.DataHelper;
 import net.i2p.data.SigningPrivateKey;
+import net.i2p.data.SigningPublicKey;
 import net.i2p.util.Log;
 import net.i2p.util.FileSuffixFilter;
 import net.i2p.util.SecureFileOutputStream;
@@ -349,9 +350,9 @@ public final class CertUtil {
                 throw new CertificateEncodingException("bad base64 cert");
             PrivateKey rv = null;
             // try all the types
+            KeySpec ks = new PKCS8EncodedKeySpec(data);
             for (SigAlgo algo : EnumSet.allOf(SigAlgo.class)) {
                 try {
-                    KeySpec ks = new PKCS8EncodedKeySpec(data);
                     String alg = algo.getName();
                     KeyFactory kf = KeyFactory.getInstance(alg);
                     rv = kf.generatePrivate(ks);
@@ -583,7 +584,9 @@ public final class CertUtil {
             File f = new File(args[1]);
             if (args[0].equals("loadcert")) {
                 X509Certificate cert = loadCert(f);
-                System.out.println(net.i2p.util.HexDump.dump(cert.getEncoded()));
+                PublicKey pub = cert.getPublicKey();
+                SigningPublicKey spk = SigUtil.fromJavaKey(pub);
+                System.out.println("Loaded " + spk + ' ' + spk.toBase64());
             } else if (args[0].equals("loadcrl")) {
                 loadCRL(f);
             } else if (args[0].equals("loadcrldir")) {
