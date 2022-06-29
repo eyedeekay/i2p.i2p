@@ -239,6 +239,7 @@
                         <option value="httpbidirserver">HTTP bidir</option>
                         <option value="ircserver">IRC</option>
                         <option value="streamrserver">Streamr</option>
+                        <option value="udpserver">UDP Peer(Server/Client)</option>
                     </select>
                     <input class="control" type="submit" value="<%=intl._t("Create")%>" />
             </form>
@@ -381,6 +382,7 @@
                         <option value="socksirctunnel">SOCKS IRC</option>
                         <option value="connectclient">CONNECT</option>
                         <option value="streamrclient">Streamr</option>
+                        <option value="udpclient">UDP Peer(Client/Server)</option>
                     </select>
                     <input class="control" type="submit" value="<%=intl._t("Create")%>" />
             </form>
