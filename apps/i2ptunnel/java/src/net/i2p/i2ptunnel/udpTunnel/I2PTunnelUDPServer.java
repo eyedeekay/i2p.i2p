@@ -1,27 +1,17 @@
 package net.i2p.i2ptunnel.udpTunnel;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
-import net.i2p.client.I2PSession;
-import net.i2p.client.datagram.I2PDatagramDissector;
-import net.i2p.data.DataFormatException;
+import net.i2p.client.streaming.I2PSocketAddress;
 import net.i2p.i2ptunnel.I2PTunnel;
 import net.i2p.i2ptunnel.Logging;
-import net.i2p.i2ptunnel.udp.I2PSink;
-import net.i2p.i2ptunnel.udp.I2PSource;
-//import net.i2p.i2ptunnel.streamr.Pinger;
 import net.i2p.i2ptunnel.udp.UDPSink;
-import net.i2p.i2ptunnel.udp.UDPSource;
 import net.i2p.util.EventDispatcher;
 import net.i2p.util.Log;
 
@@ -53,34 +43,100 @@ import net.i2p.util.Log;
  */
 
 public class I2PTunnelUDPServer extends I2PTunnelUDPServerBase {
+    private final static int MAX_DATAGRAM_SIZE = 31744;
     private final Log _log = new Log(I2PTunnelUDPServer.class);
+    private final InetAddress _localAddress;
+    private final int _localPort;
+    private Map<Integer, inboundDatagram> _sourceIPPortTable = new HashMap<Integer, inboundDatagram>();
 
-    // UDP Side
-    // permanent DatagramSocket at e.g. localhost:5353
-    // InetAddress corresponding to local DatagramSocket
-    // UDP port corresponding to local DatagramSocket
-    // SourceIP/Port table
-    private Map<Integer, InetSocketAddress> _sourceIPPortTable = new HashMap<>();
+    // outboundReply sends a DatagramPacket to the client over I2P
+    private class outboundReply {
+        public final I2PSocketAddress _destination;
+        public final int _destinationPort;  // I2CP source port
+        public final byte[] _reply;
+        public int length() {
+            return _reply.length;
+        }
+        public void sendReplyToI2PClient() {
+            try {
+                _log.debug("Sending reply to I2P client");
+                //_socket.send(_reply);
+            } catch (Exception e) {
+                _log.error("Error sending reply to I2P client", e);
+            }
+        }
+        public outboundReply(I2PSocketAddress destination, int destinationPort, byte[] reply) {
+            _destination = destination;
+            _destinationPort = destinationPort;
+            _reply = reply;
+        }
+
+    }
+
+    // inboundDatagram stores the source IP/port associated with a request recieved from I2P
+    // and forwards it to a UDP socket on the localhost.
+    private class inboundDatagram {
+        public final I2PSocketAddress _destination;
+        public final int _i2cpPort;
+        public final byte[] _request;
+        public final DatagramSocket socket;
+        public int length() {
+            return _request.length;
+        }
+        // sends the datagram to the local UDP socket, reads a single reply, then closes the DatagramSocket
+        public outboundReply sendRequestToLocalhost() {
+            //construct a datagram packet
+            DatagramPacket packet = new DatagramPacket(_request, _request.length, _localAddress, _localPort);
+            try {
+                socket.send(packet);
+            } catch (Exception e) {
+                _log.error("Error sending datagram", e);
+            }
+            //read the reply
+            byte[] reply = new byte[MAX_DATAGRAM_SIZE];
+            DatagramPacket replyPacket = new DatagramPacket(reply, reply.length);
+            try {
+                socket.receive(replyPacket);
+            } catch (Exception e) {
+                _log.error("Error receiving datagram", e);
+            }
+            //close the socket
+            socket.close();
+            //construct the outbound reply
+            return new outboundReply(_destination, _i2cpPort, reply);
+        }
+        public inboundDatagram(I2PSocketAddress dest, int i2cpPort, byte[] data) {
+            this._destination = dest;
+            this._i2cpPort = i2cpPort;
+            this._request = data;
+            // create a new DatagramSocket with an EPHEMERAL port
+            try {
+                this.socket = new DatagramSocket();
+            } catch (Exception e) {
+                _log.error("Error creating DatagramSocket", e);
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
 
     // Constructor, host is localhost(usually) or the host of the UDP client, port
     // is the port of the UDP client
     public I2PTunnelUDPServer(String host, int port, File privKeyFile, String privKeyPath, Logging l, EventDispatcher notifyThis,
             I2PTunnel tunnel) {
-            //Properties props = tunnel.getClientOptions();
-            //String privKeyPath = props.getProperty("privKeyFile");
-            //getString("privKeyFile")
-            //File privKeyFile = new File(privKeyPath);
             super(privKeyFile, privKeyPath, l, notifyThis, tunnel);
-
+            try {
+                _localAddress = InetAddress.getByName(host);
+            } catch (Exception e) {
+                _log.error("Error getting InetAddress for host: " + host, e);
+                throw new RuntimeException(e);
+            }
+            _localPort = port;
     }
 
-    private int newSourcePort() {
-        int randomPort = (int) (Math.random() * 65535);
-        while (_sourceIPPortTable.containsKey(randomPort)) {
-            randomPort = (int) (Math.random() * 65535);
-        }
-        return randomPort;
-    }
+    //private inboundDatagram receiveInboundI2PDatagram() {
+
+    //}
 
     @Override
     public final void startRunning() {
