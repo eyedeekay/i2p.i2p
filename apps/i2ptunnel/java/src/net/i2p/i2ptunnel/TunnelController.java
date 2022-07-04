@@ -486,7 +486,7 @@ public class TunnelController implements Logging {
         } else if (TYPE_STREAMR_CLIENT.equals(type)) {
             startStreamrClient();
         } else if (TYPE_UDP_CLIENT.equals(type)) {
-            //startUDPClient();
+            startUDPClient();
         } else if (TYPE_STD_SERVER.equals(type)) {
             startServer();
         } else if (TYPE_HTTP_SERVER.equals(type)) {
@@ -498,9 +498,9 @@ public class TunnelController implements Logging {
         } else if (TYPE_STREAMR_SERVER.equals(type)) {
             startStreamrServer();
         } else if (TYPE_UDP_SERVER.equals(type)) {
-            //startUDPServer();
+            startUDPServer();
         } else if (TYPE_UDP_PEER.equals(type)) {
-            //startUDPPeer();
+            startUDPPeer();
         } else {
             changeState(TunnelState.STOPPED);
             if (_log.shouldLog(Log.ERROR))

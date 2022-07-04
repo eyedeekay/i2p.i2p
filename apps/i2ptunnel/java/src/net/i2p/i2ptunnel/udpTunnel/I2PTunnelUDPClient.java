@@ -166,7 +166,9 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase implements Runnab
 
     @Override
     public final void startRunning() {
+        _log.logAlways(Log.INFO, "UDP Client is starting");
         super.startRunning();
+        _log.logAlways(Log.INFO, "UDP Client is nearly started");
         this.thread.start();
         _log.logAlways(Log.INFO, "UDP Client is ready");
     }
