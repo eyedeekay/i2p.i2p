@@ -761,6 +761,7 @@ public class TunnelConfig {
         // override bundle setting set above
         if (!TunnelController.isClient(_type) &&
             !TunnelController.TYPE_HTTP_SERVER.equals(_type) &&
+            !TunnelController.TYPE_UDP_SERVER.equals(_type) &&
             !TunnelController.TYPE_STREAMR_SERVER.equals(_type)) {
             config.setProperty(TunnelController.OPT_BUNDLE_REPLY, "true");
         }
@@ -826,7 +827,9 @@ public class TunnelConfig {
                 if (_otherOptions.containsKey(p))
                     config.setProperty(OPT + p, _otherOptions.get(p));
         }
-        if (TunnelController.TYPE_HTTP_BIDIR_SERVER.equals(_type)) {
+        if (TunnelController.TYPE_HTTP_BIDIR_SERVER.equals(_type) ||
+            TunnelController.TYPE_UDP_SERVER.equals(_type) ||
+            TunnelController.TYPE_UDP_CLIENT.equals(_type) ) {
             if (_port >= 0)
                 config.setProperty(TunnelController.PROP_LISTEN_PORT, Integer.toString(_port));
             if (_reachableBy != null)

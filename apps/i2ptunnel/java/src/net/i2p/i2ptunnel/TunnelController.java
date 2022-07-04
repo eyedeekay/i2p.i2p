@@ -166,6 +166,9 @@ public class TunnelController implements Logging {
     public static final String TYPE_STREAMR_CLIENT = "streamrclient";
     /** Server in the UI and I2P side but a client on the localhost side */
     public static final String TYPE_STREAMR_SERVER = "streamrserver";
+    public static final String TYPE_UDP_CLIENT = "udpclient";
+    public static final String TYPE_UDP_SERVER = "udpserver";
+    public static final String TYPE_UDP_PEER = "udppeer";
 
     /**
      *  This is guaranteed to be available.
@@ -482,6 +485,8 @@ public class TunnelController implements Logging {
             startClient();
         } else if (TYPE_STREAMR_CLIENT.equals(type)) {
             startStreamrClient();
+        } else if (TYPE_UDP_CLIENT.equals(type)) {
+            //startUDPClient();
         } else if (TYPE_STD_SERVER.equals(type)) {
             startServer();
         } else if (TYPE_HTTP_SERVER.equals(type)) {
@@ -492,6 +497,10 @@ public class TunnelController implements Logging {
             startIrcServer();
         } else if (TYPE_STREAMR_SERVER.equals(type)) {
             startStreamrServer();
+        } else if (TYPE_UDP_SERVER.equals(type)) {
+            //startUDPServer();
+        } else if (TYPE_UDP_PEER.equals(type)) {
+            //startUDPPeer();
         } else {
             changeState(TunnelState.STOPPED);
             if (_log.shouldLog(Log.ERROR))
@@ -1076,6 +1085,7 @@ public class TunnelController implements Logging {
                TYPE_SOCKS_IRC.equals(type) ||
                TYPE_CONNECT.equals(type) ||
                TYPE_STREAMR_CLIENT.equals(type) ||
+               TYPE_UDP_CLIENT.equals(type) ||
                TYPE_IRC_CLIENT.equals(type);
     }
 
