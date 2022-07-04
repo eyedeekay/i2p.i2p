@@ -457,6 +457,12 @@ public class I2PTunnel extends EventDispatcherImpl implements Logging {
             runStreamrClient(args, l);
         } else if ("streamrserver".equals(cmdname)) {
             runStreamrServer(args, l);
+        } else if ("udpclient".equals(cmdname)) {
+            runUDPClient(args, l);
+        } else if ("udpserver".equals(cmdname)) {
+            runUDPServer(args, l);
+        } else if ("udppeer".equals(cmdname)) {
+            runUDPPeer(args, l);
         } else if ("config".equals(cmdname)) {
             runConfig(args, l);
         } else if ("listen_on".equals(cmdname)) {
@@ -1359,6 +1365,18 @@ public class I2PTunnel extends EventDispatcherImpl implements Logging {
                   "  creates a tunnel that sends streaming data.");
             notifyEvent("streamrtunnelTaskId", Integer.valueOf(-1));
         }
+    }
+
+    public void runUDPClient(String args[], Logging l) {
+
+    }
+
+    public void runUDPServer(String args[], Logging l) {
+
+    }
+
+    public void runUDPPeer(String args[], Logging l) {
+
     }
 
     /**

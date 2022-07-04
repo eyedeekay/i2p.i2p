@@ -614,6 +614,47 @@ public class TunnelController implements Logging {
         _tunnel.runStreamrServer(new String[] { listenPort, privKeyFile }, this);
     }
 
+    /*
+     *  UDP client is a UDP server, use the listenPort field for targetPort
+     */
+    private void startUDPClient() {
+        String targetHost = getTargetHost();
+        String targetPort = getListenPort();
+        String dest = getTargetDestination();
+        _tunnel.runUDPClient(new String[] { targetHost, targetPort, dest }, this);
+    }
+
+    /**
+     *  UDP server is a UDP client, use the targetPort field for listenPort
+     */
+    private void startUDPServer() {
+        String listenOn = getListenOnInterface();
+        if ( (listenOn != null) && (listenOn.length() > 0) ) {
+            _tunnel.runListenOn(new String[] { listenOn }, this);
+        }
+        String listenPort = getTargetPort();
+        String privKeyFile = getPrivKeyFile();
+        _tunnel.runUDPServer(new String[] { listenPort, privKeyFile }, this);
+    }
+
+    /*
+     *  UDP peer is a UDP client on one port, and a UDP server on
+     *  another, sort of like HTTP Bidirectional.
+     *  use the targetPort field for server listenPort
+     *  and the listenOn field for the client listenPort
+     */
+    private void startUDPPeer() {
+        String listenOn = getListenOnInterface();
+        if ( (listenOn != null) && (listenOn.length() > 0) ) {
+            _tunnel.runListenOn(new String[] { listenOn }, this);
+        }
+        String listenPort = getTargetPort();
+        String targetHost = getTargetHost();
+        String targetPort = getListenPort();
+        String privKeyFile = getPrivKeyFile();
+        _tunnel.runUDPPeer(new String[] { listenPort, targetHost, targetPort, privKeyFile }, this);
+    }
+
     /**
      * Note the fact that we are using some sessions, so that they dont get
      * closed by some other tunnels
