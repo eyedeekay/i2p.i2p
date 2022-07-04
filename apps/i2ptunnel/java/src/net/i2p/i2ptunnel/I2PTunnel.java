@@ -78,6 +78,7 @@ import net.i2p.i2ptunnel.socks.I2PSOCKSIRCTunnel;
 import net.i2p.i2ptunnel.socks.I2PSOCKSTunnel;
 import net.i2p.i2ptunnel.streamr.StreamrConsumer;
 import net.i2p.i2ptunnel.streamr.StreamrProducer;
+import net.i2p.i2ptunnel.udpTunnel.I2PTunnelUDPClient;
 import net.i2p.util.EventDispatcherImpl;
 import net.i2p.util.Log;
 import net.i2p.util.OrderedProperties;
@@ -1368,7 +1369,47 @@ public class I2PTunnel extends EventDispatcherImpl implements Logging {
     }
 
     public void runUDPClient(String args[], Logging l) {
+        if (args.length == 3) {
+            InetAddress _host;
+            try {
+                _host = InetAddress.getByName(args[0]);
+            } catch (UnknownHostException uhe) {
+                l.log("unknown host");
+                _log.error(getPrefix() + "Error resolving " + args[0], uhe);
+                notifyEvent("udptunnelTaskId", Integer.valueOf(-1));
+                return;
+            }
 
+            int _port = -1;
+            try {
+                _port = Integer.parseInt(args[1]);
+            } catch (NumberFormatException nfe) {
+                l.log("invalid port");
+                _log.error(getPrefix() + "Port specified is not valid: " + args[0], nfe);
+                notifyEvent("udptunnelTaskId", Integer.valueOf(-1));
+            }
+            if (_port <= 0)
+                throw new IllegalArgumentException(getPrefix() + "Bad port " + args[0]);
+
+            try {
+                I2PTunnelUDPClient task = new I2PTunnelUDPClient(_host.getHostAddress(), _port, args[2], l, this, this);
+                                                                //(lhost, lport, destina, l, notifyThis, tunnel)
+                task.startRunning();
+                addtask(task);
+                notifyEvent("udptunnelTaskId", Integer.valueOf(task.getId()));
+            } catch (IllegalArgumentException iae) {
+                String msg = "Invalid I2PTunnel configuration to create a UDP Client connecting to the router at " + host + ':'+ port +
+                             " and sending to " + _host + ':' + _port;
+                _log.error(getPrefix() + msg, iae);
+                l.log(msg);
+                notifyEvent("udptunnnelTaskId", Integer.valueOf(-1));
+                throw iae;
+            }
+        } else {
+            l.log("udpclient <host> <port> <destination>\n" +
+                  "  creates a tunnel that receives UDP data.");
+            notifyEvent("udptunnelTaskId", Integer.valueOf(-1));
+        }
     }
 
     public void runUDPServer(String args[], Logging l) {

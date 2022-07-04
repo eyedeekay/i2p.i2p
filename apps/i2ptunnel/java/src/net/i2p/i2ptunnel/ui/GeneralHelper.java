@@ -509,6 +509,7 @@ public class GeneralHelper {
         String rv;
         if (TunnelController.TYPE_STD_CLIENT.equals(tun.getType()) ||
             TunnelController.TYPE_IRC_CLIENT.equals(tun.getType()) ||
+            TunnelController.TYPE_UDP_CLIENT.equals(tun.getType()) ||
             TunnelController.TYPE_STREAMR_CLIENT.equals(tun.getType()))
             rv = tun.getTargetDestination();
         else
