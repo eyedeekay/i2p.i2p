@@ -130,6 +130,9 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase implements Runnab
         DatagramPacket packet = new DatagramPacket(buf, buf.length);
         try {
             _localSocket.receive(packet);
+            if (_log.shouldLog(Log.DEBUG)){
+                _log.debug("I2PTunnelUDPClient: readDatagramFromLocalSocket: " + packet.getLength() + " bytes from " + packet.getAddress().getHostAddress() + ":" + packet.getPort());
+            }
         } catch (Exception e) {
             _log.error("I2PTunnelUDPClient: " + e.getMessage());
             throw new RuntimeException(e);
@@ -139,9 +142,21 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase implements Runnab
 
     private outboundRequest readOutboundRequestFromLocalDatagram(){
         DatagramPacket packet = readDatagramFromLocalSocket();
+        if (_log.shouldLog(Log.DEBUG)){
+            _log.debug("I2PTunnelUDPClient: readOutboundRequestFromLocalDatagram: " + packet.getLength() + " bytes from " + packet.getAddress().getHostAddress() + ":" + packet.getPort());
+        }
         InetAddress sourceAddress = packet.getAddress();
+        if (_log.shouldLog(Log.DEBUG)){
+            _log.debug("I2PTunnelUDPClient: readOutboundRequestFromLocalDatagram: " + sourceAddress.getHostAddress() + ":" + packet.getPort());
+        }
         int sourcePort = newI2CPSourcePort();
+        if (_log.shouldLog(Log.DEBUG)){
+            _log.debug("I2PTunnelUDPClient: readOutboundRequestFromLocalDatagram: " + sourcePort);
+        }
         byte[] request = packet.getData();
+        if (_log.shouldLog(Log.DEBUG)){
+            _log.debug("I2PTunnelUDPClient: readOutboundRequestFromLocalDatagram: " + request.length);
+        }
         return new outboundRequest(sourceAddress, sourcePort, request);
     }
 
