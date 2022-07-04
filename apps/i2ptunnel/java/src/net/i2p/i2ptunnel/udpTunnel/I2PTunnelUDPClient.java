@@ -16,6 +16,7 @@ import net.i2p.i2ptunnel.Logging;
 import net.i2p.i2ptunnel.udp.UDPSink;
 import net.i2p.i2ptunnel.udp.UDPSource;
 import net.i2p.util.EventDispatcher;
+import net.i2p.util.I2PAppThread;
 import net.i2p.util.Log;
 
 /**
@@ -45,7 +46,7 @@ import net.i2p.util.Log;
  * @author idk
  */
 
-public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
+public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase implements Runnable {
     private final Log _log = new Log(I2PTunnelUDPClient.class);
     private final static int MAX_DATAGRAM_SIZE = 31744;
     private final Destination _remoteDestination;
@@ -61,6 +62,7 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
     //private final int MAX_SIZE = 1024;
     private final UDPSink _sink;
     private final UDPSource _source;
+    private final Thread thread;
 
     // SourceIP/Port table
     private Map<Integer, InetSocketAddress> _sourceIPPortTable = new HashMap<>();
@@ -96,6 +98,7 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
             I2PTunnel tunnel) {
         super(destination, l, notifyThis, tunnel);
         _log.debug("I2PTunnelUDPClient: " + localhost + ":" + localport + " -> " + destination);
+        this.thread = new I2PAppThread(this);
         try {
             this._localAddress = InetAddress.getByName(localhost);
             this._localPort = localport;
@@ -164,6 +167,11 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase {
     @Override
     public final void startRunning() {
         super.startRunning();
+        this.thread.start();
+        _log.logAlways(Log.INFO, "UDP Client is ready");
+    }
+
+    public void run() {
         while (true) {
             int i2cpPortSent = this.sendOutboundRequest();
             _log.debug("I2PTunnelUDPClient: sent outbound request to I2PServer, i2cpPortSent: " + i2cpPortSent);

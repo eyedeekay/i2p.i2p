@@ -816,7 +816,9 @@ public class TunnelConfig {
 
         if (TunnelController.TYPE_IRC_CLIENT.equals(_type) ||
             TunnelController.TYPE_STD_CLIENT.equals(_type) ||
-            TunnelController.TYPE_STREAMR_CLIENT.equals(_type)) {
+            TunnelController.TYPE_STREAMR_CLIENT.equals(_type) ||
+            TunnelController.TYPE_UDP_CLIENT.equals(_type) ||
+            TunnelController.TYPE_UDP_PEER.equals(_type)) {
             if (_targetDestination != null)
                 config.setProperty(TunnelController.PROP_DEST, _targetDestination);
         } else if (TunnelController.TYPE_HTTP_SERVER.equals(_type) ||
