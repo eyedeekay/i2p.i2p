@@ -189,6 +189,7 @@ public class I2PTunnelUDPClient extends I2PTunnelUDPClientBase implements Runnab
     }
 
     public void run() {
+        _log.logAlways(Log.INFO, "UDP Client is running");
         while (true) {
             int i2cpPortSent = this.sendOutboundRequest();
             _log.debug("I2PTunnelUDPClient: sent outbound request to I2PServer, i2cpPortSent: " + i2cpPortSent);
