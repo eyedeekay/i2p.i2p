@@ -44,8 +44,6 @@ import net.i2p.util.SystemVersion;
  * @author hypercubus
  */
 public class UrlLauncher implements ClientApp {
-
-    //private final ShellCommand _shellCommand;
     private volatile ClientAppState _state;
     private final I2PAppContext _context;
     private final ClientAppManager _mgr;
@@ -201,7 +199,7 @@ public class UrlLauncher implements ClientApp {
                 return openUrl(url, cbrowser);
             }
             //I2PBrowser i2pBrowser = new I2PBrowser();
-            //i2pBrowser.launch(false, String[]{url});
+            //i2pBrowser.launchAndDetach(false, String[]{url});
             return true;
         }
         return false;
@@ -240,8 +238,9 @@ public class UrlLauncher implements ClientApp {
                 //  if (arg != args[0])
                 //      visitURL.append(arg);
                 //}
+                //I2PBrowser.generic = true;
                 //I2PBrowser.setBrowser(args[0]);
-                //i2pBrowser.launch(false, visitURL.toArray(new String[visitURL.size()]));
+                //i2pBrowser.launchAndDetatch(false, visitURL.toArray(new String[visitURL.size()]));
             }
         }
         return false;
