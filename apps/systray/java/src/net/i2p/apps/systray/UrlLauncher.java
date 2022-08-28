@@ -241,6 +241,7 @@ public class UrlLauncher implements ClientApp {
                 //I2PBrowser.generic = true;
                 //I2PBrowser.setBrowser(args[0]);
                 //i2pBrowser.launchAndDetatch(false, visitURL.toArray(new String[visitURL.size()]));
+                return true;
             }
         }
         return false;
