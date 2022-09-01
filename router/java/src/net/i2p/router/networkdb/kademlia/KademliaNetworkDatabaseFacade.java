@@ -1076,7 +1076,9 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         String err = validate(key, leaseSet);
         if (err != null)
             throw new IllegalArgumentException("Invalid store attempt - " + err);
-        
+
+        if (_log.shouldDebug())
+            _log.debug("Storing LS to the persistent data store...");
         _ds.put(key, leaseSet);
         
         if (encls != null) {

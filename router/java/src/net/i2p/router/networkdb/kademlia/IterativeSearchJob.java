@@ -14,6 +14,7 @@ import net.i2p.crypto.EncType;
 import net.i2p.crypto.SigType;
 import net.i2p.data.Base64;
 import net.i2p.data.DataHelper;
+import net.i2p.data.Destination;
 import net.i2p.data.Hash;
 import net.i2p.data.i2np.DatabaseLookupMessage;
 import net.i2p.data.i2np.I2NPMessage;
@@ -693,6 +694,8 @@ public class IterativeSearchJob extends FloodSearchJob {
         // we will credit the wrong one.
         int tries;
         Hash peer = null;
+        Destination dest = null;
+
         synchronized(this) {
             if (_dead) return;
             _dead = true;
@@ -703,6 +706,15 @@ public class IterativeSearchJob extends FloodSearchJob {
                 _unheardFrom.clear();
             }
         }
+
+        // Confirm success by checking for the Lease Set in local storage
+        if (_isLease) {
+            dest = getContext().floodfillNetDb().lookupDestinationLocally(_key);
+            if ((dest == null) && (_log.shouldLog(Log.WARN)))
+                _log.warn("Warning! Lease Set not found in persistent data store for key = " + _key);
+        }
+
+
         _facade.complete(_key);
         if (peer != null) {
             Long timeSent = _sentTime.get(peer);
