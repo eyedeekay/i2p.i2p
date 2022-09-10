@@ -246,7 +246,6 @@ public class WorkingDir {
         // this one must be after MIGRATE_BASE
         File oldEep = new File(oldDirf, "eepsite");
         File newEep = new File(dirf, "eepsite");
-        System.err.println("New EEPSITE dir is: "+ dirf);
         String newPath = newEep.getAbsolutePath() + File.separatorChar;
         success &= migrateJettyXml(oldEep, newEep, "jetty.xml", "./eepsite/", newPath);
         success &= migrateJettyXml(oldEep, newEep, "jetty-ssl.xml", "./eepsite/", newPath);
