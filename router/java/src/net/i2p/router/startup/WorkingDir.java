@@ -109,21 +109,6 @@ public class WorkingDir {
                         System.err.println("System is Windows: " + home);
                     }
                 }
-                String programData = System.getenv("PROGRAMDATA");
-                String winDirSystem32 = System.getenv("WINDIR");
-                if (winDirSystem32 != null) {
-                    winDirSystem32 = new File(winDirSystem32, "system32").getAbsolutePath();
-                }
-                if (winDirSystem32 != null) {
-                    if (home.toLowerCase().startsWith(winDirSystem32.toLowerCase())) {
-                        home = programData;
-                    }
-                }
-                if (programData != null) {
-                    if (home.toLowerCase().startsWith(programData.toLowerCase())) {
-                        home = programData;
-                    }
-                }
                 dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT_WINDOWS);
             } else if (SystemVersion.isMac()) {
                 String appdata = "/Library/Application Support/";
