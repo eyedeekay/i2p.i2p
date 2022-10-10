@@ -24,12 +24,13 @@ done
 
 if [ -f /.dockerenv ]; then
     echo "[startapp] Running in container"
-    export IP_ADDR=$(hostname -i)
-    if echo "$IP_ADDR" | grep "172."; then
-        echo "[startapp] Running in docker network"
-        sed -i "s/127.0.0.1/0.0.0.0/g" ./clients.config ./i2ptunnel.config
+    if [ -z "$IP_ADDR" ]; then
+        export IP_ADDR=$(hostname -i)
+        if echo "$IP_ADDR" | grep "172."; then
+            echo "[startapp] Running in docker network"
+        fi
     fi
-
+    sed -i "s/127.0.0.1/$IP_ADDR/g" ./clients.config ./i2ptunnel.config
 fi
 
 # Options required for reflective access in dynamic JVM languages like Groovy and Jython
