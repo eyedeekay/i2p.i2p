@@ -35,6 +35,8 @@ import net.i2p.util.Log;
  * and for configuring I2P via the console. On Windows, this will always
  * default to MS Edge, the Chromium-based version.
  *
+ * This is the 19th coarse anonymity set.
+ *
  * @author idk
  * @since 2.0.0
  */
