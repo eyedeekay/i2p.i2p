@@ -393,11 +393,13 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
   public void startup() {
     // TODO
     this.launch(privateBrowsing, _args);
+    _state = ClientAppState.RUNNING;
   }
 
   @Override
   public void shutdown(String[] args) {
     p.destroy();
+    _state = ClientAppState.STOPPED;
   }
 
   @Override
