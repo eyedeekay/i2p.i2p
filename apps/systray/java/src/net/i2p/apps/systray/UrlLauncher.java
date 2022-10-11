@@ -1,6 +1,6 @@
 /*
  * I2P - An anonymous, secure, and fully-distributed communication network.
- * 
+ *
  * UrlLauncher.java
  * 2004 The I2P Project
  * http://www.i2p.net
@@ -9,12 +9,8 @@
 
 package net.i2p.apps.systray;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.net.InetSocketAddress;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -39,17 +35,14 @@ import net.i2p.util.SystemVersion;
  * browsers if that was not successful.
  * <p>
  * Handles Galeon, Internet Explorer, Konqueror, Links, Lynx, Mozilla, Mozilla
- * Firefox, Netscape, Opera, and Safari.    
- * 
+ * Firefox, Netscape, Opera, and Safari.
+ *
  * @author hypercubus
  */
-public class UrlLauncher implements ClientApp {
+public class UrlLauncher extends I2PGenericUnsafeBrowser {
 
     private final ShellCommand _shellCommand;
     private volatile ClientAppState _state;
-    private final I2PAppContext _context;
-    private final ClientAppManager _mgr;
-    private final String[] _args;
     private final Log _log;
 
     private static final int WAIT_TIME = 5*1000;
@@ -60,33 +53,6 @@ public class UrlLauncher implements ClientApp {
     private static final boolean IS_SERVICE = SystemVersion.isService();
 
     /**
-     *  Browsers to try IN-ORDER
-     */
-    private static final String[] BROWSERS = {
-            // This debian script tries everything in $BROWSER, then gnome-www-browser and x-www-browser
-            // if X is running and www-browser otherwise. Those point to the user's preferred
-            // browser using the update-alternatives system.
-            "sensible-browser",
-            // another one that opens a preferred browser
-            "xdg-open",
-            // Try x-www-browser directly
-            "x-www-browser",
-            // general graphical browsers
-            "defaultbrowser",  // puppy linux
-            "opera -newpage",
-            "firefox",
-            "chromium-browser",
-            "mozilla",
-            "netscape",
-            "konqueror",
-            "galeon",
-            // Text Mode Browsers only below here
-            "www-browser",
-            "links",
-            "lynx"
-    };
-            
-    /**
      *  ClientApp constructor used from clients.config
      *
      *  @param mgr null OK
@@ -94,27 +60,25 @@ public class UrlLauncher implements ClientApp {
      *  @since 0.9.18
      */
     public UrlLauncher(I2PAppContext context, ClientAppManager mgr, String[] args) {
+        super(context, mgr, args);
         _state = UNINITIALIZED;
-        _context = context;
         _log = _context.logManager().getLog(UrlLauncher.class);
-        _mgr = mgr;
         if (args == null || args.length <= 0)
             args = new String[] { context.portMapper().getConsoleURL() };
         _args = args;
         _shellCommand = new ShellCommand();
         _state = INITIALIZED;
     }
-            
+
     /**
      *  Constructor from SysTray
      *
      *  @since 0.9.18
      */
     public UrlLauncher() {
+        super(I2PAppContext.getCurrentContext(), null, null);
         _state = UNINITIALIZED;
-        _context = I2PAppContext.getGlobalContext();
         _log = _context.logManager().getLog(UrlLauncher.class);
-        _mgr = null;
         _args = null;
         _shellCommand = new ShellCommand();
         _state = INITIALIZED;
@@ -177,18 +141,18 @@ public class UrlLauncher implements ClientApp {
      * to launch the given URL using the default browser for that platform; if
      * unsuccessful, an attempt is made to launch the URL using the most common
      * browsers.
-     * 
+     *
      * As of 0.9.46, fails immediately if JVM is a Windows or Linux Service.
-     * 
+     *
      * BLOCKING. This repeatedly probes the server port at the given url
      * until it is apparently ready.
-     * 
+     *
      * @param  url The URL to open.
      * @return     <code>true</code> if the operation was successful, otherwise
      *             <code>false</code>.
-     * 
+     *
      * @throws IOException
-     */ 
+     */
     public boolean openUrl(String url) throws IOException {
         if (IS_SERVICE)
             return false;
@@ -214,61 +178,9 @@ public class UrlLauncher implements ClientApp {
                 if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(args));
                 if (_shellCommand.executeSilentAndWaitTimed(args , 5))
                     return true;
-            } else if (SystemVersion.isWindows()) {
-                String[] browserString  = new String[] { "C:\\Program Files\\Internet Explorer\\iexplore.exe", "-nohome", url };
-                File foo = new File(_context.getTempDir(), "browser" + _context.random().nextLong() + ".reg");
-                String[] args = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
-                if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(args));
-                boolean ok = _shellCommand.executeSilentAndWait(args);
-                if (ok) {
-                    BufferedReader bufferedReader = null;
-                    try {
-                        bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(foo), "UTF-16"));
-                        for (String line; (line = bufferedReader.readLine()) != null; ) {
-                            // @="\"C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe\" -osint -url \"%1\""
-                            if (line.startsWith("@=")) {
-                                if (_log.shouldDebug()) _log.debug("From RegEdit: " + line);
-                                line = line.substring(2).trim();
-                                if (line.startsWith("\"") && line.endsWith("\""))
-                                    line = line.substring(1, line.length() - 1);
-                                line = line.replace("\\\\", "\\");
-                                line = line.replace("\\\"", "\"");
-                                if (_log.shouldDebug()) _log.debug("Mod RegEdit: " + line);
-                                // "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" -osint -url "%1"
-                                // use the whole line
-                                String[] aarg = parseArgs(line, url);
-                                if (aarg.length > 0) {
-                                    browserString = aarg;
-                                    break;
-                                }
-                            }
-                        }
-                    } catch (IOException e) {
-                        if (_log.shouldWarn())
-                            _log.warn("Reading regedit output", e);
-                    } finally {
-                        if (bufferedReader != null)
-                            try { bufferedReader.close(); } catch (IOException ioe) {}
-                        foo.delete();
-                    }
-                } else if (_log.shouldWarn()) {
-                    _log.warn("Regedit Failed: " + Arrays.toString(args));
-                }
-                if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(browserString));
-                if (_shellCommand.executeSilentAndWaitTimed(browserString, 5))
-                    return true;
-                if (_log.shouldInfo()) _log.info("Failed: " + Arrays.toString(browserString));
             } else {
-                // fall through
-            }
-            String[] args = new String[2];
-            args[1] = url;
-            for (int i = 0; i < BROWSERS.length; i++) {
-                args[0] = BROWSERS[i];
-                if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(args));
-                if (_shellCommand.executeSilentAndWaitTimed(args, 5))
-                    return true;
-                if (_log.shouldInfo()) _log.info("Failed: " + Arrays.toString(args));
+                this.launch(privateBrowsing, _args);
+                return true;
             }
         }
         return false;
@@ -282,16 +194,16 @@ public class UrlLauncher implements ClientApp {
      * Arguments may be surrounded by single or double quotes if
      * they contain spaces or tabs.
      * There is no mechanism to escape quotes or other chars with backslashes.
-     * 
+     *
      * As of 0.9.46, fails immediately if JVM is a Windows or Linux Service.
-     * 
+     *
      * BLOCKING. However, this does NOT probe the server port to see if it is ready.
-     * 
+     *
      * @param  url     The URL to open.
      * @param  browser The browser to use. See above for quoting rules.
      * @return         <code>true</code> if the operation was successful,
      *                 otherwise <code>false</code>.
-     * 
+     *
      * @throws IOException
      */
     public boolean openUrl(String url, String browser) throws IOException {
@@ -393,7 +305,7 @@ public class UrlLauncher implements ClientApp {
     /**
      *  ClientApp interface
      *  As of 0.9.46, stops immediately if JVM is a Windows or Linux Service.
-     * 
+     *
      *  @since 0.9.18
      */
     public void startup() {
