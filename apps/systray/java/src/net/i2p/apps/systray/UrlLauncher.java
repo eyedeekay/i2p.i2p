@@ -25,7 +25,6 @@ import net.i2p.I2PAppContext;
 import net.i2p.app.*;
 import static net.i2p.app.ClientAppState.*;
 import net.i2p.util.I2PAppThread;
-import net.i2p.util.Log;
 import net.i2p.util.ShellCommand;
 import net.i2p.util.SystemVersion;
 
@@ -33,17 +32,12 @@ import net.i2p.util.SystemVersion;
  * A quick and simple multi-platform URL launcher. It attempts to launch the
  * default browser for the host platform first, then popular third-party
  * browsers if that was not successful.
- * <p>
- * Handles Galeon, Internet Explorer, Konqueror, Links, Lynx, Mozilla, Mozilla
- * Firefox, Netscape, Opera, and Safari.
  *
- * @author hypercubus
+ * @author hypercubus, idk
  */
 public class UrlLauncher extends I2PGenericUnsafeBrowser {
 
     private final ShellCommand _shellCommand;
-    private volatile ClientAppState _state;
-    private final Log _log;
 
     private static final int WAIT_TIME = 5*1000;
     private static final int MAX_WAIT_TIME = 5*60*1000;
@@ -62,10 +56,6 @@ public class UrlLauncher extends I2PGenericUnsafeBrowser {
     public UrlLauncher(I2PAppContext context, ClientAppManager mgr, String[] args) {
         super(context, mgr, args);
         _state = UNINITIALIZED;
-        _log = _context.logManager().getLog(UrlLauncher.class);
-        if (args == null || args.length <= 0)
-            args = new String[] { context.portMapper().getConsoleURL() };
-        _args = args;
         _shellCommand = new ShellCommand();
         _state = INITIALIZED;
     }
@@ -78,8 +68,6 @@ public class UrlLauncher extends I2PGenericUnsafeBrowser {
     public UrlLauncher() {
         super(I2PAppContext.getCurrentContext(), null, null);
         _state = UNINITIALIZED;
-        _log = _context.logManager().getLog(UrlLauncher.class);
-        _args = null;
         _shellCommand = new ShellCommand();
         _state = INITIALIZED;
     }
@@ -342,7 +330,7 @@ public class UrlLauncher extends I2PGenericUnsafeBrowser {
      *  @since 0.9.18
      */
     public ClientAppState getState() {
-        return _state;
+        return super.getState();
     }
 
     /**
@@ -382,6 +370,7 @@ public class UrlLauncher extends I2PGenericUnsafeBrowser {
      *  @since 0.9.18
      */
     public void shutdown(String[] args) {
+        super.shutdown(args);
         // doesn't really do anything
         changeState(STOPPED);
     }

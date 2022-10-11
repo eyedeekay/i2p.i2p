@@ -48,6 +48,7 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
   protected final I2PAppContext _context;
   protected final ClientAppManager _mgr;
   protected boolean privateBrowsing = false;
+  protected volatile ClientAppState _state;
   protected String[] _args = {""};
 
   // Ideally, EVERY browser in this list should honor http_proxy, https_proxy,
@@ -72,16 +73,22 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
 
   public I2PGenericUnsafeBrowser(I2PAppContext context, ClientAppManager mgr,
                                  String[] args) {
-    //_state = UNINITIALIZED;
-    _args = args;
+    if (args == null || args.length <= 0)
+      args = new String[] {context.portMapper().getConsoleURL()};
+    _state = ClientAppState.UNINITIALIZED;
     _mgr = mgr;
     _context = context;
+    _args = args;
     _log = _context.logManager().getLog(UrlLauncher.class);
+    _state = ClientAppState.INITIALIZED;
   }
   public I2PGenericUnsafeBrowser() {
+    _state = ClientAppState.UNINITIALIZED;
     _mgr = null;
     _context = I2PAppContext.getGlobalContext();
+    _args = new String[] {_context.portMapper().getConsoleURL()};
     _log = _context.logManager().getLog(UrlLauncher.class);
+    _state = ClientAppState.INITIALIZED;
   }
 
   private static String getOperatingSystem() {
@@ -139,6 +146,7 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
       if (defaultBrowser != "")
         return defaultBrowser;
     }
+    _state = ClientAppState.START_FAILED;
     return "";
   }
 
@@ -223,16 +231,18 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
 
   //
   public ProcessBuilder baseProcessBuilder(String[] args) {
+    _state = ClientAppState.STARTING;
     String browser = findUnsafeBrowserAnywhere();
     if (!browser.isEmpty()) {
       int arglength = 0;
       if (args != null)
         arglength = args.length;
       String[] newArgs;
-      if (getOperatingSystem() == "windows" && browser.toLowerCase().contains("edge")) {
+      if (getOperatingSystem() == "windows" &&
+          browser.toLowerCase().contains("edge")) {
         newArgs = new String[arglength + 2];
         newArgs[0] = browser;
-        newArgs[1] = "--user-data-dir=" + runtimeDirectory(true);
+        newArgs[1] = "--user-data-dir=" + runtimeDirectory();
         if (args != null && arglength > 0) {
           for (int i = 0; i < arglength; i++) {
             newArgs[i + 2] = args[i];
@@ -248,7 +258,7 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
         }
       }
       ProcessBuilder pb =
-          new ProcessBuilder(newArgs).directory(runtimeDirectory(true));
+          new ProcessBuilder(newArgs).directory(runtimeDirectory());
       pb.environment().put("http_proxy", "http://127.0.0.1:4444");
       pb.environment().put("https_proxy", "http://127.0.0.1:4444");
       pb.environment().put("ftp_proxy", "http://127.0.0.1:0");
@@ -272,7 +282,7 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
    * @return true if successful, false if not
    */
   public boolean deleteRuntimeDirectory() {
-    File rtd = runtimeDirectory(true);
+    File rtd = runtimeDirectory();
     if (rtd.exists()) {
       rtd.delete();
       return true;
@@ -287,10 +297,10 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
    * @return the runtime directory, or null if it could not be created
    * @since 2.0.0
    */
-  public File runtimeDirectory(boolean create) {
+  /*public File runtimeDirectory(boolean create) {
     String rtd = runtimeDirectory();
     return runtimeDirectory(create, rtd);
-  }
+  }*/
 
   public File runtimeDirectory(boolean create, String rtd) {
     if (rtd.isEmpty() || rtd == null) {
@@ -306,8 +316,8 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
     return new File(rtd);
   }
 
-  public String runtimeDirectory(String rtd) {
-    return runtimeDirectory(true, rtd).toString();
+  public File runtimeDirectory(String rtd) {
+    return runtimeDirectory(true, rtd);
   }
 
   /**
@@ -316,7 +326,7 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
    * @return the runtime directory, or null if it could not be created or found
    * @since 2.0.0
    */
-  public String runtimeDirectory() {
+  public File runtimeDirectory() {
     // get the I2P_BROWSER_DIR environment variable
     String rtd = System.getenv("I2P_BROWSER_DIR");
     // if it is not null and not empty
@@ -325,7 +335,7 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
       File rtdFile = new File(rtd);
       if (rtdFile.exists()) {
         // if it does, return it
-        return rtd;
+        return rtdFile;
       }
     }
     return runtimeDirectory("");
@@ -345,9 +355,11 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
       p = pb.start();
       _log.info("I2PBrowser");
       sleep(2000);
+      _state = ClientAppState.RUNNING;
       return p;
     } catch (Throwable e) {
       _log.info(e.toString());
+      _state = ClientAppState.START_FAILED;
     }
     //}
     return null;
@@ -385,9 +397,7 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
 
   @Override
   public void shutdown(String[] args) {
-    // try {
     p.destroy();
-    //}catch()
   }
 
   @Override
@@ -395,11 +405,7 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
     if (p.isAlive()) {
       return ClientAppState.RUNNING;
     }
-    int exitCode = p.exitValue();
-    if (exitCode != 0) {
-      return ClientAppState.CRASHED;
-    }
-    return ClientAppState.STOPPED;
+    return _state;
   }
 
   @Override
