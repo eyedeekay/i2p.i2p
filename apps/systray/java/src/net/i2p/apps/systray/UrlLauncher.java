@@ -217,7 +217,7 @@ public class UrlLauncher implements ClientApp {
             } else if (SystemVersion.isWindows()) {
                 String[] browserString  = new String[] { "C:\\Program Files\\Internet Explorer\\iexplore.exe", "-nohome", url };
                 File foo = new File(_context.getTempDir(), "browser" + _context.random().nextLong() + ".reg");
-                String[] args = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
+                String[] args = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\microsoft-edge\\shell\\open\\command" };
                 if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(args));
                 boolean ok = _shellCommand.executeSilentAndWait(args);
                 if (ok) {
