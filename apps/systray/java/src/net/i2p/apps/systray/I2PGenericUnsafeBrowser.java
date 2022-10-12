@@ -240,12 +240,13 @@ public class I2PGenericUnsafeBrowser implements ClientApp {
       String[] newArgs;
       if (getOperatingSystem() == "windows" &&
           browser.toLowerCase().contains("edge")) {
-        newArgs = new String[arglength + 2];
+        newArgs = new String[arglength + 3];
         newArgs[0] = browser;
-        newArgs[1] = "--user-data-dir=" + runtimeDirectory();
+        newArgs[1] = "--app";
+        newArgs[2] = "--user-data-dir=" + runtimeDirectory();
         if (args != null && arglength > 0) {
           for (int i = 0; i < arglength; i++) {
-            newArgs[i + 2] = args[i];
+            newArgs[i + 3] = args[i];
           }
         }
       } else {
