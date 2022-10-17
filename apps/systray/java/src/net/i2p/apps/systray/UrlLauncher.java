@@ -172,6 +172,77 @@ public class UrlLauncher implements ClientApp {
         return false;
     }
 
+    private String[] locateDefaultBrowser(String url){
+        String[] userChoiceHTTPSArgs = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice" };
+        String[] userChoiceHTTPArgs = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice" };
+        String[] edgeArgs = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
+        String[] iexploreArgs = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
+        if (url.startsWith("https://")){
+            String[] ucb = browserCommandFromRegedit(userChoiceHTTPSArgs, url);
+            if (ucb != null){
+                return ucb;
+            }
+        } else if (url.startsWith("http://")){
+            String[] ucb = browserCommandFromRegedit(userChoiceHTTPArgs, url);
+            if (ucb != null){
+                return ucb;
+            }
+        }
+        String[] pcb = browserCommandFromRegedit(edgeArgs, url);
+        if (pcb != null){
+            return pcb;
+        }
+        String[] pcblr = browserCommandFromRegedit(iexploreArgs, url);
+        if (pcblr != null){
+            return pcblr;
+        }
+        return null;
+    }
+
+    private String[] browserCommandFromRegedit(String[] args, String url){
+        File foo = new File(_context.getTempDir(), "browser" + _context.random().nextLong() + ".reg");
+        boolean ok = _shellCommand.executeSilentAndWait(args);
+        if (ok) {
+            BufferedReader bufferedReader = null;
+            try {
+                bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(foo), "UTF-16"));
+                for (String line; (line = bufferedReader.readLine()) != null; ) {
+                    // @="\"C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe\" -osint -url \"%1\""
+                    if (line.startsWith("@=")) {
+                        if (_log.shouldDebug()) _log.debug("From RegEdit: " + line);
+                        line = line.substring(2).trim();
+                        if (line.startsWith("\"") && line.endsWith("\""))
+                            line = line.substring(1, line.length() - 1);
+                        line = line.replace("\\\\", "\\");
+                        line = line.replace("\\\"", "\"");
+                        if (_log.shouldDebug()) _log.debug("Mod RegEdit: " + line);
+                        // "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" -osint -url "%1"
+                        // use the whole line
+                        String[] aarg = parseArgs(line, url);
+                        if (aarg.length > 0) {
+                            String[] browserString = aarg;
+                            File browser = new File(browserString[0]);
+                            if (browser.exists()){
+                                return browserString;
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                if (_log.shouldWarn())
+                    _log.warn("Reading regedit output", e);
+            } finally {
+                if (bufferedReader != null)
+                    try { bufferedReader.close(); } catch (IOException ioe) {}
+                foo.delete();
+            }
+        } else if (_log.shouldWarn()) {
+            _log.warn("Regedit Failed: " + Arrays.toString(args));
+        }
+        return null;
+    }
+
     /**
      * Discovers the operating system the installer is running under and tries
      * to launch the given URL using the default browser for that platform; if
@@ -215,45 +286,7 @@ public class UrlLauncher implements ClientApp {
                 if (_shellCommand.executeSilentAndWaitTimed(args , 5))
                     return true;
             } else if (SystemVersion.isWindows()) {
-                String[] browserString  = new String[] { "C:\\Program Files\\Internet Explorer\\iexplore.exe", "-nohome", url };
-                File foo = new File(_context.getTempDir(), "browser" + _context.random().nextLong() + ".reg");
-                String[] args = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\microsoft-edge\\shell\\open\\command" };
-                if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(args));
-                boolean ok = _shellCommand.executeSilentAndWait(args);
-                if (ok) {
-                    BufferedReader bufferedReader = null;
-                    try {
-                        bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(foo), "UTF-16"));
-                        for (String line; (line = bufferedReader.readLine()) != null; ) {
-                            // @="\"C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe\" -osint -url \"%1\""
-                            if (line.startsWith("@=")) {
-                                if (_log.shouldDebug()) _log.debug("From RegEdit: " + line);
-                                line = line.substring(2).trim();
-                                if (line.startsWith("\"") && line.endsWith("\""))
-                                    line = line.substring(1, line.length() - 1);
-                                line = line.replace("\\\\", "\\");
-                                line = line.replace("\\\"", "\"");
-                                if (_log.shouldDebug()) _log.debug("Mod RegEdit: " + line);
-                                // "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" -osint -url "%1"
-                                // use the whole line
-                                String[] aarg = parseArgs(line, url);
-                                if (aarg.length > 0) {
-                                    browserString = aarg;
-                                    break;
-                                }
-                            }
-                        }
-                    } catch (IOException e) {
-                        if (_log.shouldWarn())
-                            _log.warn("Reading regedit output", e);
-                    } finally {
-                        if (bufferedReader != null)
-                            try { bufferedReader.close(); } catch (IOException ioe) {}
-                        foo.delete();
-                    }
-                } else if (_log.shouldWarn()) {
-                    _log.warn("Regedit Failed: " + Arrays.toString(args));
-                }
+                String[] browserString  = locateDefaultBrowser(url);
                 if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(browserString));
                 if (_shellCommand.executeSilentAndWaitTimed(browserString, 5))
                     return true;
