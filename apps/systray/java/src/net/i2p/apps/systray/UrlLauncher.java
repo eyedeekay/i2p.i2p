@@ -207,7 +207,6 @@ public class UrlLauncher implements ClientApp {
             try {
                 bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(foo), "UTF-16"));
                 for (String line; (line = bufferedReader.readLine()) != null; ) {
-                    // @="\"C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe\" -osint -url \"%1\""
                     if (line.startsWith("@=")) {
                         if (_log.shouldDebug()) _log.debug("From RegEdit: " + line);
                         line = line.substring(2).trim();
@@ -216,7 +215,6 @@ public class UrlLauncher implements ClientApp {
                         line = line.replace("\\\\", "\\");
                         line = line.replace("\\\"", "\"");
                         if (_log.shouldDebug()) _log.debug("Mod RegEdit: " + line);
-                        // "C:\Program Files (x86)\Mozilla Firefox\firefox.exe" -osint -url "%1"
                         // use the whole line
                         String[] aarg = parseArgs(line, url);
                         if (aarg.length > 0) {
