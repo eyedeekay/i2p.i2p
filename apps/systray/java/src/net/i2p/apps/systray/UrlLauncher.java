@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Scanner;
 
 import net.i2p.I2PAppContext;
 import net.i2p.app.*;
@@ -172,73 +173,90 @@ public class UrlLauncher implements ClientApp {
         return false;
     }
 
-    private String[] locateDefaultBrowser(String url){
-        String[] userChoiceHTTPSArgs = new String[] { "regedit", "/E", "userChoiceHttps", "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice" };
-        String[] userChoiceHTTPArgs = new String[] { "regedit", "/E", "userChoiceHttps", "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice" };
-        String[] edgeArgs = new String[] { "regedit", "/E", "edge", "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
-        String[] iexploreArgs = new String[] { "regedit", "/E", "iexplore", "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
+    /**
+     * Obtains the default browser for the Windows platform, which by now should
+     * be Edgium in the worst-case scenario but in case it isn't, we can use this
+     * function to figure it out. It can find:
+     *
+     * 1. The current user's HTTPS default browser if they configured it to be
+     * non-default
+     * 2. The current user's HTTP default browser if they configured it to be
+     * non-default
+     * 3. Edgium if it's available
+     * 4. iexplore if it's not
+     *
+     * and it will return the first one we find in exactly that order.
+     *
+     * Adapted from:
+     * https://stackoverflow.com/questions/15852885/me...
+     * and from:
+     * https://github.com/i2p/i2p.i2p/blob/master/apps...
+     *
+     * @return path to the default browser ready for execution. Empty string on
+     *     Linux and OSX.
+     */
+    public String[] getDefaultWindowsBrowser(String url) {
+        String defaultBrowser = "";
         if (url.startsWith("https://")){
-            String[] ucb = browserCommandFromRegedit(userChoiceHTTPSArgs, url);
-            if (ucb != null){
-                return ucb;
+            defaultBrowser = getDefaultOutOfRegistry(
+                "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice");
+            if (defaultBrowser != ""){
+                String[] r = {defaultBrowser};
+                return r;
             }
-        } else if (url.startsWith("http://")){
-            String[] ucb = browserCommandFromRegedit(userChoiceHTTPArgs, url);
-            if (ucb != null){
-                return ucb;
+        }else{
+            defaultBrowser = getDefaultOutOfRegistry(
+                "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice");
+            if (defaultBrowser != ""){
+                String[] r = {defaultBrowser};
+                return r;
             }
         }
-        String[] pcb = browserCommandFromRegedit(edgeArgs, url);
-        if (pcb != null){
-            return pcb;
+        defaultBrowser = getDefaultOutOfRegistry(
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\microsoft-edge\\shell\\open\\command");
+        if (defaultBrowser != ""){
+            String[] r = {defaultBrowser};
+            return r;
         }
-        String[] pcblr = browserCommandFromRegedit(iexploreArgs, url);
-        if (pcblr != null){
-            return pcblr;
+        defaultBrowser = getDefaultOutOfRegistry(
+            "HKEY_CLASSES_ROOT\\http\\shell\\open\\command");
+        if (defaultBrowser != ""){
+            String[] r = {defaultBrowser};
+            return r;
         }
         return null;
     }
 
-    private String[] browserCommandFromRegedit(String[] args, String url){
-        File foo = new File(_context.getTempDir(), "browser" + args[2] + ".reg");
-        boolean ok = _shellCommand.executeSilentAndWait(args);
-        if (ok) {
-            BufferedReader bufferedReader = null;
-            try {
-                bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(foo), "UTF-16"));
-                for (String line; (line = bufferedReader.readLine()) != null; ) {
-                    if (line.startsWith("@=")) {
-                        if (_log.shouldDebug()) _log.debug("From RegEdit: " + line);
-                        line = line.substring(2).trim();
-                        if (line.startsWith("\"") && line.endsWith("\""))
-                            line = line.substring(1, line.length() - 1);
-                        line = line.replace("\\\\", "\\");
-                        line = line.replace("\\\"", "\"");
-                        if (_log.shouldDebug()) _log.debug("Mod RegEdit: " + line);
-                        // use the whole line
-                        String[] aarg = parseArgs(line, url);
-                        if (aarg.length > 0) {
-                            String[] browserString = aarg;
-                            File browser = new File(browserString[0]);
-                            if (browser.exists()){
-                                return browserString;
-                            }
-                            break;
-                        }
-                    }
+
+
+    /**
+     * obtains information out of the Windows registry.
+     *
+     * @param hkeyquery registry entry to ask for.
+     * @return
+     */
+    public String getDefaultOutOfRegistry(String hkeyquery) {
+        try {
+            // Get registry where we find the default browser
+            Process process = Runtime.getRuntime().exec("REG QUERY " + hkeyquery);
+            Scanner kb = new Scanner(process.getInputStream());
+            while (kb.hasNextLine()) {
+                String line = kb.nextLine();
+                if (line.contains("(Default")) {
+                String[] splitLine = line.split("  ");
+                kb.close();
+                return splitLine[splitLine.length - 1]
+                    .replace("%1", "")
+                    .replaceAll("\\s+$", "")
+                    .replaceAll("\"", "");
                 }
-            } catch (IOException e) {
-                if (_log.shouldWarn())
-                    _log.warn("Reading regedit output", e);
-            } finally {
-                if (bufferedReader != null)
-                    try { bufferedReader.close(); } catch (IOException ioe) {}
-                foo.delete();
             }
-        } else if (_log.shouldWarn()) {
-            _log.warn("Regedit Failed: " + Arrays.toString(args));
+            // Match wasn't found, still need to close Scanner
+            kb.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return null;
+        return "";
     }
 
     /**
@@ -284,7 +302,7 @@ public class UrlLauncher implements ClientApp {
                 if (_shellCommand.executeSilentAndWaitTimed(args , 5))
                     return true;
             } else if (SystemVersion.isWindows()) {
-                String[] browserString  = locateDefaultBrowser(url);
+                String[] browserString  = getDefaultWindowsBrowser(url);
                 if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(browserString));
                 if (_shellCommand.executeSilentAndWaitTimed(browserString, 5))
                     return true;
