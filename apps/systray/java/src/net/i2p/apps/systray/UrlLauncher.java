@@ -235,7 +235,7 @@ public class UrlLauncher implements ClientApp {
      * @param hkeyquery registry entry to ask for.
      * @return
      */
-    public String getDefaultOutOfRegistry(String hkeyquery) {
+    private String getDefaultOutOfRegistry(String hkeyquery) {
         try {
             // Get registry where we find the default browser
             Process process = Runtime.getRuntime().exec("REG QUERY " + hkeyquery);
