@@ -173,10 +173,10 @@ public class UrlLauncher implements ClientApp {
     }
 
     private String[] locateDefaultBrowser(String url){
-        String[] userChoiceHTTPSArgs = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice" };
-        String[] userChoiceHTTPArgs = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice" };
-        String[] edgeArgs = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
-        String[] iexploreArgs = new String[] { "regedit", "/E", foo.getAbsolutePath(), "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
+        String[] userChoiceHTTPSArgs = new String[] { "regedit", "/E", "userChoiceHttps", "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice" };
+        String[] userChoiceHTTPArgs = new String[] { "regedit", "/E", "userChoiceHttps", "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice" };
+        String[] edgeArgs = new String[] { "regedit", "/E", "edge", "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
+        String[] iexploreArgs = new String[] { "regedit", "/E", "iexplore", "HKEY_CLASSES_ROOT\\http\\shell\\open\\command" };
         if (url.startsWith("https://")){
             String[] ucb = browserCommandFromRegedit(userChoiceHTTPSArgs, url);
             if (ucb != null){
@@ -200,7 +200,7 @@ public class UrlLauncher implements ClientApp {
     }
 
     private String[] browserCommandFromRegedit(String[] args, String url){
-        File foo = new File(_context.getTempDir(), "browser" + _context.random().nextLong() + ".reg");
+        File foo = new File(_context.getTempDir(), "browser" + args[2] + ".reg");
         boolean ok = _shellCommand.executeSilentAndWait(args);
         if (ok) {
             BufferedReader bufferedReader = null;
