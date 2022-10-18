@@ -201,27 +201,27 @@ public class UrlLauncher implements ClientApp {
             defaultBrowser = getDefaultOutOfRegistry(
                 "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice");
             if (defaultBrowser != ""){
-                String[] r = {defaultBrowser};
+                String[] r = {defaultBrowser, url};
                 return r;
             }
         }else{
             defaultBrowser = getDefaultOutOfRegistry(
                 "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice");
             if (defaultBrowser != ""){
-                String[] r = {defaultBrowser};
+                String[] r = {defaultBrowser, url};
                 return r;
             }
         }
         defaultBrowser = getDefaultOutOfRegistry(
             "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\microsoft-edge\\shell\\open\\command");
         if (defaultBrowser != ""){
-            String[] r = {defaultBrowser};
+            String[] r = {defaultBrowser, url};
             return r;
         }
         defaultBrowser = getDefaultOutOfRegistry(
             "HKEY_CLASSES_ROOT\\http\\shell\\open\\command");
         if (defaultBrowser != ""){
-            String[] r = {defaultBrowser};
+            String[] r = {defaultBrowser, url};
             return r;
         }
         return null;
