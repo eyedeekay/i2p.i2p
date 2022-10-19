@@ -189,38 +189,35 @@ public class UrlLauncher implements ClientApp {
      *
      * Adapted from:
      * https://stackoverflow.com/questions/15852885/me...
-     * and from:
-     * https://github.com/i2p/i2p.i2p/blob/master/apps...
      *
-     * @return path to the default browser ready for execution. Empty string on
-     *     Linux and OSX.
+     * @return path to command[0] and target URL[1] to the default browser ready for execution, or null if not found
      */
     public String[] getDefaultWindowsBrowser(String url) {
         String defaultBrowser = "";
         if (url.startsWith("https://")){
             defaultBrowser = getDefaultOutOfRegistry(
                 "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice");
-            if (defaultBrowser != ""){
+            if (defaultBrowser != null){
                 String[] r = {defaultBrowser, url};
                 return r;
             }
         }else{
             defaultBrowser = getDefaultOutOfRegistry(
                 "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice");
-            if (defaultBrowser != ""){
+            if (defaultBrowser != null){
                 String[] r = {defaultBrowser, url};
                 return r;
             }
         }
         defaultBrowser = getDefaultOutOfRegistry(
             "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\microsoft-edge\\shell\\open\\command");
-        if (defaultBrowser != ""){
+        if (defaultBrowser != null){
             String[] r = {defaultBrowser, url};
             return r;
         }
         defaultBrowser = getDefaultOutOfRegistry(
             "HKEY_CLASSES_ROOT\\http\\shell\\open\\command");
-        if (defaultBrowser != ""){
+        if (defaultBrowser != null){
             String[] r = {defaultBrowser, url};
             return r;
         }
@@ -233,30 +230,35 @@ public class UrlLauncher implements ClientApp {
      * obtains information out of the Windows registry.
      *
      * @param hkeyquery registry entry to ask for.
-     * @return
+     * @return either a registry "Default" value or null if one does not exist/is empty
      */
     private String getDefaultOutOfRegistry(String hkeyquery) {
         try {
             // Get registry where we find the default browser
-            Process process = Runtime.getRuntime().exec("REG QUERY " + hkeyquery);
+            String[] cmd = {"REG", "QUERY", hkeyquery};
+            Process process = Runtime.getRuntime().exec(cmd);
             Scanner kb = new Scanner(process.getInputStream());
             while (kb.hasNextLine()) {
                 String line = kb.nextLine();
                 if (line.contains("(Default")) {
-                String[] splitLine = line.split("  ");
-                kb.close();
-                return splitLine[splitLine.length - 1]
+                    String[] splitLine = line.split("  ");
+                    kb.close();
+                    String finalValue = splitLine[splitLine.length - 1]
                     .replace("%1", "")
                     .replaceAll("\\s+$", "")
-                    .replaceAll("\"", "");
-                }
+                    .replaceAll("\"", "")
+                    .trim();
+                    if (!finalValue.equals("")) {
+                            return finalValue;
+                        }
+                    }
             }
             // Match wasn't found, still need to close Scanner
             kb.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return "";
+        return null;
     }
 
     /**
