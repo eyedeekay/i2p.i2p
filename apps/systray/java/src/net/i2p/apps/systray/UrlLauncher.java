@@ -190,7 +190,9 @@ public class UrlLauncher implements ClientApp {
      * Adapted from:
      * https://stackoverflow.com/questions/15852885/me...
      *
+     * @param url containing full scheme, i.e. http://127.0.0.1:7657
      * @return path to command[0] and target URL[1] to the default browser ready for execution, or null if not found
+     * @since 2.0.0
      */
     public String[] getDefaultWindowsBrowser(String url) {
         String[] defaultBrowser = {};
@@ -218,6 +220,15 @@ public class UrlLauncher implements ClientApp {
         return null;
     }
 
+    /**
+     * obtains a value matching a key contained in the windows registry at a path
+     * represented by hkeyquery
+     *
+     * @param hkeyquery registry entry to ask for.
+     * @param key key to retrieve value from
+     * @return either a registry "Default" value or null if one does not exist/is empty
+     * @since 2.0.0
+     */
     private String registryQuery(String hkeyquery, String key) {
         try {
             // Get registry where we find the default browser
@@ -257,6 +268,7 @@ public class UrlLauncher implements ClientApp {
      *
      * @param hkeyquery
      * @return the command required to run the application referenced in hkeyquery, or null
+     * @since 2.0.0
      */
     private String followUserConfiguredBrowserToCommand(String hkeyquery) {
         String progIdValue = registryQuery(hkeyquery,"ProgId");
@@ -270,6 +282,7 @@ public class UrlLauncher implements ClientApp {
      *
      * @param hkeyquery
      * @return the command required to run the application referenced in hkeyquery, or null
+     * @since 2.0.0
      */
     private String followProgIdToCommand(String progid) {
         String hkeyquery = "HKEY_CLASSES_ROOT\\"+progid+"\\shell\\open\\command";
@@ -286,6 +299,7 @@ public class UrlLauncher implements ClientApp {
      *
      * @param hkeyquery registry entry to ask for.
      * @return either a registry "Default" value or null if one does not exist/is empty
+     * @since 2.0.0
      */
     private String[] getDefaultOutOfRegistry(String hkeyquery) {
         String defaultValue = registryQuery(hkeyquery, "Default");
