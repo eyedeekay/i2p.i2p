@@ -193,33 +193,27 @@ public class UrlLauncher implements ClientApp {
      * @return path to command[0] and target URL[1] to the default browser ready for execution, or null if not found
      */
     public String[] getDefaultWindowsBrowser(String url) {
-        String defaultBrowser = "";
+        String[] defaultBrowser = {};
         if (url.startsWith("https://")){
             defaultBrowser = getDefaultOutOfRegistry(
                 "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice");
-            if (defaultBrowser != null){
-                String[] r = {defaultBrowser, url};
-                return r;
-            }
+            if (defaultBrowser != null)
+                return defaultBrowser;
         }else{
             defaultBrowser = getDefaultOutOfRegistry(
                 "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice");
-            if (defaultBrowser != null){
-                String[] r = {defaultBrowser, url};
-                return r;
-            }
+            if (defaultBrowser != null)
+                return defaultBrowser;
         }
         defaultBrowser = getDefaultOutOfRegistry(
             "HKEY_CLASSES_ROOT\\http\\shell\\open\\command");
         if (defaultBrowser != null){
-            String[] r = {defaultBrowser, url};
-            return r;
+            return defaultBrowser;
         }
         defaultBrowser = getDefaultOutOfRegistry(
             "HKEY_CLASSES_ROOT\\MSEdgeHTM\\shell\\open\\command");
         if (defaultBrowser != null){
-            String[] r = {defaultBrowser, url};
-            return r;
+            return defaultBrowser;
         }
         return null;
     }
@@ -293,16 +287,16 @@ public class UrlLauncher implements ClientApp {
      * @param hkeyquery registry entry to ask for.
      * @return either a registry "Default" value or null if one does not exist/is empty
      */
-    private String getDefaultOutOfRegistry(String hkeyquery) {
+    private String[] getDefaultOutOfRegistry(String hkeyquery) {
         String defaultValue = registryQuery(hkeyquery, "Default");
         if (defaultValue != null) {
             if (!defaultValue.equals(""))
-                return defaultValue;
+                return defaultValue.split(" ");
         }else{
             defaultValue = followUserConfiguredBrowserToCommand(hkeyquery);
             if (defaultValue != null) {
                 if (!defaultValue.equals(""))
-                    return defaultValue;
+                    return defaultValue.split(" ");
             }
         }
         return null;
@@ -352,7 +346,13 @@ public class UrlLauncher implements ClientApp {
                     return true;
             } else if (SystemVersion.isWindows()) {
                 String[] browserString  = getDefaultWindowsBrowser(url);
-                if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(browserString));
+                String line = String.join(" ", browserString);
+                if (_log.shouldDebug()) _log.debug("Execute: " + line);
+                String[] aarg = parseArgs(line, url);
+                if (aarg.length > 0) {
+                    browserString = aarg;
+                }
+
                 if (_shellCommand.executeSilentAndWaitTimed(browserString, 5))
                     return true;
                 if (_log.shouldInfo()) _log.info("Failed: " + Arrays.toString(browserString));
