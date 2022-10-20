@@ -210,13 +210,13 @@ public class UrlLauncher implements ClientApp {
             }
         }
         defaultBrowser = getDefaultOutOfRegistry(
-            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\microsoft-edge\\shell\\open\\command");
+            "HKEY_CLASSES_ROOT\\http\\shell\\open\\command");
         if (defaultBrowser != null){
             String[] r = {defaultBrowser, url};
             return r;
         }
         defaultBrowser = getDefaultOutOfRegistry(
-            "HKEY_CLASSES_ROOT\\http\\shell\\open\\command");
+            "HKEY_CLASSES_ROOT\\MSEdgeHTM\\shell\\open\\command");
         if (defaultBrowser != null){
             String[] r = {defaultBrowser, url};
             return r;
@@ -224,15 +224,7 @@ public class UrlLauncher implements ClientApp {
         return null;
     }
 
-
-
-    /**
-     * obtains information out of the Windows registry.
-     *
-     * @param hkeyquery registry entry to ask for.
-     * @return either a registry "Default" value or null if one does not exist/is empty
-     */
-    private String getDefaultOutOfRegistry(String hkeyquery) {
+    private String registryQuery(String hkeyquery, String key) {
         try {
             // Get registry where we find the default browser
             String[] cmd = {"REG", "QUERY", hkeyquery};
@@ -240,23 +232,78 @@ public class UrlLauncher implements ClientApp {
             Scanner kb = new Scanner(process.getInputStream());
             while (kb.hasNextLine()) {
                 String line = kb.nextLine();
-                if (line.contains("(Default")) {
+                if (line.contains(key)) {
                     String[] splitLine = line.split("  ");
                     kb.close();
                     String finalValue = splitLine[splitLine.length - 1]
-                    .replace("%1", "")
                     .replaceAll("\\s+$", "")
                     .replaceAll("\"", "")
                     .trim();
                     if (!finalValue.equals("")) {
-                            return finalValue;
-                        }
+                        return finalValue;
                     }
+                }
             }
             // Match wasn't found, still need to close Scanner
             kb.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            if (_log.shouldError())
+                _log.error(hkeyquery, e);
+        }
+        return null;
+    }
+
+    /**
+     * If following a query back to the Default value doesn't work then what
+     * we have is a "ProgID" which will be registered in \HKEY_CLASSES_ROOT\%ProgId%,
+     * and will have an entry \shell\open\command, where \shell\open\command yields the
+     * value that contains the command it needs. This function takes a registry query
+     * in the same format as getDefaultOutOfRegistry but instead of looking for the
+     * default entry
+     *
+     * @param hkeyquery
+     * @return the command required to run the application referenced in hkeyquery, or null
+     */
+    private String followUserConfiguredBrowserToCommand(String hkeyquery) {
+        String progIdValue = registryQuery(hkeyquery,"ProgId");
+        return followProgIdToCommand(progIdValue);
+    }
+
+    /**
+     * Cross-references a progId obtained by followUserConfiguredBrowserToCommand against
+     * HKEY_CLASSES_ROOT\%ProgId%\shell\open\command, which holds the value of the command
+     * which we need to run to launch the default browser.
+     *
+     * @param hkeyquery
+     * @return the command required to run the application referenced in hkeyquery, or null
+     */
+    private String followProgIdToCommand(String progid) {
+        String hkeyquery = "HKEY_CLASSES_ROOT\\"+progid+"\\shell\\open\\command";
+        String finalValue = registryQuery(hkeyquery, "Default");
+        if (finalValue != null) {
+            if (!finalValue.equals(""))
+                return finalValue;
+        }
+        return null;
+    }
+
+    /**
+     * obtains a default browsing command out of the Windows registry.
+     *
+     * @param hkeyquery registry entry to ask for.
+     * @return either a registry "Default" value or null if one does not exist/is empty
+     */
+    private String getDefaultOutOfRegistry(String hkeyquery) {
+        String defaultValue = registryQuery(hkeyquery, "Default");
+        if (defaultValue != null) {
+            if (!defaultValue.equals(""))
+                return defaultValue;
+        }else{
+            defaultValue = followUserConfiguredBrowserToCommand(hkeyquery);
+            if (defaultValue != null) {
+                if (!defaultValue.equals(""))
+                    return defaultValue;
+            }
         }
         return null;
     }
