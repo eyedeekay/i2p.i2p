@@ -194,30 +194,32 @@ public class UrlLauncher implements ClientApp {
      * @return path to command[0] and target URL[1] to the default browser ready for execution, or null if not found
      * @since 2.0.0
      */
-    public String[] getDefaultWindowsBrowser(String url) {
-        String[] defaultBrowser = {};
+    public String getDefaultWindowsBrowser(String url) {
+        String defaultBrowser = "C:\\Program Files\\Internet Explorer\\iexplore.exe";
+        String key = "";
         if (url.startsWith("https://")){
-            defaultBrowser = getDefaultOutOfRegistry(
-                "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice");
-            if (defaultBrowser != null)
-                return defaultBrowser;
-        }else{
-            defaultBrowser = getDefaultOutOfRegistry(
-                "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice");
-            if (defaultBrowser != null)
-                return defaultBrowser;
+            // User-Configured HTTPS Browser
+            defaultBrowser = "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice";
+        } else {
+            // User-Configure HTTP Browser
+            key = "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice";
         }
-        defaultBrowser = getDefaultOutOfRegistry(
-            "HKEY_CLASSES_ROOT\\http\\shell\\open\\command");
+        defaultBrowser = getDefaultOutOfRegistry(key);
+        if (defaultBrowser != null)
+            return defaultBrowser;
+        // MSEdge on pretty much everything after Windows 7
+        key = "HKEY_CLASSES_ROOT\\MSEdgeHTM\\shell\\open\\command";
+        defaultBrowser = getDefaultOutOfRegistry(key);
         if (defaultBrowser != null){
             return defaultBrowser;
         }
-        defaultBrowser = getDefaultOutOfRegistry(
-            "HKEY_CLASSES_ROOT\\MSEdgeHTM\\shell\\open\\command");
+        // iexplore usually, depends on the Windows, sometimes Edge
+        key = "HKEY_CLASSES_ROOT\\http\\shell\\open\\command";
+        defaultBrowser = getDefaultOutOfRegistry(key);
         if (defaultBrowser != null){
             return defaultBrowser;
         }
-        return null;
+        return defaultBrowser;
     }
 
     /**
@@ -236,13 +238,11 @@ public class UrlLauncher implements ClientApp {
             Process process = Runtime.getRuntime().exec(cmd);
             Scanner kb = new Scanner(process.getInputStream());
             while (kb.hasNextLine()) {
-                String line = kb.nextLine();
-                if (line.contains(key)) {
+                String line = kb.nextLine().trim();
+                if (line.startsWith(key)) {
                     String[] splitLine = line.split("  ");
                     kb.close();
                     String finalValue = splitLine[splitLine.length - 1]
-                    .replaceAll("\\s+$", "")
-                    .replaceAll("\"", "")
                     .trim();
                     if (!finalValue.equals("")) {
                         return finalValue;
@@ -286,7 +286,7 @@ public class UrlLauncher implements ClientApp {
      */
     private String followProgIdToCommand(String progid) {
         String hkeyquery = "HKEY_CLASSES_ROOT\\"+progid+"\\shell\\open\\command";
-        String finalValue = registryQuery(hkeyquery, "Default");
+        String finalValue = registryQuery(hkeyquery, "(Default)");
         if (finalValue != null) {
             if (!finalValue.equals(""))
                 return finalValue;
@@ -301,16 +301,16 @@ public class UrlLauncher implements ClientApp {
      * @return either a registry "Default" value or null if one does not exist/is empty
      * @since 2.0.0
      */
-    private String[] getDefaultOutOfRegistry(String hkeyquery) {
+    private String getDefaultOutOfRegistry(String hkeyquery) {
         String defaultValue = registryQuery(hkeyquery, "Default");
         if (defaultValue != null) {
             if (!defaultValue.equals(""))
-                return defaultValue.split(" ");
+                return defaultValue;
         }else{
             defaultValue = followUserConfiguredBrowserToCommand(hkeyquery);
             if (defaultValue != null) {
                 if (!defaultValue.equals(""))
-                    return defaultValue.split(" ");
+                    return defaultValue;
             }
         }
         return null;
@@ -359,14 +359,13 @@ public class UrlLauncher implements ClientApp {
                 if (_shellCommand.executeSilentAndWaitTimed(args , 5))
                     return true;
             } else if (SystemVersion.isWindows()) {
-                String[] browserString  = getDefaultWindowsBrowser(url);
-                String line = String.join(" ", browserString);
+                String[] browserString  = new String[] { "C:\\Program Files\\Internet Explorer\\iexplore.exe", "-nohome", url };
+                String line = getDefaultWindowsBrowser(url);
                 if (_log.shouldDebug()) _log.debug("Execute: " + line);
                 String[] aarg = parseArgs(line, url);
                 if (aarg.length > 0) {
                     browserString = aarg;
                 }
-
                 if (_shellCommand.executeSilentAndWaitTimed(browserString, 5))
                     return true;
                 if (_log.shouldInfo()) _log.info("Failed: " + Arrays.toString(browserString));
