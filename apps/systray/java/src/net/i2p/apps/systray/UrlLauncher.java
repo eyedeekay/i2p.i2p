@@ -230,10 +230,26 @@ public class UrlLauncher implements ClientApp {
      * @since 2.0.0
      */
     private String registryQuery(String hkeyquery, String key) {
+        return registryQuery(hkeyquery, key, null)
+    }
+    /**
+     * obtains a value matching a key contained in the windows registry at a path
+     * represented by hkeyquery
+     *
+     * @param hkeyquery registry entry to ask for.
+     * @param key key to retrieve value from
+     * @param additionalArgs additional arguments to pass to the `REG QUERY` command
+     * @return either a registry "Default" value or null if one does not exist/is empty
+     * @since 2.0.0
+     */
+    private String registryQuery(String hkeyquery, String key, String[] additionalArgs) {
         try {
             // Get registry where we find the default browser
             String[] cmd = {"REG", "QUERY", hkeyquery};
-            Process process = Runtime.getRuntime().exec(cmd);
+            ArrayList<String> cmdList = new ArrayList<String>(Arrays.asList(cmd));
+            if (additionalArgs != null)
+                cmdList.addAll(Arrays.asList(additionalArgs));
+            Process process = Runtime.getRuntime().exec(cmdList.toArray(cmd));
             Scanner kb = new Scanner(process.getInputStream());
             while (kb.hasNextLine()) {
                 String line = kb.nextLine().trim();
