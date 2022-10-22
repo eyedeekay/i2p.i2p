@@ -358,11 +358,11 @@ public class UrlLauncher implements ClientApp {
             } else if (SystemVersion.isWindows()) {
                 String[] browserString  = new String[] { "C:\\Program Files\\Internet Explorer\\iexplore.exe", "-nohome", url };
                 String line = getDefaultWindowsBrowser(url);
-                if (_log.shouldDebug()) _log.debug("Execute: " + line);
                 String[] aarg = parseArgs(line, url);
                 if (aarg.length > 0) {
                     browserString = aarg;
                 }
+                if (_log.shouldDebug()) _log.debug("Execute: " + Arrays.toString(browserString));
                 if (_shellCommand.executeSilentAndWaitTimed(browserString, 5))
                     return true;
                 if (_log.shouldInfo()) _log.info("Failed: " + Arrays.toString(browserString));
