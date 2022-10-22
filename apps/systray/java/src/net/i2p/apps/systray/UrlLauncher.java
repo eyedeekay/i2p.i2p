@@ -195,8 +195,8 @@ public class UrlLauncher implements ClientApp {
      * @since 2.0.0
      */
     public String getDefaultWindowsBrowser(String url) {
-        String defaultBrowser = "C:\\Program Files\\Internet Explorer\\iexplore.exe";
-        String key = "";
+        String defaultBrowser;
+        String key;
         if (url.startsWith("https://")){
             // User-Configured HTTPS Browser
             key = "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice";
