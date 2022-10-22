@@ -210,16 +210,14 @@ public class UrlLauncher implements ClientApp {
         // MSEdge on pretty much everything after Windows 7
         key = "HKEY_CLASSES_ROOT\\MSEdgeHTM\\shell\\open\\command";
         defaultBrowser = getDefaultOutOfRegistry(key);
-        if (defaultBrowser != null){
+        if (defaultBrowser != null)
             return defaultBrowser;
-        }
         // iexplore usually, depends on the Windows, sometimes Edge
         key = "HKEY_CLASSES_ROOT\\http\\shell\\open\\command";
         defaultBrowser = getDefaultOutOfRegistry(key);
-        if (defaultBrowser != null){
+        if (defaultBrowser != null)
             return defaultBrowser;
-        }
-        return defaultBrowser;
+        return "C:\\Program Files\\Internet Explorer\\iexplore.exe";
     }
 
     /**
