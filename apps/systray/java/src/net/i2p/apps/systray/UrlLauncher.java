@@ -199,7 +199,7 @@ public class UrlLauncher implements ClientApp {
         String key = "";
         if (url.startsWith("https://")){
             // User-Configured HTTPS Browser
-            defaultBrowser = "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice";
+            key = "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\https\\UserChoice";
         } else {
             // User-Configure HTTP Browser
             key = "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\Shell\\Associations\\URLAssociations\\http\\UserChoice";
