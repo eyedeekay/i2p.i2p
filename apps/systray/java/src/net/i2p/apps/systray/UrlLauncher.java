@@ -230,7 +230,7 @@ public class UrlLauncher implements ClientApp {
      * @since 2.0.0
      */
     private String registryQuery(String hkeyquery, String key) {
-        return registryQuery(hkeyquery, key, null)
+        return registryQuery(hkeyquery, key, null);
     }
     /**
      * obtains a value matching a key contained in the windows registry at a path
