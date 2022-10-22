@@ -242,8 +242,7 @@ public class UrlLauncher implements ClientApp {
                 if (line.startsWith(key)) {
                     String[] splitLine = line.split("  ");
                     kb.close();
-                    String finalValue = splitLine[splitLine.length - 1]
-                    .trim();
+                    String finalValue = splitLine[splitLine.length - 1].trim();
                     if (!finalValue.equals("")) {
                         return finalValue;
                     }
