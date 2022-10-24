@@ -259,9 +259,6 @@ public class UrlLauncher implements ClientApp {
                     String finalValue = splitLine[splitLine.length - 1].trim();
                     if (!finalValue.equals("")) {
                         return finalValue;
-                    }else{
-                        kb.close();
-                        return null;
                     }
                 }
             }
