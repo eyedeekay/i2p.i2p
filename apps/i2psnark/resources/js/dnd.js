@@ -191,27 +191,39 @@ function initDND()
 		form1.addEventListener("blur", function(event) {
 			if (form1.value.length > 0) {
 				form1.classList.remove("highlight");
-				form2.classList.remove("highlight");
+				form3.classList.remove("highlight");
+				form3.value="";
 				addbutton.classList.add("highlight");
+				createbutton.classList.remove("highlight");
 			} else {
 				addbutton.classList.remove("highlight");
 			}
+			form2.classList.remove("highlight");
 		});
 
 		form2.addEventListener("blur", function(event) {
 			if (form1.value.length > 0) {
 				form1.classList.remove("highlight");
 				form2.classList.remove("highlight");
+				form3.classList.remove("highlight");
+				form3.value="";
 				addbutton.classList.add("highlight");
+				createbutton.classList.remove("highlight");
 			} else {
+				form1.classList.add("highlight");
 				addbutton.classList.remove("highlight");
 			}
 		});
 
 		form3.addEventListener("blur", function(event) {
 			if (form3.value.length > 0) {
+				form1.classList.remove("highlight");
+				form2.classList.remove("highlight");
 				form3.classList.remove("highlight");
+				form1.value="";
+				form2.value="";
 				createbutton.classList.add("highlight");
+				addbutton.classList.remove("highlight");
 			} else {
 				createbutton.classList.remove("highlight");
 			}
