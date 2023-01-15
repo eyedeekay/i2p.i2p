@@ -1,6 +1,7 @@
 package net.i2p.router;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -11,13 +12,14 @@ import java.util.Properties;
 import java.util.regex.Pattern;
 import net.i2p.router.startup.WorkingDir;
 import net.i2p.util.FileSuffixFilter;
+import net.i2p.util.FileUtil;
 import net.i2p.util.SystemVersion;
 
 /**
  * Execute bulk edits against I2P application config files or config
  * directories. This is a command-line application only, which is intended
- * to work agnostic of whether the router is runnning. 
- * 
+ * to work agnostic of whether the router is runnning.
+ *
  * @author idk 2023
  */
 public class ClientConfigManager extends WorkingDir {
@@ -33,27 +35,35 @@ public class ClientConfigManager extends WorkingDir {
    * @return
    */
   private boolean editPropertiesFile(File clientAppConfig, String prop,
-                                     String value) throws FileNotFoundException{
+                                     String value)
+      throws FileNotFoundException {
     /// if (_log.shouldLog(Log.INFO)){
     //_log.info("editing config file " + clientAppConfig.getName());
     System.out.println("editing config file " + clientAppConfig.getName());
     //}
     boolean go = true;
+    Properties clientAppConfigProps = new Properties();
+    File backupConfig = new File(clientAppConfig + ".bak");
+    FileUtil.copy(clientAppConfig, backupConfig, true,
+                false);
     try {
-      Properties clientAppConfigProps = new Properties();
-      FileReader clientAppConfigReader = new FileReader(clientAppConfig);
-      FileWriter clientAppConfigWriter = new FileWriter(clientAppConfig);
+      FileInputStream clientAppConfigReader = new FileInputStream(backupConfig);
       clientAppConfigProps.load(clientAppConfigReader);
-
       final Iterator entries = clientAppConfigProps.entrySet().iterator();
       while (entries.hasNext()) {
         final Map.Entry entry = (Map.Entry)entries.next();
         String key = (String)entry.getKey();
         if (Pattern.matches(prop, key)) {
           clientAppConfigProps.setProperty(key, value);
-          clientAppConfigProps.store(clientAppConfigWriter, "inserted by ClientConfigManager");
-          //System.out.println("set property " + key + "=" + value);
+          // System.out.println("set property " + key + "=" + value);
         }
+      }
+      try {
+        FileWriter clientAppConfigWriter = new FileWriter(clientAppConfig);
+        clientAppConfigProps.store(clientAppConfigWriter,
+                                   "inserted by ClientConfigManager");
+      } catch (IOException e) {
+        go = false;
       }
     } catch (IOException e) {
       go = false;
