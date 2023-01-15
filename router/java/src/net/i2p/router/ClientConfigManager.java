@@ -37,10 +37,7 @@ public class ClientConfigManager extends WorkingDir {
   private boolean editPropertiesFile(File clientAppConfig, String prop,
                                      String value)
       throws FileNotFoundException {
-    /// if (_log.shouldLog(Log.INFO)){
-    //_log.info("editing config file " + clientAppConfig.getName());
     System.out.println("editing config file " + clientAppConfig.getName());
-    //}
     boolean go = true;
     Properties clientAppConfigProps = new Properties();
     File backupConfig = new File(clientAppConfig + ".bak");
