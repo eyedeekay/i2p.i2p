@@ -56,6 +56,103 @@ public class WorkingDir {
     /** Feb 16 2006 */
     private static final long EEPSITE_TIMESTAMP = 1140048000000l;
 
+
+    /**
+     * Determines the default working directory for a given platform by examining
+     * the host system, and applies secure configuration to that directory.
+     * 
+     * @param isWindows set to true if the host system is Windows, false if it's anything else
+     * @return a File containing the working directory
+     */
+    public static File getDefaultDir(boolean isWindows){
+        File dirf = null;
+        String gentooWarning = null;
+        String home = System.getProperty("user.home");
+        if (isWindows) {
+            String localappdata = System.getenv("LOCALAPPDATA");
+            if (localappdata != null) {
+                home = localappdata;
+            }
+            // Don't mess with existing Roaming Application Data installs,
+            // in case somebody is using roaming appdata for a reason
+            // already. In new installs, use local appdata by default. -idk
+            String appdata = System.getenv("APPDATA");
+            if (appdata != null) {
+                File checkOld = new File(appdata, WORKING_DIR_DEFAULT_WINDOWS);
+                if (checkOld.exists() && checkOld.isDirectory()){
+                    File routerConfig = new File(checkOld.getAbsolutePath(), "router.config");
+                    // The Firefox profile installer was mistakenly using the Roaming application data
+                    // which is synced between devices on some Windows machines using MS cloud services,
+                    // instead of the local application data which is used by default.
+                    // It would create the router.config file in an empty directory, which the router would
+                    // then attempt to use, resulting in a router with no client applications. Checking
+                    // for clients.config.d determines if the directory is "Real" or not.
+                    File clientAppsConfig = new File(checkOld.getAbsolutePath(), "clients.config.d");
+                    if (routerConfig.exists() && clientAppsConfig.exists() && clientAppsConfig.isDirectory()) {
+                        home = appdata;
+                    } else {
+                        clientAppsConfig = new File(checkOld.getAbsolutePath(), "clients.config");
+                        if (routerConfig.exists() && clientAppsConfig.exists())
+                            home = appdata;
+                    }
+                    System.err.println("System is Windows: " + home);
+                }
+            }
+            dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT_WINDOWS);
+        } else if (SystemVersion.isMac()) {
+            String appdata = "/Library/Application Support/";
+            File old = new File(home,WORKING_DIR_DEFAULT);
+            if (old.exists() && old.isDirectory())
+                dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT);
+            else {
+                home = home+appdata;
+                dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT_MAC);
+            }
+        } else {
+            if (SystemVersion.isLinuxService()) {
+                if (SystemVersion.isGentoo() &&
+                    SystemVersion.GENTOO_USER.equals(System.getProperty("user.name"))) {
+                    // whoops, we didn't recognize Gentoo as a service until 0.9.29,
+                    // so the config dir was /var/lib/i2p/.i2p through 0.9.28
+                    // and changed to /var/lib/i2p/i2p-config in 0.9.29.
+                    // Look for both to decide which to use.
+                    // We prefer .i2p if neither exists.
+                    // We prefer the newer if both exist.
+                    File d1 = new SecureDirectory(home, WORKING_DIR_DEFAULT);
+                    File d2 = new SecureDirectory(home, WORKING_DIR_DEFAULT_DAEMON);
+                    boolean e1 = isSetup(d1);
+                    boolean e2 = isSetup(d2);
+                    if (e1 && e2) {
+                        // d1 is probably older. Switch if it isn't.
+                        if (d2.lastModified() < d1.lastModified()) {
+                            File tmp = d2;
+                            d2 = d1;
+                            d1 = tmp;
+                            // d1 now is the older one
+                        }
+                        dirf = d2;
+                        gentooWarning = "Warning - Found both an old configuration directory " + d1.getAbsolutePath() +
+                                        " and new configuration directory " + d2.getAbsolutePath() +
+                                        " created due to a bug in release 0.9.29\n. Using the new configuration" +
+                                        " directory. To use the old directory instead, stop i2p," +
+                                        " delete the new directory, and restart.";
+                    } else if (e1 && !e2) {
+                        dirf = d1;
+                    } else if (!e1 && e2) {
+                        dirf = d2;
+                    } else {
+                        dirf = d1;
+                    }
+                } else {
+                    dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT_DAEMON);
+                }
+            } else {
+                dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT);
+            }
+        }
+        return dirf;
+    }
+
     /**
      * Only call this once on router invocation.
      * Caller should store the return value for future reference.
@@ -78,89 +175,7 @@ public class WorkingDir {
         if (dir != null) {
             dirf = new SecureDirectory(dir);
         } else {
-            String home = System.getProperty("user.home");
-            if (isWindows) {
-                String localappdata = System.getenv("LOCALAPPDATA");
-                if (localappdata != null) {
-                    home = localappdata;
-                }
-                // Don't mess with existing Roaming Application Data installs,
-                // in case somebody is using roaming appdata for a reason
-                // already. In new installs, use local appdata by default. -idk
-                String appdata = System.getenv("APPDATA");
-                if (appdata != null) {
-                    File checkOld = new File(appdata, WORKING_DIR_DEFAULT_WINDOWS);
-                    if (checkOld.exists() && checkOld.isDirectory()){
-                        File routerConfig = new File(checkOld.getAbsolutePath(), "router.config");
-                        // The Firefox profile installer was mistakenly using the Roaming application data
-                        // which is synced between devices on some Windows machines using MS cloud services,
-                        // instead of the local application data which is used by default.
-                        // It would create the router.config file in an empty directory, which the router would
-                        // then attempt to use, resulting in a router with no client applications. Checking
-                        // for clients.config.d determines if the directory is "Real" or not.
-                        File clientAppsConfig = new File(checkOld.getAbsolutePath(), "clients.config.d");
-                        if (routerConfig.exists() && clientAppsConfig.exists() && clientAppsConfig.isDirectory()) {
-                            home = appdata;
-                        } else {
-                            clientAppsConfig = new File(checkOld.getAbsolutePath(), "clients.config");
-                            if (routerConfig.exists() && clientAppsConfig.exists())
-                                home = appdata;
-                        }
-                        System.err.println("System is Windows: " + home);
-                    }
-                }
-                dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT_WINDOWS);
-            } else if (SystemVersion.isMac()) {
-                String appdata = "/Library/Application Support/";
-                File old = new File(home,WORKING_DIR_DEFAULT);
-                if (old.exists() && old.isDirectory())
-                    dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT);
-                else {
-                    home = home+appdata;
-                    dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT_MAC);
-                }
-            } else {
-                if (SystemVersion.isLinuxService()) {
-                    if (SystemVersion.isGentoo() &&
-                        SystemVersion.GENTOO_USER.equals(System.getProperty("user.name"))) {
-                        // whoops, we didn't recognize Gentoo as a service until 0.9.29,
-                        // so the config dir was /var/lib/i2p/.i2p through 0.9.28
-                        // and changed to /var/lib/i2p/i2p-config in 0.9.29.
-                        // Look for both to decide which to use.
-                        // We prefer .i2p if neither exists.
-                        // We prefer the newer if both exist.
-                        File d1 = new SecureDirectory(home, WORKING_DIR_DEFAULT);
-                        File d2 = new SecureDirectory(home, WORKING_DIR_DEFAULT_DAEMON);
-                        boolean e1 = isSetup(d1);
-                        boolean e2 = isSetup(d2);
-                        if (e1 && e2) {
-                            // d1 is probably older. Switch if it isn't.
-                            if (d2.lastModified() < d1.lastModified()) {
-                                File tmp = d2;
-                                d2 = d1;
-                                d1 = tmp;
-                                // d1 now is the older one
-                            }
-                            dirf = d2;
-                            gentooWarning = "Warning - Found both an old configuration directory " + d1.getAbsolutePath() +
-                                            " and new configuration directory " + d2.getAbsolutePath() +
-                                            " created due to a bug in release 0.9.29\n. Using the new configuration" +
-                                            " directory. To use the old directory instead, stop i2p," +
-                                            " delete the new directory, and restart.";
-                        } else if (e1 && !e2) {
-                            dirf = d1;
-                        } else if (!e1 && e2) {
-                            dirf = d2;
-                        } else {
-                            dirf = d1;
-                        }
-                    } else {
-                        dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT_DAEMON);
-                    }
-                } else {
-                    dirf = new SecureDirectory(home, WORKING_DIR_DEFAULT);
-                }
-            }
+            dirf = getDefaultDir(isWindows);
         }
 
         // where we are now
