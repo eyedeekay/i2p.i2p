@@ -5,18 +5,20 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
-import net.i2p.app.ClientApp;
-import net.i2p.app.ClientAppManager;
-import net.i2p.data.Hash;
 import net.i2p.router.startup.WorkingDir;
 import net.i2p.util.FileSuffixFilter;
-import net.i2p.util.Log;
 import net.i2p.util.SystemVersion;
 
+/**
+ * Execute bulk edits against I2P application config files or config
+ * directories. This is a command-line application only, which is intended
+ * to work agnostic of whether the router is runnning. 
+ * 
+ * @author idk 2023
+ */
 public class ClientConfigManager extends WorkingDir {
   private String clientName = null;
   private String workDir = null;
