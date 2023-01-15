@@ -3,6 +3,7 @@ package net.i2p.router;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class ClientConfigManager extends WorkingDir {
    * @return
    */
   private boolean editPropertiesFile(File clientAppConfig, String prop,
-                                     String value) {
+                                     String value) throws FileNotFoundException{
     /// if (_log.shouldLog(Log.INFO)){
     //_log.info("editing config file " + clientAppConfig.getName());
     System.out.println("editing config file " + clientAppConfig.getName());
@@ -41,6 +42,7 @@ public class ClientConfigManager extends WorkingDir {
     try {
       Properties clientAppConfigProps = new Properties();
       FileReader clientAppConfigReader = new FileReader(clientAppConfig);
+      FileWriter clientAppConfigWriter = new FileWriter(clientAppConfig);
       clientAppConfigProps.load(clientAppConfigReader);
 
       final Iterator entries = clientAppConfigProps.entrySet().iterator();
@@ -48,12 +50,11 @@ public class ClientConfigManager extends WorkingDir {
         final Map.Entry entry = (Map.Entry)entries.next();
         String key = (String)entry.getKey();
         if (Pattern.matches(prop, key)) {
-          // clientAppConfigProps.setProperty(key, value);
-          System.out.println("set property " + key + "=" + value);
+          clientAppConfigProps.setProperty(key, value);
+          clientAppConfigProps.store(clientAppConfigWriter, "inserted by ClientConfigManager");
+          //System.out.println("set property " + key + "=" + value);
         }
       }
-    } catch (FileNotFoundException e) {
-      go = false;
     } catch (IOException e) {
       go = false;
     } catch (IllegalStateException e) {
