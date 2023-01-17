@@ -31,6 +31,16 @@ There is an i2P image available over at [DockerHub](https://hub.docker.com).  If
 docker build -t geti2p/i2p .
 ```
 
+Normally, docker images will be generated using container images that match the architecture of the host system.
+In order to "Cross-Build" a Docker container for a different architecture on the same OS, use:
+```
+docker buildx build --platform=linux/arm64 -t geti2p/i2p .
+```
+
+The previous command will build an image which is suitable for Linux environments running on arm64 architectures.
+For example, the Raspberry Pi.
+If you build your image on the host system, i.e. the Raspberry Pi, docker buildx is not required there.
+
 ### Running a container
 
 #### Environment Variables
