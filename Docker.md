@@ -34,12 +34,26 @@ docker build -t geti2p/i2p .
 Normally, docker images will be generated using container images that match the architecture of the host system.
 In order to "Cross-Build" a Docker container for a different architecture on the same OS, use:
 ```
-docker buildx build --platform=linux/arm64 -t geti2p/i2p .
+docker buildx build --platform=linux/arm64 -t geti2p/i2p-arm64 .
 ```
 
 The previous command will build an image which is suitable for Linux environments running on arm64 architectures.
 For example, the Raspberry Pi.
 If you build your image on the host system, i.e. the Raspberry Pi, docker buildx is not required there.
+
+It is necessary to test these images without uploading them to a registry.
+In order to do that, use the `docker save/load` commands.
+In order to move these images between the amd64 build host and the arm64 runtime host, use `docker save` to produce an archive of the image:
+
+```
+docker save --output geti2p.i2p.arm64.tar 'geti2p/i2p-arm64'
+```
+
+And transfer the `geti2p.i2p.arm64.tar` file from the build host to the runtime host, such as with a flash drive or SSH. Then, use `docker load` to load the image from the archive:
+
+```
+docker load --input geti2p.i2p.arm64.tar
+```
 
 These arm64 image builds must be manually pushed to DockerHub by an admin with access to `geti2p/i2p` on DocerHub at release time.
 They **do not** become available automatically.
