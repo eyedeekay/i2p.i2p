@@ -55,7 +55,7 @@ And transfer the `geti2p.i2p.arm64.tar` file from the build host to the runtime 
 docker load --input geti2p.i2p.arm64.tar
 ```
 
-These arm64 image builds must be manually pushed to DockerHub by an admin with access to `geti2p/i2p` on DocerHub at release time.
+These arm64 image builds must be manually pushed to DockerHub by an admin with access to `geti2p/i2p` on DockerHub at release time.
 They **do not** become available automatically.
 
 ### Running a container
