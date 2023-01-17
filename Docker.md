@@ -41,6 +41,9 @@ The previous command will build an image which is suitable for Linux environment
 For example, the Raspberry Pi.
 If you build your image on the host system, i.e. the Raspberry Pi, docker buildx is not required there.
 
+These arm64 image builds must be manually pushed to DockerHub by an admin with access to `geti2p/i2p` on DocerHub at release time.
+They **do not** become available automatically.
+
 ### Running a container
 
 #### Environment Variables
