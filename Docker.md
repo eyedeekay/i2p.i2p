@@ -52,7 +52,7 @@ docker save --output geti2p.i2p.arm64.tar 'geti2p/i2p-arm64'
 And transfer the `geti2p.i2p.arm64.tar` file from the build host to the runtime host, such as with a flash drive or SSH. Then, use `docker load` to load the image from the archive:
 
 ```
-docker load --input geti2p.i2p.arm64.tar
+docker load --input geti2p.i2p.arm64.tar 'geti2p/i2p-arm64'
 ```
 
 These arm64 image builds must be manually pushed to DockerHub by an admin with access to `geti2p/i2p` on DockerHub at release time.
