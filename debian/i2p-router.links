@@ -1,7 +1,3 @@
-#
-#  Note: Update apparmor/i2p after any changes
-#
-
 usr/share/common-licenses/GPL-2 usr/share/doc/i2p-router/licenses/LICENSE-GPLv2.txt
 usr/share/common-licenses/LGPL-2.1 usr/share/doc/i2p-router/licenses/LICENSE-LGPLv2.1.txt
 usr/share/common-licenses/Apache-2.0 usr/share/doc/i2p-router/licenses/LICENSE-Apache2.0.txt
@@ -49,12 +45,10 @@ usr/share/java/tomcat9-util.jar usr/share/i2p/lib/tomcat-util.jar
 usr/share/java/tomcat9-util-scan.jar usr/share/i2p/lib/tomcat-util-scan.jar
 # combined into commons-el.jar in non-package builds
 usr/share/java/tomcat9-jasper-el.jar usr/share/i2p/lib/jasper-el.jar
-# following two are formerly from libservlet3.1-java, now in their own packages
 # legacy name in lib/
 usr/share/java/tomcat9-el-api.jar usr/share/i2p/lib/commons-el.jar
-# tomcat9 pulls in libeclipse-jdk-core-java, link to it for eepsite webapps needing a compiler
-usr/share/java/eclipse-jdt-core.jar usr/share/i2p/lib/ecj.jar
-
+# tomcat pulls in ecj, link to it for eepsite webapps needing a compiler
+usr/share/java/ecj.jar usr/share/i2p/lib/ecj.jar
 
 # comment out if not building with libtaglibs-standard
 usr/share/java/taglibs-standard-spec.jar usr/share/i2p/lib/jstl.jar
