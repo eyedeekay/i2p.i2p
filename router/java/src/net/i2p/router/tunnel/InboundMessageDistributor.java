@@ -313,10 +313,13 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                                 // We must send to the InNetMessagePool so the message can be matched
                                 // and the search marked as successful.
                                 // note that encrypted replies to RI lookups is currently disables in ISJ, we won't get here.
+
                                 // ... and inject it.
+                                _context.statManager().addRateData("tunnel.inboundI2NPGarlicRIDSM", 1);
                                 if (_log.shouldLog(Log.INFO))
                                     _log.info("Storing garlic RI down tunnel (" + _clientNickname
-                                              + ") for: " + dsm.getKey());
+                                              + ") for: " + dsm.getKey()
+                                              + " dsm: " + dsm);
                                 _context.inNetMessagePool().add(dsm, null, null, _msgIDBloomXor);
                             }
                 } else if (_client != null && type == DatabaseSearchReplyMessage.MESSAGE_TYPE) {
