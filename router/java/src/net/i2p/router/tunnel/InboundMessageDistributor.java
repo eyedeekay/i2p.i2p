@@ -101,7 +101,6 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                      // LS or RI and client or expl., so that we can safely follow references
                      // in a reply to a LS lookup over client tunnels.
                      // ILJ would also have to follow references via client tunnels
-                  /****
                      DatabaseSearchReplyMessage orig = (DatabaseSearchReplyMessage) msg;
                      if (orig.getNumReplies() > 0) {
                          if (_log.shouldLog(Log.INFO))
@@ -111,7 +110,6 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                          newMsg.setSearchKey(orig.getSearchKey());
                          msg = newMsg;
                      }
-                   ****/
                      break;
 
                 case DatabaseStoreMessage.MESSAGE_TYPE:
