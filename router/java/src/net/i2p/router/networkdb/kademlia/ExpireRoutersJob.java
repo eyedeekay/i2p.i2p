@@ -32,13 +32,13 @@ import net.i2p.util.SystemVersion;
  */
 class ExpireRoutersJob extends JobImpl {
     private final Log _log;
-    private final KademliaNetworkDatabaseFacade _facade;
+    private final KademliaNetworkDatabaseContext _facade;
     
     /** rerun fairly often, so the fails don't queue up too many netdb searches at once */
     private final static long RERUN_DELAY_MS = 5*60*1000;
     private static final int LIMIT_ROUTERS = SystemVersion.isSlow() ? 1000 : 4000;
     
-    public ExpireRoutersJob(RouterContext ctx, KademliaNetworkDatabaseFacade facade) {
+    public ExpireRoutersJob(RouterContext ctx, KademliaNetworkDatabaseContext facade) {
         super(ctx);
         _log = ctx.logManager().getLog(ExpireRoutersJob.class);
         _facade = facade;

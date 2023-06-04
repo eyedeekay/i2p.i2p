@@ -53,7 +53,7 @@ import net.i2p.util.SystemVersion;
  */
 public class PersistentDataStore extends TransientDataStore {
     private final File _dbDir;
-    private final KademliaNetworkDatabaseFacade _facade;
+    private final KademliaNetworkDatabaseContext _facade;
     private final Writer _writer;
     private final ReadJob _readJob;
     private volatile boolean _initialized;
@@ -69,7 +69,7 @@ public class PersistentDataStore extends TransientDataStore {
     /**
      *  @param dbDir relative path
      */
-    public PersistentDataStore(RouterContext ctx, String dbDir, KademliaNetworkDatabaseFacade facade) throws IOException {
+    public PersistentDataStore(RouterContext ctx, String dbDir, KademliaNetworkDatabaseContext facade) throws IOException {
         super(ctx);
         _networkID = ctx.router().getNetworkID();
         _flat = ctx.getBooleanProperty(PROP_FLAT);
@@ -351,7 +351,7 @@ public class PersistentDataStore extends TransientDataStore {
         private volatile long _lastModified;
         private volatile long _lastReseed;
         private volatile boolean _setNetDbReady;
-        private static final int MIN_ROUTERS = KademliaNetworkDatabaseFacade.MIN_RESEED;
+        private static final int MIN_ROUTERS = KademliaNetworkDatabaseContext.MIN_RESEED;
         private static final long MIN_RESEED_INTERVAL = 90*60*1000;
 
         public ReadJob() {
@@ -698,7 +698,7 @@ public class PersistentDataStore extends TransientDataStore {
      */
     public static File getRouterInfoFile(RouterContext ctx, Hash hash) {
         String b64 = hash.toBase64();
-        File dir = new File(ctx.getRouterDir(), ctx.getProperty(KademliaNetworkDatabaseFacade.PROP_DB_DIR, KademliaNetworkDatabaseFacade.DEFAULT_DB_DIR));
+        File dir = new File(ctx.getRouterDir(), ctx.getProperty(KademliaNetworkDatabaseContext.PROP_DB_DIR, KademliaNetworkDatabaseContext.DEFAULT_DB_DIR));
         if (ctx.getBooleanProperty(PROP_FLAT))
             return new File(dir, ROUTERINFO_PREFIX + b64 + ROUTERINFO_SUFFIX);
         return new File(dir, DIR_PREFIX + b64.charAt(0) + File.separatorChar + ROUTERINFO_PREFIX + b64 + ROUTERINFO_SUFFIX);

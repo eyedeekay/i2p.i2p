@@ -56,7 +56,7 @@ class ExploreJob extends SearchJob {
      * @param isRealExplore if true, a standard exploration (no floodfills will be returned)
      *                      if false, a standard lookup (floodfills will be returned, use if low on floodfills)
      */
-    public ExploreJob(RouterContext context, KademliaNetworkDatabaseFacade facade, Hash key, boolean isRealExplore, long msgIDBloomXor) {
+    public ExploreJob(RouterContext context, KademliaNetworkDatabaseContext facade, Hash key, boolean isRealExplore, long msgIDBloomXor) {
         // note that we're treating the last param (isLease) as *false* since we're just exploring.
         // if this collides with an actual leaseSet's key, neat, but that wouldn't imply we're actually
         // attempting to send that lease a message!

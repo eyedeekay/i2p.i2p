@@ -25,7 +25,7 @@ class SearchUpdateReplyFoundJob extends JobImpl implements ReplyJob {
     private I2NPMessage _message;
     private final Hash _peer;
     private final SearchState _state;
-    private final KademliaNetworkDatabaseFacade _facade;
+    private final KademliaNetworkDatabaseContext _facade;
     private final SearchJob _job;
     private final TunnelInfo _outTunnel;
     private final TunnelInfo _replyTunnel;
@@ -33,13 +33,13 @@ class SearchUpdateReplyFoundJob extends JobImpl implements ReplyJob {
     private final long _sentOn;
     
     public SearchUpdateReplyFoundJob(RouterContext context, RouterInfo peer, 
-                                     SearchState state, KademliaNetworkDatabaseFacade facade, 
+                                     SearchState state, KademliaNetworkDatabaseContext facade, 
                                      SearchJob job) {
         this(context, peer, state, facade, job, null, null);
     }
 
     public SearchUpdateReplyFoundJob(RouterContext context, RouterInfo peer, 
-                                     SearchState state, KademliaNetworkDatabaseFacade facade, 
+                                     SearchState state, KademliaNetworkDatabaseContext facade, 
                                      SearchJob job, TunnelInfo outTunnel, TunnelInfo replyTunnel) {
         super(context);
         _log = context.logManager().getLog(SearchUpdateReplyFoundJob.class);

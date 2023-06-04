@@ -25,11 +25,11 @@ class RepublishLeaseSetJob extends JobImpl {
     public final static long REPUBLISH_LEASESET_TIMEOUT = 60*1000;
     private final static int RETRY_DELAY = 20*1000;
     private final Hash _dest;
-    private final KademliaNetworkDatabaseFacade _facade;
+    private final KademliaNetworkDatabaseContext _facade;
     /** this is actually last attempted publish */
     private long _lastPublished;
     
-    public RepublishLeaseSetJob(RouterContext ctx, KademliaNetworkDatabaseFacade facade, Hash destHash) {
+    public RepublishLeaseSetJob(RouterContext ctx, KademliaNetworkDatabaseContext facade, Hash destHash) {
         super(ctx);
         _log = ctx.logManager().getLog(RepublishLeaseSetJob.class);
         _facade = facade;

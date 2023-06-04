@@ -41,7 +41,7 @@ import net.i2p.util.Log;
  */
 class SearchJob extends JobImpl {
     protected final Log _log;
-    protected final KademliaNetworkDatabaseFacade _facade;
+    protected final KademliaNetworkDatabaseContext _facade;
     private final SearchState _state;
     private final Job _onSuccess;
     private final Job _onFailure;
@@ -91,7 +91,7 @@ class SearchJob extends JobImpl {
      * Create a new search for the routingKey specified
      * 
      */
-    public SearchJob(RouterContext context, KademliaNetworkDatabaseFacade facade, Hash key,
+    public SearchJob(RouterContext context, KademliaNetworkDatabaseContext facade, Hash key,
                      Job onSuccess, Job onFailure, long timeoutMs, boolean keepStats, boolean isLease, long msgIDBloomXor) {
         super(context);
         if ( (key == null) || (key.getData() == null) ) 
@@ -123,7 +123,7 @@ class SearchJob extends JobImpl {
     }
     
     protected SearchState getState() { return _state; }
-    protected KademliaNetworkDatabaseFacade getFacade() { return _facade; }
+    protected KademliaNetworkDatabaseContext getFacade() { return _facade; }
     public long getExpiration() { return _expiration; }
     public long getTimeoutMs() { return _timeoutMs; }
     

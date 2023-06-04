@@ -31,7 +31,7 @@ import net.i2p.util.SystemVersion;
  */
 class StartExplorersJob extends JobImpl {
     private final Log _log;
-    private final KademliaNetworkDatabaseFacade _facade;
+    private final KademliaNetworkDatabaseContext _facade;
     
     /** don't explore more than 1 bucket at a time */
     private static final int MAX_PER_RUN = 1;
@@ -45,7 +45,7 @@ class StartExplorersJob extends JobImpl {
         The goal here is to avoid reseeding.
      */
     /** very aggressively explore if we have less than this many routers */
-    private static final int MIN_ROUTERS = 3 * KademliaNetworkDatabaseFacade.MIN_RESEED;
+    private static final int MIN_ROUTERS = 3 * KademliaNetworkDatabaseContext.MIN_RESEED;
     /** aggressively explore if we have less than this many routers */
     private static final int LOW_ROUTERS = 2 * MIN_ROUTERS;
     /** explore slowly if we have more than this many routers */
@@ -61,7 +61,7 @@ class StartExplorersJob extends JobImpl {
 
     private final long _msgIDBloomXor = RandomSource.getInstance().nextLong();
     
-    public StartExplorersJob(RouterContext context, KademliaNetworkDatabaseFacade facade) {
+    public StartExplorersJob(RouterContext context, KademliaNetworkDatabaseContext facade) {
         super(context);
         _log = context.logManager().getLog(StartExplorersJob.class);
         _facade = facade;
