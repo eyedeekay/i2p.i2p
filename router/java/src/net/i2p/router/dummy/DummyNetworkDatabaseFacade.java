@@ -20,10 +20,10 @@ import net.i2p.data.Hash;
 import net.i2p.data.LeaseSet;
 import net.i2p.data.router.RouterInfo;
 import net.i2p.router.Job;
-import net.i2p.router.NetworkDatabaseFacade;
 import net.i2p.router.RouterContext;
+import net.i2p.router.networkdb.kademlia.SegmentedNetworkDatabaseFacade;
 
-public class DummyNetworkDatabaseFacade extends NetworkDatabaseFacade {
+public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
     private final Map<Hash, RouterInfo> _routers;
     private final RouterContext _context;
     
@@ -77,4 +77,101 @@ public class DummyNetworkDatabaseFacade extends NetworkDatabaseFacade {
     
     public Set<Hash> getAllRouters() { return new HashSet<Hash>(_routers.keySet()); }
     public Set<Hash> findNearestRouters(Hash key, int maxNumRouters, Set<Hash> peersToIgnore) { return getAllRouters(); }
+
+    @Override
+    public Set<Hash> findNearestRouters(Hash key, int maxNumRouters, Set<Hash> peersToIgnore, String dbid) {
+        return findNearestRouters(key, maxNumRouters, peersToIgnore);
+    }
+
+    @Override
+    public DatabaseEntry lookupLocally(Hash key, String dbid) {
+        return lookupLocally(key);
+    }
+
+    @Override
+    public DatabaseEntry lookupLocallyWithoutValidation(Hash key, String dbid) {
+        return lookupLocallyWithoutValidation(key);
+    }
+
+    @Override
+    public void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, String dbid) {
+        lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs);
+    }
+
+    @Override
+    public void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, Hash fromLocalDest,
+            String dbid) {
+        lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
+    }
+
+    @Override
+    public LeaseSet lookupLeaseSetLocally(Hash key, String dbid) {
+        throw new UnsupportedOperationException("Unimplemented method 'lookupLeaseSetLocally'");
+    }
+
+    @Override
+    public void lookupRouterInfo(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, String dbid) {
+        lookupRouterInfo(key, onFindJob, onFailedLookupJob, timeoutMs);
+    }
+
+    @Override
+    public RouterInfo lookupRouterInfoLocally(Hash key, String dbid) {
+        return lookupRouterInfoLocally(key);
+    }
+
+    @Override
+    public void lookupLeaseSetRemotely(Hash key, Hash fromLocalDest, String dbid) {
+        lookupLeaseSetRemotely(key, fromLocalDest);
+    }
+
+    @Override
+    public void lookupLeaseSetRemotely(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs,
+            Hash fromLocalDest, String dbid) {
+        lookupLeaseSetRemotely(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
+    }
+
+    @Override
+    public void lookupDestination(Hash key, Job onFinishedJob, long timeoutMs, Hash fromLocalDest, String dbid) {
+        lookupDestination(key, onFinishedJob, timeoutMs, fromLocalDest);
+    }
+
+    @Override
+    public Destination lookupDestinationLocally(Hash key, String dbid) {
+        return lookupDestinationLocally(key);
+    }
+
+    @Override
+    public LeaseSet store(Hash key, LeaseSet leaseSet, String dbid) throws IllegalArgumentException {
+        return this.store(key, leaseSet);
+    }
+
+    @Override
+    public RouterInfo store(Hash key, RouterInfo routerInfo, String dbid) throws IllegalArgumentException {
+        return this.store(key, routerInfo);
+    }
+
+    @Override
+    public void publish(RouterInfo localRouterInfo, String dbid) throws IllegalArgumentException {
+        this.publish(localRouterInfo);
+    }
+
+    @Override
+    public void publish(LeaseSet localLeaseSet, String dbid) {
+        this.publish(localLeaseSet);
+    }
+
+    @Override
+    public void unpublish(LeaseSet localLeaseSet, String dbid) {
+        this.unpublish(localLeaseSet);
+    }
+
+    @Override
+    public void fail(Hash dbEntry, String dbid) {
+        this.fail(dbEntry);
+    }
+
+    @Override
+    public Set<Hash> getAllRouters(String dbid) {
+        return this.getAllRouters();
+    }
 }
