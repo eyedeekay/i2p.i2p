@@ -15,10 +15,15 @@ import net.i2p.data.SigningPublicKey;
 import net.i2p.data.router.RouterInfo;
 import net.i2p.router.Job;
 import net.i2p.router.NetworkDatabaseFacade;
+import net.i2p.router.RouterContext;
 import net.i2p.router.networkdb.reseed.ReseedChecker;
 
-public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFacade {
-     /**
+public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDatabaseFacade {
+     public SegmentedNetworkDatabaseFacade(RouterContext context) {
+        super(context);
+    }
+
+    /**
      * Return the RouterInfo structures for the routers closest to the given key.
      * At most maxNumRouters will be returned
      *
@@ -30,14 +35,14 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
     
     /**
      *  @return RouterInfo, LeaseSet, or null
-     *  @since 0.8.3
+     *  @since 0.9.59
      */
     public abstract DatabaseEntry lookupLocally(Hash key, String dbid);
     
     /**
      *  Not for use without validation
      *  @return RouterInfo, LeaseSet, or null, NOT validated
-     *  @since 0.9.38
+     *  @since 0.9.59
      */
     public abstract DatabaseEntry lookupLocallyWithoutValidation(Hash key, String dbid);
 
@@ -46,7 +51,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
     /**
      *  Lookup using the client's tunnels
      *  @param fromLocalDest use these tunnels for the lookup, or null for exploratory
-     *  @since 0.9.10
+     *  @since 0.9.59
      */
     public abstract void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, Hash fromLocalDest, String dbid);
 
@@ -60,7 +65,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
      *  Use this to refresh a leaseset before expiration.
      *
      *  @param fromLocalDest use these tunnels for the lookup, or null for exploratory
-     *  @since 0.9.25
+     *  @since 0.9.59
      */
     public abstract void lookupLeaseSetRemotely(Hash key, Hash fromLocalDest, String dbid);
 
@@ -70,7 +75,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
      *  @param fromLocalDest use these tunnels for the lookup, or null for exploratory
      *  @param onFindJob may be null
      *  @param onFailedLookupJob may be null
-     *  @since 0.9.47
+     *  @since 0.9.59
      */
     public abstract void lookupLeaseSetRemotely(Hash key, Job onFindJob, Job onFailedLookupJob,
                                        long timeoutMs, Hash fromLocalDest, String dbid);
@@ -80,7 +85,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
      *  Succeeds even if LS validation fails due to unsupported sig type
      *
      *  @param fromLocalDest use these tunnels for the lookup, or null for exploratory
-     *  @since 0.9.16
+     *  @since 0.9.59
      */
     public abstract void lookupDestination(Hash key, Job onFinishedJob, long timeoutMs, Hash fromLocalDest, String dbid);
 
@@ -88,7 +93,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
      *  Lookup locally in netDB and in badDest cache
      *  Succeeds even if LS validation failed due to unsupported sig type
      *
-     *  @since 0.9.16
+     *  @since 0.9.59
      */
     public abstract Destination lookupDestinationLocally(Hash key, String dbid);
 
@@ -109,7 +114,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
     /** 
      *  @return the old entry if it already existed at that key 
      *  @throws IllegalArgumentException if the data is not valid
-     *  @since 0.9.16
+     *  @since 0.9.59
      */
     public DatabaseEntry store(Hash key, DatabaseEntry entry, String dbid) throws IllegalArgumentException {
         if (entry.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO)
@@ -129,7 +134,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
 
     /**
      *  The last time we successfully published our RI.
-     *  @since 0.9.9
+     *  @since 0.9.59
      */
     public long getLastRouterInfoPublishTime(String dbid) { return 0; }
     
@@ -146,8 +151,8 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
     /** public for NetDbRenderer in routerconsole */
     public Set<RouterInfo> getRouters(String dbid) { return Collections.emptySet(); }
 
-    /** @since 0.9 */
-    public ReseedChecker reseedChecker() { return null; };
+    /**  @since 0.9.59 */
+    public ReseedChecker reseedChecker() { return super.reseedChecker(); };
 
     /**
      *  For convenience, so users don't have to cast to FNDF, and unit tests using
@@ -156,52 +161,56 @@ public abstract class SegmentedNetworkDatabaseFacade extends NetworkDatabaseFaca
      *  @return false; FNDF overrides to return actual setting
      *  @since IPv6
      */
-    public boolean floodfillEnabled(String dbid) { return false; };
+    public boolean floodfillEnabled(String dbid) { return super.floodfillEnabled(); };
 
     /**
      *  Is it permanently negative cached?
      *
      *  @param key only for Destinations; for RouterIdentities, see Banlist
-     *  @since 0.9.16
+     *  @since 0.9.59
      */
-    public boolean isNegativeCachedForever(Hash key, String dbid) { return false; }
+    public boolean isNegativeCachedForever(Hash key, String dbid) { return super.isNegativeCachedForever(key); }
     
     /**
      *  @param spk unblinded key
      *  @return BlindData or null
-     *  @since 0.9.40
+     *  @since 0.9.59
      */
     public BlindData getBlindData(SigningPublicKey spk) {
-        return null;
+        return super.getBlindData(spk);
     }
     
     /**
      *  @param bd new BlindData to put in the cache
-     *  @since 0.9.40
+     *  @since 0.9.59
      */
-    public void setBlindData(BlindData bd, String dbid) {}
+    public void setBlindData(BlindData bd, String dbid) {
+        super.setBlindData(bd);
+    }
 
     /**
      *  For console ConfigKeyringHelper
-     *  @since 0.9.41
+     *  @since 0.9.59
      */
     public List<BlindData> getBlindData(String dbid) {
-        return null;
+        return super.getBlindData();
     }
 
     /**
      *  For console ConfigKeyringHelper
      *  @return true if removed
-     *  @since 0.9.41
+     *  @since 0.9.59
      */
     public boolean removeBlindData(SigningPublicKey spk, String dbid) {
-        return false;
+        return super.removeBlindData(spk);
     }
 
     /**
      *  Notify the netDB that the routing key changed at midnight UTC
      *
-     *  @since 0.9.50
+     *  @since 0.9.59
      */
-    public void routingKeyChanged(String dbid) {}
+    public void routingKeyChanged(String dbid) {
+        super.routingKeyChanged();
+    }
 }

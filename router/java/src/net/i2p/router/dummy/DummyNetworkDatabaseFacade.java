@@ -28,6 +28,7 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
     private final RouterContext _context;
     
     public DummyNetworkDatabaseFacade(RouterContext ctx) {
+        super(ctx);
         _routers = Collections.synchronizedMap(new HashMap<Hash, RouterInfo>());
         _context = ctx;
     }
