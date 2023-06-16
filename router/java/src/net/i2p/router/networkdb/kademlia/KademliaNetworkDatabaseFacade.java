@@ -988,7 +988,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                     rv.setReceivedBy(to);
                 } else if (leaseSet.getReceivedAsReply()) {
                     rv.setReceivedAsReply();
-                }
+                } else
                 if (leaseSet.getReceivedAsPublished()) {
                     rv.setReceivedAsPublished(true);
                 }
