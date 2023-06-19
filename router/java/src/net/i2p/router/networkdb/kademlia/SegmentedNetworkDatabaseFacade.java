@@ -23,6 +23,8 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
         super(context);
     }
 
+    public abstract FloodfillNetworkDatabaseFacade getSubNetDB(String id);
+
     /**
      * Return the RouterInfo structures for the routers closest to the given key.
      * At most maxNumRouters will be returned

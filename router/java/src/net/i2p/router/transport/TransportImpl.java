@@ -199,7 +199,7 @@ public abstract class TransportImpl implements Transport {
                     break;
             }
 
-        if (_context.netDb().floodfillEnabled()) {
+        if (_context.netDb(null).floodfillEnabled()) {
             // && !SystemVersion.isWindows()) {
             def *= 17; def /= 10;
         }
@@ -992,7 +992,7 @@ public abstract class TransportImpl implements Transport {
             }
         }
 /*
-        RouterInfo ri = _context.netDb().lookupRouterInfoLocally(peer);
+        RouterInfo ri = _context.netDb(null).lookupRouterInfoLocally(peer);
         if (ri == null)
             return false;
         String alt = getAltStyle();

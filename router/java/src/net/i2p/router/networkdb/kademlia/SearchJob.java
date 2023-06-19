@@ -140,7 +140,7 @@ class SearchJob extends JobImpl {
         // The other two places this was called (one below and one in FNDF)
         // have been commented out.
         // Returning false essentially enables kademlia as a backup to floodfill for search responses.
-        if (ctx.netDb().floodfillEnabled())
+        if (ctx.netDb(null).floodfillEnabled())
             return false;
         return ctx.getProperty("netDb.floodfillOnly", DEFAULT_FLOODFILL_ONLY);
     }
@@ -309,7 +309,7 @@ class SearchJob extends JobImpl {
                     if (ds == null) {
                         if (_log.shouldLog(Log.INFO))
                             _log.info("Next closest peer " + peer + " was only recently referred to us, sending a search for them");
-                        getContext().netDb().lookupRouterInfo(peer, null, null, _timeoutMs);
+                        getContext().netDb(null).lookupRouterInfo(peer, null, null, _timeoutMs);
                     } else if (!(ds.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO)) {
                         if (_log.shouldLog(Log.WARN))
                             _log.warn(getJobId() + ": Error selecting closest hash that wasnt a router! " 

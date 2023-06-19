@@ -21,6 +21,8 @@ import net.i2p.data.LeaseSet;
 import net.i2p.data.router.RouterInfo;
 import net.i2p.router.Job;
 import net.i2p.router.RouterContext;
+import net.i2p.router.networkdb.kademlia.FloodfillNetworkDatabaseFacade;
+import net.i2p.router.networkdb.kademlia.KademliaNetworkDatabaseFacade;
 import net.i2p.router.networkdb.kademlia.SegmentedNetworkDatabaseFacade;
 
 public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
@@ -31,6 +33,10 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
         super(ctx);
         _routers = Collections.synchronizedMap(new HashMap<Hash, RouterInfo>());
         _context = ctx;
+    }
+
+    public FloodfillNetworkDatabaseFacade getSubNetDB(String dbid){
+        return this;
     }
 
     public void restart() {}

@@ -338,7 +338,7 @@ class BuildHandler implements Runnable {
                 int howBad = statuses[record];
 
                     // Look up routerInfo
-                    RouterInfo ri = _context.netDb().lookupRouterInfoLocally(peer);
+                    RouterInfo ri = _context.netDb(null).lookupRouterInfoLocally(peer);
                     // Default and detect bandwidth tier
                     String bwTier = "Unknown";
                     if (ri != null) bwTier = ri.getBandwidthTier(); // Returns "Unknown" if none recognized
@@ -510,7 +510,7 @@ class BuildHandler implements Runnable {
                 _context.commSystem().mayDisconnect(from);
             return -1;
         }
-        RouterInfo nextPeerInfo = _context.netDb().lookupRouterInfoLocally(nextPeer);
+        RouterInfo nextPeerInfo = _context.netDb(null).lookupRouterInfoLocally(nextPeer);
         if (nextPeerInfo == null) {
             // limit concurrent next-hop lookups to prevent job queue overload attacks
             int numTunnels = _context.tunnelManager().getParticipatingCount();
@@ -531,7 +531,7 @@ class BuildHandler implements Runnable {
                                + " ID: " + state.msg.getUniqueId()
                                + " handled, lookup next peer " + nextPeer
                                + " lookups: " + current + '/' + limit);
-                _context.netDb().lookupRouterInfo(nextPeer, new HandleReq(_context, state, req, nextPeer),
+                _context.netDb(null).lookupRouterInfo(nextPeer, new HandleReq(_context, state, req, nextPeer),
                                               new TimeoutReq(_context, state, req, nextPeer), NEXT_HOP_LOOKUP_TIMEOUT);
             } else {
                 _currentLookups.decrementAndGet();
@@ -598,7 +598,7 @@ class BuildHandler implements Runnable {
             if (_log.shouldLog(Log.DEBUG))
                 _log.debug("Request " + _state.msg.getUniqueId() + " handled with a successful deferred lookup: " + _req);
 
-            RouterInfo ri = getContext().netDb().lookupRouterInfoLocally(_nextPeer);
+            RouterInfo ri = getContext().netDb(null).lookupRouterInfoLocally(_nextPeer);
             if (ri != null) {
                 handleReq(ri, _state, _req, _nextPeer);
                 getContext().statManager().addRateData("tunnel.buildLookupSuccess", 1);

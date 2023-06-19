@@ -370,9 +370,9 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
         _mtu = mtu;
 
         try {
-            RouterInfo old = _context.netDb().store(h, ri);
+            RouterInfo old = _context.netDb(null).store(h, ri);
             if (flood && !ri.equals(old)) {
-                FloodfillNetworkDatabaseFacade fndf = (FloodfillNetworkDatabaseFacade) _context.netDb();
+                FloodfillNetworkDatabaseFacade fndf = (FloodfillNetworkDatabaseFacade) _context.netDb(null);
                 if (fndf.floodConditional(ri)) {
                     if (_log.shouldDebug())
                         _log.debug("Flooded the RI: " + h);

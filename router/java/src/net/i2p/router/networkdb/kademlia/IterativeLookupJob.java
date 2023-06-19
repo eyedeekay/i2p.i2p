@@ -66,7 +66,7 @@ class IterativeLookupJob extends JobImpl {
                         oldPeers++;
                         continue;
                     }
-                    RouterInfo ri = getContext().netDb().lookupRouterInfoLocally(peer);
+                    RouterInfo ri = getContext().netDb(null).lookupRouterInfoLocally(peer);
                     if (ri == null) {
                         // Take it on faith that it's ff to speed things up, we don't need the RI
                         // to query it.
