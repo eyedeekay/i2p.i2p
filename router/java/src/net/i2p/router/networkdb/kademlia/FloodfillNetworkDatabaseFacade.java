@@ -55,8 +55,8 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     private static final long NEXT_RKEY_LS_ADVANCE_TIME = 10*60*1000;
     private static final int NEXT_FLOOD_QTY = 2;
     
-    public FloodfillNetworkDatabaseFacade(RouterContext context) {
-        super(context);
+    public FloodfillNetworkDatabaseFacade(RouterContext context, String dbid) {
+        super(context, dbid);
         _activeFloodQueries = new HashMap<Hash, FloodSearchJob>();
          _verifiesInProgress = new ConcurrentHashSet<Hash>(8);
 
@@ -97,7 +97,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     }
 
     @Override
-    protected void createHandlers() {
+    protected void createHandlers(String dbid) {
         _context.inNetMessagePool().registerHandlerJobBuilder(DatabaseLookupMessage.MESSAGE_TYPE, new FloodfillDatabaseLookupMessageHandler(_context, this));
         _context.inNetMessagePool().registerHandlerJobBuilder(DatabaseStoreMessage.MESSAGE_TYPE, new FloodfillDatabaseStoreMessageHandler(_context, this));
     }

@@ -79,6 +79,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     private NegativeLookupCache _negativeCache;
     protected final int _networkID;
     private final BlindCache _blindCache;
+    protected final String _dbid;
 
     /** 
      * Map of Hash to RepublishLeaseSetJob for leases we'realready managing.
@@ -169,7 +170,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     private static final int BUCKET_SIZE = 24;
     private static final int KAD_B = 4;
 
-    public KademliaNetworkDatabaseFacade(RouterContext context) {
+    public KademliaNetworkDatabaseFacade(RouterContext context, String dbid) {
         _context = context;
         _log = _context.logManager().getLog(getClass());
         _networkID = context.router().getNetworkID();
@@ -178,6 +179,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         _activeRequests = new HashMap<Hash, SearchJob>(8);
         _reseedChecker = new ReseedChecker(context);
         _blindCache = new BlindCache(context);
+        _dbid = dbid;
         context.statManager().createRateStat("netDb.lookupDeferred", "how many lookups are deferred?", "NetworkDatabase", new long[] { 60*60*1000 });
         context.statManager().createRateStat("netDb.exploreKeySet", "how many keys are queued for exploration?", "NetworkDatabase", new long[] { 60*60*1000 });
         context.statManager().createRateStat("netDb.negativeCache", "Aborted lookup, already cached", "NetworkDatabase", new long[] { 60*60*1000l });
@@ -298,7 +300,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         _negativeCache = new NegativeLookupCache(_context);
         _blindCache.startup();
         
-        createHandlers();
+        createHandlers(null);
         
         _initialized = true;
         _started = System.currentTimeMillis();
@@ -361,7 +363,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     }
     
     /** unused, see override */
-    protected void createHandlers() {}
+    protected void createHandlers(String dbid) {}
     
     /**
      * Get the routers closest to that key in response to a remote lookup

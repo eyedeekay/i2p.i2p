@@ -38,7 +38,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         }
         FloodfillNetworkDatabaseFacade subdb = _subDBs.get(id);
         if (subdb == null) {
-            subdb = new FloodfillNetworkDatabaseFacade(_context);
+            subdb = new FloodfillNetworkDatabaseFacade(_context, id);
             _subDBs.put(id, subdb);
             subdb.startup();
         }
@@ -52,8 +52,8 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         }
     }
 
-    protected void createHandlers() {
-        super.createHandlers();
+    protected void createHandlers(String dbid) {
+        super.createHandlers(dbid);
     }
 
     /**

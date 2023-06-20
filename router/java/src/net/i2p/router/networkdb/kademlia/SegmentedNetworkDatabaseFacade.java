@@ -20,7 +20,7 @@ import net.i2p.router.networkdb.reseed.ReseedChecker;
 
 public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDatabaseFacade {
      public SegmentedNetworkDatabaseFacade(RouterContext context) {
-        super(context);
+        super(context, null);
     }
 
     public abstract FloodfillNetworkDatabaseFacade getSubNetDB(String id);
