@@ -981,18 +981,22 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
             if (rv != null && rv.getEarliestLeaseDate() >= leaseSet.getEarliestLeaseDate()) {
                 if (_log.shouldDebug())
                     _log.debug("Not storing older " + key);
-                // if it hasn't changed, no need to do anything
-                // except copy over the flags
-                Hash to = leaseSet.getReceivedBy();
-                if (to != null) {
-                    rv.setReceivedBy(to);
-                } else if (leaseSet.getReceivedAsReply()) {
-                    rv.setReceivedAsReply();
-                }
-                if (leaseSet.getReceivedAsPublished()) {
-                    rv.setReceivedAsPublished(true);
-                }
-                return rv;
+                    if (rv.equals(leaseSet)){
+                        if (_log.shouldDebug())
+                            _log.debug("Updating leaseSet found in Datastore " + key);
+                        // if it hasn't changed, no need to do anything
+                        // except copy over the flags
+                        Hash to = leaseSet.getReceivedBy();
+                        if (to != null) {
+                            rv.setReceivedBy(to);
+                        } else if (leaseSet.getReceivedAsReply()) {
+                            rv.setReceivedAsReply();
+                        } else if (leaseSet.getReceivedAsPublished()) {
+                            // ^ if it was already recieved as a reply before, don't update this to prevent context-confusion
+                            rv.setReceivedAsPublished(true);
+                        }
+                        return rv;
+                    }
             }
         } catch (ClassCastException cce) {
             throw new IllegalArgumentException("Attempt to replace RI with " + leaseSet);
