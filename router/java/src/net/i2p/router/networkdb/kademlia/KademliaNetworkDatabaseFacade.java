@@ -981,7 +981,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
             if (rv != null && rv.getEarliestLeaseDate() >= leaseSet.getEarliestLeaseDate()) {
                 if (_log.shouldDebug())
                     _log.debug("Not storing older " + key);
-                    if (rv.equals(leaseSet)){
+                    if (rv.equals(leaseSet)) { // TODO: Determine if this deep equals is actually truly necessary as part of this test or if the date is actually enough
                         if (_log.shouldDebug())
                             _log.debug("Updating leaseSet found in Datastore " + key);
                         // if it hasn't changed, no need to do anything
@@ -996,7 +996,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                             rv.setReceivedAsPublished(true);
                         }
                         return rv;
-                    }
+                    }// TODO: Is there any reason to do anything here, if the fields are somehow unequal?
+                    // Like, is there any case where this is not true? I don't think it's possible for it to be.
             }
         } catch (ClassCastException cce) {
             throw new IllegalArgumentException("Attempt to replace RI with " + leaseSet);
