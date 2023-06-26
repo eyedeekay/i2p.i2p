@@ -180,7 +180,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         // of the flooding - instead, send them to a random floodfill peer so *they* can flood 'em out.
         // perhaps statistically adjust this so we are the source every 1/N times... or something.
         if (floodfillEnabled() && (ds.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO)) {
-            if (!chanceOfFloodingOurOwn(30)) {
+            if (!chanceOfFloodingOurOwn(-1)) {
                 flood(ds);
                 if (onSuccess != null)
                     _context.jobQueue().addJob(onSuccess);
@@ -193,6 +193,12 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     }
 
     private boolean chanceOfFloodingOurOwn(int percent) {
+        if (percent < 0) {
+            // make percent equal to 1-peer.failedLookupRate by retrieving it from the stats
+            RateStat percentRate = _context.statManager().getRate("netDb.failedLookupRate");
+            if (percentRate != null)
+                percent = (1-(int)percentRate.getLifetimeAverageValue())*100;
+        }
         // if the router has been up for at least an hour
         if (_context.router().getUptime() > 60*60*1000) {
             // then 30% of the time return true
