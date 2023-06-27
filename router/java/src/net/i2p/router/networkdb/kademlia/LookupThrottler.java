@@ -19,8 +19,8 @@ class LookupThrottler {
     private final ObjectCounter<ReplyTunnel> counter;
     /** the id of this is -1 */
     private static final TunnelId DUMMY_ID = new TunnelId();
-    /** this seems like plenty */
-    private static final int MAX_LOOKUPS = 30;
+    /** 50 seems like ~~plenty~~ too many*/
+    private static final int MAX_LOOKUPS = 9;
     private static final long CLEAN_TIME = 3*60*1000;
 
     LookupThrottler() {

@@ -993,7 +993,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                             rv.setReceivedAsReply();
                         } else if (leaseSet.getReceivedAsPublished()) {
                             // ^ if it was already recieved as a reply before, don't update this to prevent context-confusion
-                            rv.setReceivedAsPublished(true);
+                            rv.setReceivedAsPublished();
                         }
                         return rv;
                     }// TODO: Is there any reason to do anything here, if the fields are somehow unequal?

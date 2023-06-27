@@ -109,7 +109,7 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 // receive in response to our own lookups.
                 // See ../HDLMJ for more info
                 if (!ls.getReceivedAsReply())
-                    ls.setReceivedAsPublished(true);
+                    ls.setReceivedAsPublished();
                 //boolean rap = ls.getReceivedAsPublished();
                 //if (_log.shouldLog(Log.INFO))
                 //    _log.info("oldrap? " + oldrap + " oldrar? " + oldrar + " newrap? " + rap);
@@ -162,9 +162,9 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 if (_message.getReceivedAsReply()) {
                     ri.setReceivedAsReply();
                     if (_message.getReplyToken() > 0)
-                        ri.setReceivedAsPublished(true);
+                        ri.setReceivedAsPublished();
                 } else {
-                    ri.setReceivedAsPublished(true);
+                    ri.setReceivedAsPublished();
                 }
             }
             if (_log.shouldInfo()) {
