@@ -15,15 +15,15 @@ import net.i2p.util.SimpleTimer2;
  *
  * @since 0.7.11
  */
-class LookupThrottler {
+class LookupBanHammer {
     private final ObjectCounter<ReplyTunnel> counter;
     /** the id of this is -1 */
     private static final TunnelId DUMMY_ID = new TunnelId();
     /** 50 seems like ~~plenty~~ too many*/
     private static final int MAX_LOOKUPS = 12;
-    private static final long CLEAN_TIME = 3*60*1000;
+    private static final long CLEAN_TIME = 30*1000;
 
-    LookupThrottler() {
+    LookupBanHammer() {
         this.counter = new ObjectCounter<ReplyTunnel>();
         SimpleTimer2.getInstance().addPeriodicEvent(new Cleaner(), CLEAN_TIME);
     }
@@ -33,13 +33,13 @@ class LookupThrottler {
      * @param key non-null
      * @param id null if for direct lookups
      */
-    boolean shouldThrottle(Hash key, TunnelId id) {
+    boolean shouldBan(Hash key, TunnelId id) {
         return this.counter.increment(new ReplyTunnel(key, id)) > MAX_LOOKUPS;
     }
 
     private class Cleaner implements SimpleTimer.TimedEvent {
         public void timeReached() {
-            LookupThrottler.this.counter.clear();
+            LookupBanHammer.this.counter.clear();
         }
     }
 

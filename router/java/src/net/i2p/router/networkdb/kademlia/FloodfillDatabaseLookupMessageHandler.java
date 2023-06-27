@@ -49,13 +49,19 @@ public class FloodfillDatabaseLookupMessageHandler implements HandlerJobBuilder 
 
         DatabaseLookupMessage dlm = (DatabaseLookupMessage)receivedMessage;
         if (!_facade.shouldThrottleLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
+            if (_facade.shouldBanLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
+                if (_log.shouldLog(Log.WARN)) {
+                    _log.warn("Dropping " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " (because requests are being sent extremely fast. Should we ban them(TODO)?), reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());    
+                    _context.statManager().addRateData("netDb.repeatedLookupsDropped", 1);
+                }
+            } 
             Job j = new HandleFloodfillDatabaseLookupMessageJob(_context, dlm, from, fromHash, _msgIDBloomXor);
             //if (false) {
             //    // might as well inline it, all the heavy lifting is queued up in later jobs, if necessary
             //    j.runJob();
             //    return null;
             //} else {                
-                return j;
+            return j;
             //}
         } else {
             if (_log.shouldLog(Log.WARN)) 
