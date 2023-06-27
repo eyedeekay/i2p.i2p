@@ -180,24 +180,29 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         // of the flooding - instead, send them to a random floodfill peer so *they* can flood 'em out.
         // perhaps statistically adjust this so we are the source every 1/N times... or something.
         if (floodfillEnabled() && (ds.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO)) {
-            if (!chanceOfFloodingOurOwn(-1)) {
+            //if (!chanceOfFloodingOurOwn(-1)) {
                 flood(ds);
                 if (onSuccess != null)
                     _context.jobQueue().addJob(onSuccess);
-            } else {
-                _context.jobQueue().addJob(new FloodfillStoreJob(_context, this, key, ds, onSuccess, onFailure, sendTimeout, toIgnore));
-            }
+            //} else {
+            //    _context.jobQueue().addJob(new FloodfillStoreJob(_context, this, key, ds, onSuccess, onFailure, sendTimeout, toIgnore));
+            //} Less sure I should do this this time around. TODO: figure out how this should adjust
         } else {
             _context.jobQueue().addJob(new FloodfillStoreJob(_context, this, key, ds, onSuccess, onFailure, sendTimeout, toIgnore));
         }
     }
 
+    /* TODO: figure out how this should work
     private boolean chanceOfFloodingOurOwn(int percent) {
         if (percent < 0) {
             // make percent equal to 1-peer.failedLookupRate by retrieving it from the stats
             RateStat percentRate = _context.statManager().getRate("netDb.failedLookupRate");
             if (percentRate != null)
                 percent = (1-(int)percentRate.getLifetimeAverageValue())*100;
+            else {
+                _log.warn("chanceOfFloodingOurOwn() could not find netDb.failedLookupRate");
+                return false;
+            }
         }
         // if the router has been up for at least an hour
         if (_context.router().getUptime() > 60*60*1000) {
@@ -205,7 +210,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
             return Math.random() < (percent / 100.0f);
         }
         return false;
-    }
+    }*/
 
     /**
      *  Increments and tests.

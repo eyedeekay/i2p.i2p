@@ -164,17 +164,38 @@ public class HandleDatabaseLookupMessageJob extends JobImpl {
                     sendClosest(searchKey, routerHashSet, fromKey, toTunnel);
                 }
             } else {
-                // It was not published to us (we looked it up, for example)
-                // or it's local and we aren't floodfill,
-                // or it's local and we don't publish it.
-                // Lie, pretend we don't have it
-                if (_log.shouldLog(Log.INFO))
-                    _log.info("We have LS " + searchKey +
-                               ", NOT answering query - local? " + isLocal + " shouldPublish? " + shouldPublishLocal +
-                               " RAP? " + ls.getReceivedAsPublished() + " RAR? " + ls.getReceivedAsReply());
-                getContext().statManager().addRateData("netDb.lookupsMatchedRemoteNotClosest", 1);
-                Set<Hash> routerHashSet = getNearestRouters(lookupType);
-                sendClosest(searchKey, routerHashSet, fromKey, toTunnel);
+                LeaseSet possibleMultihomed = getContext().clientMessagePool().getCache().multihomedCache.get(searchKey);
+                if (possibleMultihomed != null && shouldPublishLocal){
+                    Set<Hash> closestHashes = getContext().netDb().findNearestRouters(possibleMultihomed.getHash(), 
+                                                                            CLOSENESS_THRESHOLD, null);
+                    if (weAreClosest(closestHashes)) {
+                        if (_log.shouldLog(Log.INFO))
+                        // It's in our keyspace, so give it to them
+                        if (_log.shouldLog(Log.INFO))
+                            _log.info("We have local LS, possibly from a multihomed router " + searchKey + ", and somebody requested it back from us. Answering query, in our keyspace, to avoid attack.");
+                        getContext().statManager().addRateData("netDb.lookupsMatchedLocalMultihomeClosest", 1);
+                        sendData(searchKey, possibleMultihomed, fromKey, toTunnel);
+                    } else {
+                        // Lie, pretend we don't have it
+                        if (_log.shouldLog(Log.INFO))
+                            _log.info("We have local LS, possibly from a multihomed router " + searchKey + ", NOT answering query, out of our keyspace.");
+                        getContext().statManager().addRateData("netDb.lookupsMatchedLocalMultihomeNotClosest", 1);
+                        Set<Hash> routerHashSet = getNearestRouters(lookupType);
+                        sendClosest(searchKey, routerHashSet, fromKey, toTunnel);
+                    }
+                } else {
+                    // It was not published to us (we looked it up, for example)
+                    // or it's local and we aren't floodfill,
+                    // or it's local and we don't publish it.
+                    // Lie, pretend we don't have it
+                    if (_log.shouldLog(Log.INFO))
+                        _log.info("We have LS " + searchKey +
+                                ", NOT answering query - local? " + isLocal + " shouldPublish? " + shouldPublishLocal +
+                                " RAP? " + ls.getReceivedAsPublished() + " RAR? " + ls.getReceivedAsReply());
+                    getContext().statManager().addRateData("netDb.lookupsMatchedRemoteNotClosest", 1);
+                    Set<Hash> routerHashSet = getNearestRouters(lookupType);
+                    sendClosest(searchKey, routerHashSet, fromKey, toTunnel);
+                }
             }
         } else if (type == DatabaseEntry.KEY_TYPE_ROUTERINFO &&
                    lookupType != DatabaseLookupMessage.Type.LS) {
