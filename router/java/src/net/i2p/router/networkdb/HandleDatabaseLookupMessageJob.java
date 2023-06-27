@@ -165,7 +165,7 @@ public class HandleDatabaseLookupMessageJob extends JobImpl {
                 }
             } else {
                 LeaseSet possibleMultihomed = getContext().clientMessagePool().getCache().multihomedCache.get(searchKey);
-                if (possibleMultihomed != null && shouldPublishLocal){
+                if (possibleMultihomed != null && answerAllQueries()){
                     Set<Hash> closestHashes = getContext().netDb().findNearestRouters(possibleMultihomed.getHash(), 
                                                                             CLOSENESS_THRESHOLD, null);
                     if (weAreClosest(closestHashes)) {
