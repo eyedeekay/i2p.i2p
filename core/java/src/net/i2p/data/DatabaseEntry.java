@@ -294,5 +294,6 @@ public abstract class DatabaseEntry extends DataStructureImpl {
      * @since 0.7.14, moved up from LeaseSet in 0.9.58
      */
     public void setReceivedAsReply() {
-        _receivedAsReply = true; }
+        _receivedAsReply = true;
+    }
 }

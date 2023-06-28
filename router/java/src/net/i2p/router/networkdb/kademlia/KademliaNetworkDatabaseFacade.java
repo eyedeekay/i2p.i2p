@@ -985,15 +985,6 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                 if (rv.equals(leaseSet)) {
                     if (_log.shouldDebug())
                         _log.debug("Updating leaseSet found in Datastore " + key);
-                    Hash to = leaseSet.getReceivedBy();
-                    if (to != null) {
-                        rv.setReceivedBy(to);
-                    } else if (leaseSet.getReceivedAsReply()) {
-                        rv.setReceivedAsReply();
-                    }
-                    if (leaseSet.getReceivedAsPublished()) {
-                        rv.setReceivedAsPublished();
-                    }
                     /** - DatabaseEntry.java note
                      * we used to just copy the flags here but due to concerns about crafted
                      * entries being used to "follow" a leaseSet from one context to another,
@@ -1003,6 +994,15 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                      */
                     _ds.put(key, leaseSet);
                     rv = (LeaseSet)_ds.get(key);
+                    Hash to = leaseSet.getReceivedBy();
+                    if (to != null) {
+                        rv.setReceivedBy(to);
+                    } else if (leaseSet.getReceivedAsReply()) {
+                        rv.setReceivedAsReply();
+                    }
+                    if (leaseSet.getReceivedAsPublished()) {
+                        rv.setReceivedAsPublished();
+                    }
                     return rv;
                 }// TODO: Is there any reason to do anything here, if the fields are somehow unequal?
                 // Like, is there any case where this is not true? I don't think it's possible for it to be.
