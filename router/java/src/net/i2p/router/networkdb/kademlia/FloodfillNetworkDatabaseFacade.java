@@ -39,7 +39,9 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     private final Set<Hash> _verifiesInProgress;
     private FloodThrottler _floodThrottler;
     private LookupThrottler _lookupThrottler;
-    private LookupBanHammer _lookupBanner;
+    private LookupThrottler _lookupThrottlerBurst;
+    private LookupThrottler _lookupBanner;
+    private LookupThrottler _lookupBannerBurst;
     private final Job _ffMonitor;
 
     /**
@@ -85,7 +87,8 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         super.startup();
         _context.jobQueue().addJob(_ffMonitor);
         _lookupThrottler = new LookupThrottler();
-        _lookupBanner = new LookupBanHammer();
+        _lookupThrottlerBurst = new LookupThrottler(10,30*1000);
+        _lookupBannerBurst = new LookupThrottler();
 
         boolean isFF = _context.getBooleanProperty(FloodfillMonitorJob.PROP_FLOODFILL_PARTICIPANT);
         long down = _context.router().getEstimatedDowntime();
@@ -233,7 +236,17 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
 
     boolean shouldBanLookup(Hash from, TunnelId id) {
         // null before startup
-        return _lookupBanner == null || _lookupBanner.shouldBan(from, id);
+        return _lookupBanner == null || _lookupBanner.shouldThrottle(from, id);
+    }
+
+    boolean shouldThrottleBurstLookup(Hash from, TunnelId id) {
+        // null before startup
+        return _lookupThrottler == null || _lookupThrottlerBurst.shouldThrottle(from, id);
+    }
+
+    boolean shouldBanBurstLookup(Hash from, TunnelId id) {
+        // null before startup
+        return _lookupBanner == null || _lookupBannerBurst.shouldThrottle(from, id);
     }
 
     /**

@@ -20,9 +20,17 @@ class LookupThrottler {
     /** the id of this is -1 */
     private static final TunnelId DUMMY_ID = new TunnelId();
     /** 30 seems like plenty, possibly too many, maybe dial this down again next release(2.4.0)*/
-    private static final int MAX_LOOKUPS = 20;
-    private static final long CLEAN_TIME = 3*60*1000;
+    private final int MAX_LOOKUPS; // DEFAULT=20
+    private final long CLEAN_TIME; // DEFAULT=3*60*1000
     LookupThrottler() {
+        MAX_LOOKUPS = 20;
+        CLEAN_TIME = 3*60*1000;
+        this.counter = new ObjectCounter<ReplyTunnel>();
+        SimpleTimer2.getInstance().addPeriodicEvent(new Cleaner(), CLEAN_TIME);
+    }
+    LookupThrottler(int maxlookups, long cleanTime) {
+        MAX_LOOKUPS = maxlookups;
+        CLEAN_TIME = cleanTime;
         this.counter = new ObjectCounter<ReplyTunnel>();
         SimpleTimer2.getInstance().addPeriodicEvent(new Cleaner(), CLEAN_TIME);
     }

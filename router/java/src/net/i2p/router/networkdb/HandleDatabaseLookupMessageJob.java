@@ -166,7 +166,7 @@ public class HandleDatabaseLookupMessageJob extends JobImpl {
             } else {
                 // If it's in the possibleMultihomed cache, then it was definitely stored to us meaning it is effectively
                 // always recievedAsPublished. No need to decide whether or not to answer the request like above, just
-                .// answer it so it doesn't look different from other stores.
+                // answer it so it doesn't look different from other stores.
                 LeaseSet possibleMultihomed = getContext().clientMessagePool().getCache().multihomedCache.get(searchKey);
                 if (possibleMultihomed != null && answerAllQueries()) {
                     if (_log.shouldLog(Log.INFO))

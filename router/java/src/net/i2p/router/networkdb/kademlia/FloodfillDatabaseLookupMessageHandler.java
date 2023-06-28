@@ -48,13 +48,21 @@ public class FloodfillDatabaseLookupMessageHandler implements HandlerJobBuilder 
         _context.statManager().addRateData("netDb.lookupsReceived", 1);
 
         DatabaseLookupMessage dlm = (DatabaseLookupMessage)receivedMessage;
-        if (!_facade.shouldThrottleLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
-            if (_facade.shouldBanLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
-                if (_log.shouldLog(Log.WARN)) {
-                    _log.warn("Dropping " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " (because requests are being sent extremely fast. Should we ban them(TODO)?), reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());    
-                    _context.statManager().addRateData("netDb.repeatedLookupsDropped", 1);
-                }
-            } 
+
+        if (_facade.shouldBanLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
+            if (_log.shouldLog(Log.WARN)) {
+                _log.warn("Dropping " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " because requests are being sent extremely fast, reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());    
+                _context.statManager().addRateData("netDb.repeatedLookupsDropped", 1);
+            }
+        }
+        if (_facade.shouldBanBurstLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
+            if (_log.shouldLog(Log.WARN)) {
+                _log.warn("Dropping " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " because requests are being sent extremely fast in a very short time, reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());    
+                _context.statManager().addRateData("netDb.repeatedBurstLookupsDropped", 1);
+            }
+        }
+        
+        if (!_facade.shouldThrottleLookup(dlm.getFrom(), dlm.getReplyTunnel()) && !_facade.shouldThrottleBurstLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
             Job j = new HandleFloodfillDatabaseLookupMessageJob(_context, dlm, from, fromHash, _msgIDBloomXor);
             //if (false) {
             //    // might as well inline it, all the heavy lifting is queued up in later jobs, if necessary
