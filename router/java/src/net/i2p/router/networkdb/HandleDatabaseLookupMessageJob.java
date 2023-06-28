@@ -164,25 +164,17 @@ public class HandleDatabaseLookupMessageJob extends JobImpl {
                     sendClosest(searchKey, routerHashSet, fromKey, toTunnel);
                 }
             } else {
+                // If it's in the possibleMultihomed cache, then it was definitely stored to us meaning it is effectively
+                // always recievedAsPublished. No need to decide whether or not to answer the request like above, just
+                .// answer it so it doesn't look different from other stores.
                 LeaseSet possibleMultihomed = getContext().clientMessagePool().getCache().multihomedCache.get(searchKey);
-                if (possibleMultihomed != null && answerAllQueries()){
-                    Set<Hash> closestHashes = getContext().netDb().findNearestRouters(possibleMultihomed.getHash(), 
-                                                                            CLOSENESS_THRESHOLD, null);
-                    if (weAreClosest(closestHashes)) {
-                        if (_log.shouldLog(Log.INFO))
-                        // It's in our keyspace, so give it to them
-                        if (_log.shouldLog(Log.INFO))
-                            _log.info("We have local LS, possibly from a multihomed router " + searchKey + ", and somebody requested it back from us. Answering query, in our keyspace, to avoid attack.");
-                        getContext().statManager().addRateData("netDb.lookupsMatchedLocalMultihomeClosest", 1);
-                        sendData(searchKey, possibleMultihomed, fromKey, toTunnel);
-                    } else {
-                        // Lie, pretend we don't have it
-                        if (_log.shouldLog(Log.INFO))
-                            _log.info("We have local LS, possibly from a multihomed router " + searchKey + ", NOT answering query, out of our keyspace.");
-                        getContext().statManager().addRateData("netDb.lookupsMatchedLocalMultihomeNotClosest", 1);
-                        Set<Hash> routerHashSet = getNearestRouters(lookupType);
-                        sendClosest(searchKey, routerHashSet, fromKey, toTunnel);
-                    }
+                if (possibleMultihomed != null && answerAllQueries()) {
+                    if (_log.shouldLog(Log.INFO))
+                    // It's in our keyspace, so give it to them
+                    if (_log.shouldLog(Log.INFO))
+                        _log.info("We have local LS, possibly from a multihomed router " + searchKey + ", and somebody requested it back from us. Answering query, as if in our keyspace, to avoid attack.");
+                    getContext().statManager().addRateData("netDb.lookupsMatchedLocalMultihomeClosest", 1);
+                    sendData(searchKey, possibleMultihomed, fromKey, toTunnel);
                 } else {
                     // It was not published to us (we looked it up, for example)
                     // or it's local and we aren't floodfill,

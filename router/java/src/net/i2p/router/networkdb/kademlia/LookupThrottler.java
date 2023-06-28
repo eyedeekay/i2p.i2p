@@ -19,10 +19,9 @@ class LookupThrottler {
     private final ObjectCounter<ReplyTunnel> counter;
     /** the id of this is -1 */
     private static final TunnelId DUMMY_ID = new TunnelId();
-    /** 50 seems like ~~plenty~~ too many*/
-    private static final int MAX_LOOKUPS = 12;
+    /** 30 seems like plenty, possibly too many, maybe dial this down again next release(2.4.0)*/
+    private static final int MAX_LOOKUPS = 20;
     private static final long CLEAN_TIME = 3*60*1000;
-
     LookupThrottler() {
         this.counter = new ObjectCounter<ReplyTunnel>();
         SimpleTimer2.getInstance().addPeriodicEvent(new Cleaner(), CLEAN_TIME);
