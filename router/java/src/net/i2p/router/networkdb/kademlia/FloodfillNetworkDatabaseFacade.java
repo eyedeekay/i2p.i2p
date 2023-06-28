@@ -43,6 +43,12 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     private LookupThrottler _lookupBanner;
     private LookupThrottler _lookupBannerBurst;
     private final Job _ffMonitor;
+    private final int BAN_LOOKUP_BASE = 50;
+    private final int BAN_LOOKUP_BASE_INTERVAL = 5*60*1000;
+    private final int BAN_LOOKUP_BURST = 10;
+    private final int BAN_LOOKUP_BURST_INTERVAL = 15*1000;
+    private final int DROP_LOOKUP_BURST = 10;
+    private final int DROP_LOOKUP_BURST_INTERVAL = 30*1000;
 
     /**
      *  This is the flood redundancy. Entries are
@@ -87,8 +93,9 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         super.startup();
         _context.jobQueue().addJob(_ffMonitor);
         _lookupThrottler = new LookupThrottler();
-        _lookupThrottlerBurst = new LookupThrottler(10,30*1000);
-        _lookupBannerBurst = new LookupThrottler();
+        _lookupBanner = new LookupThrottler(BAN_LOOKUP_BASE, BAN_LOOKUP_BASE_INTERVAL);
+        _lookupThrottlerBurst = new LookupThrottler(DROP_LOOKUP_BURST, DROP_LOOKUP_BURST_INTERVAL);
+        _lookupBannerBurst = new LookupThrottler(BAN_LOOKUP_BURST, BAN_LOOKUP_BURST_INTERVAL);
 
         boolean isFF = _context.getBooleanProperty(FloodfillMonitorJob.PROP_FLOODFILL_PARTICIPANT);
         long down = _context.router().getEstimatedDowntime();
