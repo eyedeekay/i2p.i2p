@@ -285,8 +285,6 @@ public abstract class DatabaseEntry extends DataStructureImpl {
      * @since 0.7.14, moved up from LeaseSet in 0.9.58
      */
     public boolean getReceivedAsReply() {
-        if (_receivedAsPublished)
-            return false;
         return _receivedAsReply; 
     }
 
@@ -296,7 +294,5 @@ public abstract class DatabaseEntry extends DataStructureImpl {
      * @since 0.7.14, moved up from LeaseSet in 0.9.58
      */
     public void setReceivedAsReply() {
-        if (_receivedAsPublished)
-            return;
         _receivedAsReply = true; }
 }
