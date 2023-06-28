@@ -264,16 +264,17 @@ public abstract class DatabaseEntry extends DataStructureImpl {
      * @since 0.9.58 moved up from LeaseSet
      */
     public boolean getReceivedAsPublished() { 
-        if (_receivedAsReply)
-            return false;
-        return _receivedAsPublished; }
+        return _receivedAsPublished;
+    }
 
     /**
      * @since 0.9.58 moved up from LeaseSet
+     * 
+     * use this carefully, when updating the flags make sure the old and new
+     * leaseSet are actually equivalent, or simply copy over the reply value,
+     * see KademliaNetworkDatabaseFacade.java line 997 for more information.
      */
     public void setReceivedAsPublished() {
-        if (_receivedAsReply)
-            return;
         _receivedAsPublished = true; 
     }
 

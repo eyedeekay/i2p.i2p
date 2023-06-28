@@ -990,11 +990,11 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                         rv.setReceivedBy(to);
                     } else if (leaseSet.getReceivedAsReply()) {
                         rv.setReceivedAsReply();
-                    } else if (leaseSet.getReceivedAsPublished()) {
-                        // ^ if it was already recieved as a reply before, don't update this to prevent context-confusion
+                    }
+                    if (leaseSet.getReceivedAsPublished()) {
                         rv.setReceivedAsPublished();
                     }
-                    /**
+                    /** - DatabaseEntry.java note
                      * we used to just copy the flags here but due to concerns about crafted
                      * entries being used to "follow" a leaseSet from one context to another,
                      * i.e. sent to a client vs sent to a router. Copying the entire leaseSet,
