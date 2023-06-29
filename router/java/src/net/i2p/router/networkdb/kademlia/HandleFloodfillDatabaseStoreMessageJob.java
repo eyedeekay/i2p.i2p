@@ -98,11 +98,13 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                     dontBlamePeer = true;
                     // store the peer in the outboundCache instead so that we can reply back with it without confusing ourselves.
                     if (ls.isCurrent(Router.CLOCK_FUDGE_FACTOR / 4)) {
-                        LeaseSet compareLeasesetDate = getContext().clientMessagePool().getCache().multihomedCache.get(key);
-                        if (compareLeasesetDate == null)
-                            getContext().clientMessagePool().getCache().multihomedCache.put(key, ls);
-                        else if (compareLeasesetDate.getEarliestLeaseDate() < ls.getEarliestLeaseDate())
-                            getContext().clientMessagePool().getCache().multihomedCache.put(key, ls);
+                        if (_facade.validate(key, ls) == null) {
+                            LeaseSet compareLeasesetDate = getContext().clientMessagePool().getCache().multihomedCache.get(key);
+                            if (compareLeasesetDate == null)
+                                getContext().clientMessagePool().getCache().multihomedCache.put(key, ls);
+                            else if (compareLeasesetDate.getEarliestLeaseDate() < ls.getEarliestLeaseDate())
+                                getContext().clientMessagePool().getCache().multihomedCache.put(key, ls);
+                        }
                     }
                     throw new IllegalArgumentException("Peer attempted to store local leaseSet: " +
                                                        key.toBase32());

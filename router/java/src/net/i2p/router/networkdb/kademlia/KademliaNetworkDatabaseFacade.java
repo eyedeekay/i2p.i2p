@@ -889,7 +889,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      * @throws UnsupportedCryptoException if that's why it failed.
      * @return reason why the entry is not valid, or null if it is valid
      */
-    private String validate(Hash key, LeaseSet leaseSet) throws UnsupportedCryptoException {
+    public String validate(Hash key, LeaseSet leaseSet) throws UnsupportedCryptoException {
         if (!key.equals(leaseSet.getHash())) {
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Invalid store attempt! key does not match leaseSet.destination!  key = "
