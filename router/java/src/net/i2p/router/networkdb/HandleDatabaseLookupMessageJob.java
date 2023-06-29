@@ -156,7 +156,8 @@ public class HandleDatabaseLookupMessageJob extends JobImpl {
                     // same time we are closest to our locally published leaseSet. That means there is a slight
                     // chance an attacker can send a least as a store which goes into the multihome cache, then
                     // fetch back a locally-created, locally-published leaseset. BUT, if we always publish a
-                    // multihomed leaseset even if we are closest, we never send it out if it's found in the cache.
+                    // multihomed leaseset even if we are closest to the local, we never send it out if a potential
+                    // multihome is found in the cache.
                     if (_log.shouldLog(Log.INFO))
                         _log.info("We have local LS " + searchKey + ", answering query, in our keyspace");
                     getContext().statManager().addRateData("netDb.lookupsMatchedLocalClosest", 1);
