@@ -91,16 +91,22 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 // somebody has our keys... 
                 // This could happen with multihoming - where it's really important to prevent
                 // storing the other guy's leaseset, it will confuse us badly.
+                LeaseSet ls = (LeaseSet) entry;
                 if (getContext().clientManager().isLocal(key)) {
                     getContext().statManager().addRateData("netDb.storeLocalLeaseSetAttempt", 1, 0);
                     // throw rather than return, so that we send the ack below (prevent easy attack)
                     dontBlamePeer = true;
                     // store the peer in the outboundCache instead so that we can reply back with it without confusing ourselves.
-                    getContext().clientMessagePool().getCache().multihomedCache.put(key, (LeaseSet) entry);
+                    if (ls.isCurrent(Router.CLOCK_FUDGE_FACTOR / 4)) {
+                        LeaseSet compareLeasesetDate = getContext().clientMessagePool().getCache().multihomedCache.get(key);
+                        if (compareLeasesetDate == null)
+                            getContext().clientMessagePool().getCache().multihomedCache.put(key, ls);
+                        if (compareLeasesetDate.getEarliestLeaseDate() < ls.getEarliestLeaseDate())
+                            getContext().clientMessagePool().getCache().multihomedCache.put(key, ls);
+                    }
                     throw new IllegalArgumentException("Peer attempted to store local leaseSet: " +
                                                        key.toBase32());
                 }
-                LeaseSet ls = (LeaseSet) entry;
                 //boolean oldrar = ls.getReceivedAsReply();
                 //boolean oldrap = ls.getReceivedAsPublished();
                 // If this was received as a response to a query,
