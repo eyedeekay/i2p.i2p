@@ -174,6 +174,12 @@ public class HandleDatabaseLookupMessageJob extends JobImpl {
                     } else {
                         // if it expired, remove it from the cache.
                         getContext().clientMessagePool().getCache().multihomedCache.remove(searchKey);
+                        // Lie, pretend we don't have it
+                        if (_log.shouldLog(Log.INFO))
+                            _log.info("We have local LS " + searchKey + ", NOT answering query, out of our keyspace");
+                        getContext().statManager().addRateData("netDb.lookupsMatchedLocalNotClosest", 1);
+                        Set<Hash> routerHashSet = getNearestRouters(lookupType);
+                        sendClosest(searchKey, routerHashSet, fromKey, toTunnel);
                     }
                 } else {
                     // Lie, pretend we don't have it
