@@ -101,7 +101,7 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                         LeaseSet compareLeasesetDate = getContext().clientMessagePool().getCache().multihomedCache.get(key);
                         if (compareLeasesetDate == null)
                             getContext().clientMessagePool().getCache().multihomedCache.put(key, ls);
-                        if (compareLeasesetDate.getEarliestLeaseDate() < ls.getEarliestLeaseDate())
+                        else if (compareLeasesetDate.getEarliestLeaseDate() < ls.getEarliestLeaseDate())
                             getContext().clientMessagePool().getCache().multihomedCache.put(key, ls);
                     }
                     throw new IllegalArgumentException("Peer attempted to store local leaseSet: " +
