@@ -152,6 +152,11 @@ public class HandleDatabaseLookupMessageJob extends JobImpl {
                                                                             CLOSENESS_THRESHOLD, null);
                 if (weAreClosest(closestHashes)) {
                     // It's in our keyspace, so give it to them
+                    // there is a slight chance that there is also a multihomed router in our cache at the
+                    // same time we are closest to our locally published leaseSet. That means there is a slight
+                    // chance an attacker can send a least as a store which goes into the multihome cache, then
+                    // fetch back a locally-created, locally-published leaseset. BUT, if we always publish a
+                    // multihomed leaseset even if we are closest, we never send it out if it's found in the cache.
                     if (_log.shouldLog(Log.INFO))
                         _log.info("We have local LS " + searchKey + ", answering query, in our keyspace");
                     getContext().statManager().addRateData("netDb.lookupsMatchedLocalClosest", 1);
