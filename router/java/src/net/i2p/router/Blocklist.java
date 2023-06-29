@@ -293,8 +293,10 @@ public class Blocklist {
         synchronized(_singleIPBlocklist) {
             _singleIPBlocklist.clear();
         }
-        synchronized(_singleIPv6Blocklist) {
-            _singleIPv6Blocklist.clear();
+        if (_singleIPv6Blocklist != null) {
+            synchronized(_singleIPv6Blocklist) {
+                _singleIPv6Blocklist.clear();
+            }
         }
     }
 
@@ -894,9 +896,12 @@ public class Blocklist {
      * @since IPv6
      */
     private boolean add(BigInteger ip) {
-        synchronized(_singleIPv6Blocklist) {
-            return _singleIPv6Blocklist.put(ip, DUMMY) == null;
+        if (_singleIPv6Blocklist != null) {
+            synchronized(_singleIPv6Blocklist) {
+                return _singleIPv6Blocklist.put(ip, DUMMY) == null;
+            }
         }
+        return false;
     }
 
     /**
@@ -904,8 +909,10 @@ public class Blocklist {
      * @since 0.9.28
      */
     private void remove(BigInteger ip) {
-        synchronized(_singleIPv6Blocklist) {
-            _singleIPv6Blocklist.remove(ip);
+        if (_singleIPv6Blocklist != null) {
+            synchronized(_singleIPv6Blocklist) {
+                _singleIPv6Blocklist.remove(ip);
+            }
         }
     }
 
@@ -914,9 +921,12 @@ public class Blocklist {
      * @since IPv6
      */
     private boolean isOnSingleList(BigInteger ip) {
-        synchronized(_singleIPv6Blocklist) {
-            return _singleIPv6Blocklist.get(ip) != null;
+        if (_singleIPv6Blocklist != null) {
+            synchronized(_singleIPv6Blocklist) {
+                return _singleIPv6Blocklist.get(ip) != null;
+            }
         }
+        return false;
     }
 
     /**
@@ -1360,9 +1370,12 @@ public class Blocklist {
     public List<BigInteger> getTransientIPv6Blocks() {
         if (!_haveIPv6)
             return Collections.<BigInteger>emptyList();
-        synchronized(_singleIPv6Blocklist) {
-            return new ArrayList<BigInteger>(_singleIPv6Blocklist.keySet());
+        if (_singleIPv6Blocklist != null) {
+            synchronized(_singleIPv6Blocklist) {
+                    return new ArrayList<BigInteger>(_singleIPv6Blocklist.keySet());
+            }
         }
+        return Collections.<BigInteger>emptyList();
     }
 
     /**

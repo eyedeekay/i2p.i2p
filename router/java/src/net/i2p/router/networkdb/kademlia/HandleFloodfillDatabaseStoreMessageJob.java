@@ -31,6 +31,7 @@ import net.i2p.router.OutNetMessage;
 import net.i2p.router.Router;
 import net.i2p.router.RouterContext;
 import net.i2p.router.TunnelInfo;
+import net.i2p.router.message.OutboundCache;
 import net.i2p.router.message.SendMessageDirectJob;
 import net.i2p.util.Log;
 import net.i2p.util.SystemVersion;
@@ -91,9 +92,11 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 // This could happen with multihoming - where it's really important to prevent
                 // storing the other guy's leaseset, it will confuse us badly.
                 if (getContext().clientManager().isLocal(key)) {
-                    //getContext().statManager().addRateData("netDb.storeLocalLeaseSetAttempt", 1, 0);
+                    getContext().statManager().addRateData("netDb.storeLocalLeaseSetAttempt", 1, 0);
                     // throw rather than return, so that we send the ack below (prevent easy attack)
                     dontBlamePeer = true;
+                    // store the peer in the outboundCache instead so that we can reply back with it without confusing ourselves.
+                    getContext().clientMessagePool().getCache().multihomedCache.put(key, (LeaseSet) entry);
                     throw new IllegalArgumentException("Peer attempted to store local leaseSet: " +
                                                        key.toBase32());
                 }
@@ -109,7 +112,7 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 // receive in response to our own lookups.
                 // See ../HDLMJ for more info
                 if (!ls.getReceivedAsReply())
-                    ls.setReceivedAsPublished(true);
+                    ls.setReceivedAsPublished();
                 //boolean rap = ls.getReceivedAsPublished();
                 //if (_log.shouldLog(Log.INFO))
                 //    _log.info("oldrap? " + oldrap + " oldrar? " + oldrar + " newrap? " + rap);
@@ -162,9 +165,9 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 if (_message.getReceivedAsReply()) {
                     ri.setReceivedAsReply();
                     if (_message.getReplyToken() > 0)
-                        ri.setReceivedAsPublished(true);
+                        ri.setReceivedAsPublished();
                 } else {
-                    ri.setReceivedAsPublished(true);
+                    ri.setReceivedAsPublished();
                 }
             }
             if (_log.shouldInfo()) {
