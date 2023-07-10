@@ -632,9 +632,9 @@ public class PeerState2 extends PeerState implements SSU2Payload.PayloadCallback
             Hash h = ri.getHash();
             if (h.equals(_context.routerHash()))
                 return;
-            RouterInfo old = _context.netDb(null).store(h, ri);
+            RouterInfo old = _context.floodfillNetDb().store(h, ri);
             if (flood && !ri.equals(old)) {
-                FloodfillNetworkDatabaseFacade fndf = (FloodfillNetworkDatabaseFacade) _context.netDb(null);
+                FloodfillNetworkDatabaseFacade fndf = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
                 if ((old == null || ri.getPublished() > old.getPublished()) &&
                     fndf.floodConditional(ri)) {
                     if (_log.shouldDebug())

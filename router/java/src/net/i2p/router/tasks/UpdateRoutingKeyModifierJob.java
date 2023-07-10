@@ -39,7 +39,7 @@ public class UpdateRoutingKeyModifierJob extends JobImpl {
         // tell netdb if mod data changed
         boolean changed = gen.generateDateBasedModData();
         if (changed)
-            getContext().netDb(null).routingKeyChanged();
+            getContext().floodfillNetDb().routingKeyChanged();
         requeue(delay);
     }
 }

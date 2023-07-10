@@ -28,15 +28,17 @@ import net.i2p.router.networkdb.kademlia.SegmentedNetworkDatabaseFacade;
 public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
     private final Map<Hash, RouterInfo> _routers;
     private final RouterContext _context;
+    private final FloodfillNetworkDatabaseFacade _fndb;
     
     public DummyNetworkDatabaseFacade(RouterContext ctx) {
         super(ctx);
+        _fndb  = new FloodfillNetworkDatabaseFacade(ctx, "dummy");
         _routers = Collections.synchronizedMap(new HashMap<Hash, RouterInfo>());
         _context = ctx;
     }
 
     public FloodfillNetworkDatabaseFacade getSubNetDB(String dbid){
-        return this;
+        return null;
     }
 
     public void restart() {}
@@ -149,36 +151,66 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
 
     @Override
     public LeaseSet store(Hash key, LeaseSet leaseSet, String dbid) throws IllegalArgumentException {
-        return this.store(key, leaseSet);
+        return _fndb.store(key, leaseSet);
     }
 
     @Override
     public RouterInfo store(Hash key, RouterInfo routerInfo, String dbid) throws IllegalArgumentException {
-        return this.store(key, routerInfo);
+        return _fndb.store(key, routerInfo);
     }
 
     @Override
     public void publish(RouterInfo localRouterInfo, String dbid) throws IllegalArgumentException {
-        this.publish(localRouterInfo);
+        _fndb.publish(localRouterInfo);
     }
 
     @Override
     public void publish(LeaseSet localLeaseSet, String dbid) {
-        this.publish(localLeaseSet);
+        _fndb.publish(localLeaseSet);
     }
 
     @Override
     public void unpublish(LeaseSet localLeaseSet, String dbid) {
-        this.unpublish(localLeaseSet);
+        _fndb.unpublish(localLeaseSet);
     }
 
     @Override
     public void fail(Hash dbEntry, String dbid) {
-        this.fail(dbEntry);
+        _fndb.fail(dbEntry);
     }
 
     @Override
     public Set<Hash> getAllRouters(String dbid) {
-        return this.getAllRouters();
+        return _fndb.getAllRouters();
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade floodfillNetDB() {
+        return _fndb;
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade multiHomeNetDB() {
+        return _fndb;
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade clientNetDB(String id) {
+        return _fndb;
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade exploratoryNetDB() {
+        return _fndb;
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade localNetDB() {
+        return _fndb;
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade allNetDBS() {
+        return _fndb;
     }
 }

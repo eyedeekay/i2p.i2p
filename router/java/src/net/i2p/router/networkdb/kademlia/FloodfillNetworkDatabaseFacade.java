@@ -807,4 +807,14 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
             }
         }
     }
+
+    /**
+     * Combine the Network Database with another network database passed as an argument
+     *  @since 0.9.59
+     */
+    public void copyNetworkDatabase(FloodfillNetworkDatabaseFacade other) {
+        for (Hash h : other.getDataStore().getKeys()) {
+            this.getDataStore().put(h, other.getDataStore().get(h), false);
+        }
+    }    
 }

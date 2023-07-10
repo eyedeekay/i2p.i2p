@@ -711,13 +711,13 @@ class ClientMessageEventListener implements I2CPMessageReader.I2CPMessageEventLi
             }
             if (_log.shouldDebug())
                 _log.debug("Publishing: " + ls);
-            _context.netDb(null).publish(ls);
+            _context.floodfillNetDb().publish(ls);
             if (type == DatabaseEntry.KEY_TYPE_ENCRYPTED_LS2) {
                 // store the decrypted ls also
                 EncryptedLeaseSet encls = (EncryptedLeaseSet) ls;
                 if (_log.shouldDebug())
                     _log.debug("Storing decrypted: " + encls.getDecryptedLeaseSet());
-                _context.netDb(null).store(dest.getHash(), encls.getDecryptedLeaseSet());
+                _context.floodfillNetDb().store(dest.getHash(), encls.getDecryptedLeaseSet());
             }
         } catch (IllegalArgumentException iae) {
             if (_log.shouldLog(Log.ERROR))
@@ -861,9 +861,9 @@ class ClientMessageEventListener implements I2CPMessageReader.I2CPMessageEventLi
                 _log.warn("Unsupported BlindingInfo type: " + message);
             return;
         }
-        BlindData obd = _context.netDb(null).getBlindData(spk);
+        BlindData obd = _context.floodfillNetDb().getBlindData(spk);
         if (obd == null) {
-            _context.netDb(null).setBlindData(bd);
+            _context.floodfillNetDb().setBlindData(bd);
             if (_log.shouldWarn())
                 _log.warn("New: " + bd);
         } else {
@@ -884,7 +884,7 @@ class ClientMessageEventListener implements I2CPMessageReader.I2CPMessageEventLi
                         return;
                     }
                 }
-                _context.netDb(null).setBlindData(bd);
+                _context.floodfillNetDb().setBlindData(bd);
                 if (_log.shouldWarn())
                     _log.warn("Updated: " + bd);
             } else {
@@ -893,7 +893,7 @@ class ClientMessageEventListener implements I2CPMessageReader.I2CPMessageEventLi
                 if (nexp > oexp) {
                     obd.setExpiration(nexp);
                     // to force save at shutdown
-                    _context.netDb(null).setBlindData(obd);
+                    _context.floodfillNetDb().setBlindData(obd);
                     if (_log.shouldWarn())
                         _log.warn("Updated expiration: " + obd);
                 } else {

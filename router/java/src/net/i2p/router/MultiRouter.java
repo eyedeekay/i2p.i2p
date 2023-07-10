@@ -140,11 +140,11 @@ public class MultiRouter {
 
     	HashSet<RouterInfo> riSet = new HashSet<RouterInfo>();
     	for(Router r : _routers) {
-    		riSet.addAll(r.getContext().netDb(null).getRouters());
+    		riSet.addAll(r.getContext().floodfillNetDb().getRouters());
     	}
 		for(Router r : _routers) {
     		for(RouterInfo ri : riSet){
-    			r.getContext().netDb(null).publish(ri);
+    			r.getContext().floodfillNetDb().publish(ri);
     		}
     	}
 		_out.println(riSet.size() + " RouterInfos were reseeded");

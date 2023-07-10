@@ -18,12 +18,18 @@ import net.i2p.router.NetworkDatabaseFacade;
 import net.i2p.router.RouterContext;
 import net.i2p.router.networkdb.reseed.ReseedChecker;
 
-public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDatabaseFacade {
+public abstract class SegmentedNetworkDatabaseFacade { //extends FloodfillNetworkDatabaseFacade {
      public SegmentedNetworkDatabaseFacade(RouterContext context) {
-        super(context, null);
+        //super(context, null);
     }
 
     public abstract FloodfillNetworkDatabaseFacade getSubNetDB(String id);
+    public abstract FloodfillNetworkDatabaseFacade floodfillNetDB();
+    public abstract FloodfillNetworkDatabaseFacade multiHomeNetDB();
+    public abstract FloodfillNetworkDatabaseFacade clientNetDB(String id);
+    public abstract FloodfillNetworkDatabaseFacade exploratoryNetDB();
+    public abstract FloodfillNetworkDatabaseFacade localNetDB();
+    public abstract FloodfillNetworkDatabaseFacade allNetDBS();
 
     /**
      * Return the RouterInfo structures for the routers closest to the given key.
@@ -120,9 +126,9 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
      */
     public DatabaseEntry store(Hash key, DatabaseEntry entry, String dbid) throws IllegalArgumentException {
         if (entry.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO)
-            return store(key, (RouterInfo) entry);
+            return getSubNetDB(dbid).store(key, (RouterInfo) entry);
         if (entry.getType() == DatabaseEntry.KEY_TYPE_LEASESET)
-            return store(key, (LeaseSet) entry);
+            return getSubNetDB(dbid).store(key, (LeaseSet) entry);
         throw new IllegalArgumentException("unknown type");
     }
 
@@ -154,7 +160,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
     public Set<RouterInfo> getRouters(String dbid) { return Collections.emptySet(); }
 
     /**  @since 0.9.59 */
-    public ReseedChecker reseedChecker() { return super.reseedChecker(); };
+    public ReseedChecker reseedChecker() { return floodfillNetDB().reseedChecker(); };
 
     /**
      *  For convenience, so users don't have to cast to FNDF, and unit tests using
@@ -163,7 +169,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
      *  @return false; FNDF overrides to return actual setting
      *  @since IPv6
      */
-    public boolean floodfillEnabled(String dbid) { return super.floodfillEnabled(); };
+    public boolean floodfillEnabled(String dbid) { return floodfillNetDB().floodfillEnabled(); };
 
     /**
      *  Is it permanently negative cached?
@@ -171,7 +177,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
      *  @param key only for Destinations; for RouterIdentities, see Banlist
      *  @since 0.9.59
      */
-    public boolean isNegativeCachedForever(Hash key, String dbid) { return super.isNegativeCachedForever(key); }
+    public boolean isNegativeCachedForever(Hash key, String dbid) { return floodfillNetDB().isNegativeCachedForever(key); }
     
     /**
      *  @param spk unblinded key
@@ -179,7 +185,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
      *  @since 0.9.59
      */
     public BlindData getBlindData(SigningPublicKey spk) {
-        return super.getBlindData(spk);
+        return floodfillNetDB().getBlindData(spk);
     }
     
     /**
@@ -187,7 +193,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
      *  @since 0.9.59
      */
     public void setBlindData(BlindData bd, String dbid) {
-        super.setBlindData(bd);
+        floodfillNetDB().setBlindData(bd);
     }
 
     /**
@@ -195,7 +201,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
      *  @since 0.9.59
      */
     public List<BlindData> getBlindData(String dbid) {
-        return super.getBlindData();
+        return floodfillNetDB().getBlindData();
     }
 
     /**
@@ -204,7 +210,7 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
      *  @since 0.9.59
      */
     public boolean removeBlindData(SigningPublicKey spk, String dbid) {
-        return super.removeBlindData(spk);
+        return floodfillNetDB().removeBlindData(spk);
     }
 
     /**
@@ -213,6 +219,6 @@ public abstract class SegmentedNetworkDatabaseFacade extends FloodfillNetworkDat
      *  @since 0.9.59
      */
     public void routingKeyChanged(String dbid) {
-        super.routingKeyChanged();
+        floodfillNetDB().routingKeyChanged();
     }
 }

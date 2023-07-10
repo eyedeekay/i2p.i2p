@@ -209,7 +209,7 @@ public class OutboundClientMessageOneShotJob extends JobImpl {
         _hashPair = new OutboundCache.HashPair(_from.calculateHash(), toHash);
         _toString = toHash.toBase32();
         // we look up here rather than runJob() so we may adjust the timeout
-        _leaseSet = ctx.netDb(null).lookupLeaseSetLocally(toHash);
+        _leaseSet = ctx.floodfillNetDb().lookupLeaseSetLocally(toHash);
         
         // use expiration requested by client if available, otherwise session config,
         // otherwise router config, otherwise default
@@ -307,7 +307,7 @@ public class OutboundClientMessageOneShotJob extends JobImpl {
                     if (_log.shouldInfo())
                         _log.info(getJobId() + ": RAP LS, firing search: " + _leaseSet.getHash().toBase32());
                     LookupLeaseSetFailedJob failed = new LookupLeaseSetFailedJob(getContext());
-                    getContext().netDb(null).lookupLeaseSetRemotely(_leaseSet.getHash(), success, failed,
+                    getContext().floodfillNetDb().lookupLeaseSetRemotely(_leaseSet.getHash(), success, failed,
                                                                 LS_LOOKUP_TIMEOUT, _from.calculateHash());
                 } else {
                     dieFatal(MessageStatusMessage.STATUS_SEND_FAILURE_NO_LEASESET);
@@ -330,7 +330,7 @@ public class OutboundClientMessageOneShotJob extends JobImpl {
                         long exp = now - _leaseSet.getLatestLeaseDate();
                         _log.info(getJobId() + ": leaseSet expired " + DataHelper.formatDuration(exp) + " ago, firing search: " + _leaseSet.getHash().toBase32());
                     }
-                    getContext().netDb(null).lookupLeaseSetRemotely(_leaseSet.getHash(), _from.calculateHash());
+                    getContext().floodfillNetDb().lookupLeaseSetRemotely(_leaseSet.getHash(), _from.calculateHash());
                 }
             }
             success.runJob();
@@ -340,7 +340,7 @@ public class OutboundClientMessageOneShotJob extends JobImpl {
                 _log.debug(getJobId() + ": Send outbound client message - sending off leaseSet lookup job for " + _toString);
             LookupLeaseSetFailedJob failed = new LookupLeaseSetFailedJob(getContext());
             Hash key = _to.calculateHash();
-            getContext().netDb(null).lookupLeaseSet(key, success, failed, LS_LOOKUP_TIMEOUT, _from.calculateHash());
+            getContext().floodfillNetDb().lookupLeaseSet(key, success, failed, LS_LOOKUP_TIMEOUT, _from.calculateHash());
         }
     }
 
@@ -349,7 +349,7 @@ public class OutboundClientMessageOneShotJob extends JobImpl {
      *  @return lease set or null if we should not send the lease set
      */
     private LeaseSet getReplyLeaseSet(boolean force) {
-        LeaseSet newLS = getContext().netDb(null).lookupLeaseSetLocally(_from.calculateHash());
+        LeaseSet newLS = getContext().floodfillNetDb().lookupLeaseSetLocally(_from.calculateHash());
         if (newLS == null)
             return null;   // punt
 
@@ -423,7 +423,7 @@ public class OutboundClientMessageOneShotJob extends JobImpl {
     private int getNextLease() {
         // set in runJob if found locally
         if (_leaseSet == null || !_leaseSet.getReceivedAsReply()) {
-            _leaseSet = getContext().netDb(null).lookupLeaseSetLocally(_to.calculateHash());
+            _leaseSet = getContext().floodfillNetDb().lookupLeaseSetLocally(_to.calculateHash());
             if (_leaseSet == null) {
                 // shouldn't happen
                 if (_log.shouldLog(Log.WARN))
@@ -550,7 +550,7 @@ public class OutboundClientMessageOneShotJob extends JobImpl {
  ***  unfortunately the "U" is rarely seen.
             if (!getContext().commSystem().wasUnreachable(l.getGateway())) {
 ***/
-            RouterInfo ri = getContext().netDb(null).lookupRouterInfoLocally(l.getGateway());
+            RouterInfo ri = getContext().floodfillNetDb().lookupRouterInfoLocally(l.getGateway());
             if (ri == null || ri.getCapabilities().indexOf(Router.CAPABILITY_UNREACHABLE) < 0) {
                 _lease = l;
                 break;
@@ -587,7 +587,7 @@ public class OutboundClientMessageOneShotJob extends JobImpl {
             
 
             int cause;
-            if (getContext().netDb(null).isNegativeCachedForever(_to.calculateHash())) {
+            if (getContext().floodfillNetDb().isNegativeCachedForever(_to.calculateHash())) {
                 if (_log.shouldLog(Log.WARN))
                     _log.warn("Unable to send to " + _toString + " because the sig type is unsupported");
                 cause = MessageStatusMessage.STATUS_SEND_FAILURE_UNSUPPORTED_ENCRYPTION;

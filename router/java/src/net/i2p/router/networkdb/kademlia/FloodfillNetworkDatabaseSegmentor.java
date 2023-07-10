@@ -2,12 +2,10 @@ package net.i2p.router.networkdb.kademlia;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import net.i2p.data.BlindData;
 import net.i2p.data.DatabaseEntry;
 import net.i2p.data.Destination;
@@ -19,6 +17,7 @@ import net.i2p.data.router.RouterInfo;
 import net.i2p.router.Job;
 import net.i2p.router.RouterContext;
 import net.i2p.router.networkdb.reseed.ReseedChecker;
+
 
 public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseFacade {
     private final RouterContext _context;
@@ -32,9 +31,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     /*public FloodfillNetworkDatabaseFacade getSubNetDB() {
         return this;
     }*/
+    @Override
     public FloodfillNetworkDatabaseFacade getSubNetDB(String id) {
         if (id == null || id.isEmpty()) {
-            return this;
+            return this.getSubNetDB("floodfill");
         }
         FloodfillNetworkDatabaseFacade subdb = _subDBs.get(id);
         if (subdb == null) {
@@ -46,14 +46,15 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     public synchronized void startup() {
-        super.startup();
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
             subdb.startup();
         }
     }
 
     protected void createHandlers(String dbid) {
-        super.createHandlers(dbid);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            subdb.createHandlers(dbid);
+        }
     }
 
     /**
@@ -66,7 +67,6 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
             subdb.shutdown();
         }
-        super.shutdown();
     }
 
     /**
@@ -83,7 +83,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @throws IllegalArgumentException if the local router info is invalid
      */
     public void publish(RouterInfo localRouterInfo) throws IllegalArgumentException {
-        super.publish(localRouterInfo);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            subdb.publish(localRouterInfo);
+        }
     }
 
     /**
@@ -98,7 +100,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      *                    unused if we are ff and ds is an RI
      */
     void sendStore(Hash key, DatabaseEntry ds, Job onSuccess, Job onFailure, long sendTimeout, Set<Hash> toIgnore) {
-        super.sendStore(key, ds, onSuccess, onFailure, sendTimeout, toIgnore);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            subdb.sendStore(key, ds, onSuccess, onFailure, sendTimeout, toIgnore);
+        }
     }
 
     /**
@@ -107,7 +111,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @since 0.7.11
      */
     boolean shouldThrottleFlood(Hash key) {
-        return super.shouldThrottleFlood(key);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            return subdb.shouldThrottleFlood(key);
+        }
+        return false;
     }
 
     /**
@@ -116,7 +123,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @since 0.7.11
      */
     boolean shouldThrottleLookup(Hash from, TunnelId id) {
-        return super.shouldThrottleLookup(from, id);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        return subdb.shouldThrottleLookup(from, id);
+        }
+        return false;
     }
 
     /**
@@ -127,7 +137,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @since 0.9.36 for NTCP2
      */
     public boolean floodConditional(DatabaseEntry ds) {
-        return super.floodConditional(ds);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        return subdb.floodConditional(ds);
+        }
+        return false;
     }
 
     /**
@@ -136,7 +149,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * we flood to those closest to the key.
      */
     public void flood(DatabaseEntry ds) {
-        super.flood(ds);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            subdb.flood(ds);
+        }
     }
 
     /**
@@ -147,13 +162,16 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     /*
      * private boolean shouldFloodTo(Hash key, int type, SigType lsSigType, Hash
      * peer, RouterInfo target) {
-     * return super.shouldFloodTo(key, type, lsSigType, peer,
+     * return subdb.shouldFloodTo(key, type, lsSigType, peer,
      * target);
      * }
      */
 
     protected PeerSelector createPeerSelector() {
-        return super.createPeerSelector();
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            return subdb.createPeerSelector();
+        }
+        return null;
     }
 
     /**
@@ -162,7 +180,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * and call setFloodfillEnabledFromMonitor which really sets it.
      */
     public synchronized void setFloodfillEnabled(boolean yes) {
-        super.setFloodfillEnabled(yes);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            subdb.setFloodfillEnabled(yes);
+        }
     }
 
     /**
@@ -172,11 +192,16 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @since 0.9.34
      */
     synchronized void setFloodfillEnabledFromMonitor(boolean yes) {
-        super.setFloodfillEnabledFromMonitor(yes);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            subdb.setFloodfillEnabledFromMonitor(yes);
+        }
     }
 
     public boolean floodfillEnabled() {
-        return super.floodfillEnabled();
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            return subdb.floodfillEnabled();
+        }
+        return false;
     }
 
     /**
@@ -187,7 +212,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     public List<RouterInfo> getKnownRouterData() {
-        return super.getKnownRouterData();
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+           return subdb.getKnownRouterData();
+        }
+        return null;
     }
 
     /**
@@ -205,7 +233,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
 
     SearchJob search(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, boolean isLease) {
-        return super.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        return subdb.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease);
+        }
+        return null;
     }
 
     /**
@@ -220,14 +251,19 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     SearchJob search(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, boolean isLease,
             Hash fromLocalDest) {
-        return super.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease, fromLocalDest);
+                for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        return subdb.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease, fromLocalDest);
+                }
+        return null;
     }
 
     /**
      * Must be called by the search job queued by search() on success or failure
      */
     void complete(Hash key) {
-        super.complete(key);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        subdb.complete(key);
+        }
     }
 
     /**
@@ -236,22 +272,32 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * List is not sorted and not shuffled.
      */
     public List<Hash> getFloodfillPeers() {
-        return super.getFloodfillPeers();
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        return subdb.getFloodfillPeers();
+        }
+        return null;
     }
 
     /** @since 0.7.10 */
     boolean isVerifyInProgress(Hash h) {
-        return super.isVerifyInProgress(h);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        return subdb.isVerifyInProgress(h);
+        }
+        return false;
     }
 
     /** @since 0.7.10 */
     void verifyStarted(Hash h) {
-        super.verifyStarted(h);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            subdb.verifyStarted(h);
+        }
     }
 
     /** @since 0.7.10 */
     void verifyFinished(Hash h) {
-        super.verifyFinished(h);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            subdb.verifyFinished(h);
+        }
     }
 
     /**
@@ -260,7 +306,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
 
     protected void lookupBeforeDropping(Hash peer, RouterInfo info) {
-        super.lookupBeforeDropping(peer, info);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            subdb.lookupBeforeDropping(peer, info);
+        }
     }
 
     /**
@@ -271,6 +319,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @param maxNumRouters The maximum number of routers to return
      * @param peersToIgnore Hash of routers not to include
      */
+    @Override
     public Set<Hash> findNearestRouters(Hash key, int maxNumRouters, Set<Hash> peersToIgnore, String dbid) {
         return null;
     }
@@ -279,6 +328,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @return RouterInfo, LeaseSet, or null
      * @since 0.8.3
      */
+    @Override
     public DatabaseEntry lookupLocally(Hash key, String dbid) {
         return this.getSubNetDB(dbid).lookupLocally(key);
     }
@@ -289,10 +339,12 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @return RouterInfo, LeaseSet, or null, NOT validated
      * @since 0.9.38
      */
+    @Override
     public DatabaseEntry lookupLocallyWithoutValidation(Hash key, String dbid) {
         return this.getSubNetDB(dbid).lookupLocallyWithoutValidation(key);
     }
 
+    @Override
     public void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, String dbid) {
         this.getSubNetDB(dbid).lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs);
     }
@@ -304,19 +356,23 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      *                      exploratory
      * @since 0.9.10
      */
+    @Override
     public void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, Hash fromLocalDest,
             String dbid) {
         this.getSubNetDB(dbid).lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
     }
 
+    @Override
     public LeaseSet lookupLeaseSetLocally(Hash key, String dbid) {
         return this.getSubNetDB(dbid).lookupLeaseSetLocally(key);
     }
 
+    @Override
     public void lookupRouterInfo(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, String dbid) {
         this.getSubNetDB(dbid).lookupRouterInfo(key, onFindJob, onFailedLookupJob, timeoutMs);
     }
 
+    @Override
     public RouterInfo lookupRouterInfoLocally(Hash key, String dbid) {
         return this.getSubNetDB(dbid).lookupRouterInfoLocally(key);
     }
@@ -330,6 +386,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      *                      exploratory
      * @since 0.9.25
      */
+    @Override
     public void lookupLeaseSetRemotely(Hash key, Hash fromLocalDest, String dbid) {
         this.getSubNetDB(dbid).lookupLeaseSetRemotely(key, fromLocalDest);
     }
@@ -343,6 +400,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @param onFailedLookupJob may be null
      * @since 0.9.47
      */
+    @Override
     public void lookupLeaseSetRemotely(Hash key, Job onFindJob, Job onFailedLookupJob,
             long timeoutMs, Hash fromLocalDest, String dbid) {
         this.getSubNetDB(dbid).lookupLeaseSetRemotely(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
@@ -356,6 +414,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      *                      exploratory
      * @since 0.9.16
      */
+    @Override
     public void lookupDestination(Hash key, Job onFinishedJob, long timeoutMs, Hash fromLocalDest, String dbid) {
         this.getSubNetDB(dbid).lookupDestination(key, onFinishedJob, timeoutMs, fromLocalDest);
     }
@@ -366,6 +425,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      *
      * @since 0.9.16
      */
+    @Override
     public Destination lookupDestinationLocally(Hash key, String dbid) {
         return this.getSubNetDB(dbid).lookupDestinationLocally(key);
     }
@@ -375,6 +435,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      *
      * @throws IllegalArgumentException if the data is not valid
      */
+    @Override
     public LeaseSet store(Hash key, LeaseSet leaseSet, String dbid) throws IllegalArgumentException {
         return null;
     }
@@ -384,6 +445,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      *
      * @throws IllegalArgumentException if the data is not valid
      */
+    @Override
     public RouterInfo store(Hash key, RouterInfo routerInfo, String dbid) throws IllegalArgumentException {
         return null;
     }
@@ -393,6 +455,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @throws IllegalArgumentException if the data is not valid
      * @since 0.9.16
      */
+    @Override
     public DatabaseEntry store(Hash key, DatabaseEntry entry, String dbid) throws IllegalArgumentException {
         if (entry.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO)
             return store(key, (RouterInfo) entry);
@@ -404,24 +467,30 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     /**
      * @throws IllegalArgumentException if the local router is not valid
      */
+    @Override
     public void publish(RouterInfo localRouterInfo, String dbid) throws IllegalArgumentException {
         this.getSubNetDB(dbid).publish(localRouterInfo);
     }
 
+    @Override
     public void publish(LeaseSet localLeaseSet, String dbid) {
         this.getSubNetDB(dbid).publish(localLeaseSet);
     }
 
+    @Override
     public void unpublish(LeaseSet localLeaseSet, String dbid) {
         this.getSubNetDB(dbid).unpublish(localLeaseSet);
     }
 
+    @Override
     public void fail(Hash dbEntry, String dbid) {
         this.getSubNetDB(dbid).fail(dbEntry);
     }
 
     public void fail(Hash dbEntry) {
-        super.fail(dbEntry);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        subdb.fail(dbEntry);
+        }
     }
 
     /**
@@ -429,52 +498,67 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * 
      * @since 0.9.9
      */
+    @Override
     public long getLastRouterInfoPublishTime(String dbid) {
         return this.getSubNetDB(dbid).getLastRouterInfoPublishTime();
     }
 
+    @Override
     public Set<Hash> getAllRouters(String dbid) {
         return this.getSubNetDB(dbid).getAllRouters();
     }
 
     public Set<Hash> getAllRouters() {
-        return super.getAllRouters();
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            return subdb.getAllRouters();
+        }
+        return null;
     }
 
+    @Override
     public int getKnownRouters(String dbid) {
         return this.getSubNetDB(dbid).getKnownRouters();
     }
 
+    @Override
     public int getKnownLeaseSets(String dbid) {
         return this.getSubNetDB(dbid).getKnownLeaseSets();
     }
 
+    @Override
     public boolean isInitialized(String dbid) {
         return this.getSubNetDB(dbid).isInitialized();
     }
 
+    @Override
     public void rescan(String dbid) {
         this.getSubNetDB(dbid).rescan();
     }
 
     /** Debug only - all user info moved to NetDbRenderer in router console */
+    @Override
     public void renderStatusHTML(Writer out, String dbid) throws IOException {
-        super.renderStatusHTML(out);
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        subdb.renderStatusHTML(out);
+        }
     }
 
     /** public for NetDbRenderer in routerconsole */
+    @Override
     public Set<LeaseSet> getLeases(String dbid) {
         return this.getSubNetDB(dbid).getLeases();
     }
 
     /** public for NetDbRenderer in routerconsole */
+    @Override
     public Set<RouterInfo> getRouters(String dbid) {
         return this.getSubNetDB(dbid).getRouters();
     }
 
     /** @since 0.9 */
+    @Override
     public ReseedChecker reseedChecker() {
-        return super.reseedChecker();
+        return floodfillNetDB().reseedChecker();
     };
 
     /**
@@ -484,6 +568,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @return false; FNDF overrides to return actual setting
      * @since IPv6
      */
+    @Override
     public boolean floodfillEnabled(String dbid) {
         return this.getSubNetDB(dbid).floodfillEnabled();
     };
@@ -494,6 +579,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @param key only for Destinations; for RouterIdentities, see Banlist
      * @since 0.9.16
      */
+    @Override
     public boolean isNegativeCachedForever(Hash key, String dbid) {
         return this.getSubNetDB(dbid).isNegativeCached(key);
     }
@@ -511,6 +597,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @param bd new BlindData to put in the cache
      * @since 0.9.40
      */
+    @Override
     public void setBlindData(BlindData bd, String dbid) {
         this.getSubNetDB(dbid).setBlindData(bd);
     }
@@ -520,6 +607,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * 
      * @since 0.9.41
      */
+    @Override
     public List<BlindData> getBlindData(String dbid) {
         return this.getSubNetDB(dbid).getBlindData();
     }
@@ -530,6 +618,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @return true if removed
      * @since 0.9.41
      */
+    @Override
     public boolean removeBlindData(SigningPublicKey spk, String dbid) {
         return this.getSubNetDB(dbid).removeBlindData(spk);
     }
@@ -539,93 +628,135 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      *
      * @since 0.9.50
      */
+    @Override
     public void routingKeyChanged(String dbid) {
         this.getSubNetDB(dbid).routingKeyChanged();
     }
 
-    @Override
+    //@Override
     public void restart() {
-        super.restart();
+        for (String dbid : this._subDBs.keySet()) {
+            this.getSubNetDB(dbid).restart();
+        }
     }
 
-    @Override
+    //@Override
     public Set<Hash> findNearestRouters(Hash key, int maxNumRouters, Set<Hash> peersToIgnore) {
-        return super.findNearestRouters(key, maxNumRouters, peersToIgnore);
+        return floodfillNetDB().findNearestRouters(key, maxNumRouters, peersToIgnore);
     }
 
-    @Override
+    //@Override
     public DatabaseEntry lookupLocally(Hash key) {
-        return super.lookupLocally(key);
+        return localNetDB().lookupLocally(key);
     }
 
-    @Override
+    //@Override
     public DatabaseEntry lookupLocallyWithoutValidation(Hash key) {
-        return super.lookupLocallyWithoutValidation(key);
+        return localNetDB().lookupLocallyWithoutValidation(key);
     }
 
-    @Override
+    //@Override
     public void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs) {
-        super.lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs, key);
+        for (String dbid : this._subDBs.keySet()) {
+            this.getSubNetDB(dbid).lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs);
+        }
     }
 
-    @Override
+    //@Override
     public void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, Hash fromLocalDest) {
-        super.lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
+        for (String dbid : this._subDBs.keySet()) {
+            this.lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
+        }
     }
 
-    @Override
+    //@Override
     public LeaseSet lookupLeaseSetLocally(Hash key) {
-        return super.lookupLeaseSetLocally(key);
+        return localNetDB().lookupLeaseSetLocally(key);
     }
 
-    @Override
+    //@Override
     public void lookupRouterInfo(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs) {
-        super.lookupRouterInfo(key, onFindJob, onFailedLookupJob, timeoutMs);
+        floodfillNetDB().lookupRouterInfo(key, onFindJob, onFailedLookupJob, timeoutMs);
     }
 
-    @Override
+    //@Override
     public RouterInfo lookupRouterInfoLocally(Hash key) {
-        return super.lookupRouterInfoLocally(key);
+        return floodfillNetDB().lookupRouterInfoLocally(key);
     }
 
-    @Override
+    //@Override
     public void lookupLeaseSetRemotely(Hash key, Hash fromLocalDest) {
-        super.lookupLeaseSetRemotely(key, fromLocalDest);
+        floodfillNetDB().lookupLeaseSetRemotely(key, fromLocalDest);
     }
 
-    @Override
+    //@Override
     public void lookupLeaseSetRemotely(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs,
             Hash fromLocalDest) {
-        super.lookupLeaseSetRemotely(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
+        floodfillNetDB().lookupLeaseSetRemotely(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
     }
 
-    @Override
+    //@Override
     public void lookupDestination(Hash key, Job onFinishedJob, long timeoutMs, Hash fromLocalDest) {
-        super.lookupDestination(key, onFinishedJob, timeoutMs, fromLocalDest);
+        floodfillNetDB().lookupDestination(key, onFinishedJob, timeoutMs, fromLocalDest);
     }
 
-    @Override
+    //@Override
     public Destination lookupDestinationLocally(Hash key) {
-        return super.lookupDestinationLocally(key);
+        return localNetDB().lookupDestinationLocally(key);
     }
 
-    @Override
+    //@Override
     public LeaseSet store(Hash key, LeaseSet leaseSet) throws IllegalArgumentException {
-        return super.store(key, leaseSet);
+        return floodfillNetDB().store(key, leaseSet);
     }
 
-    @Override
+    //@Override
     public RouterInfo store(Hash key, RouterInfo routerInfo) throws IllegalArgumentException {
-        return super.store(key, routerInfo);
+        return floodfillNetDB().store(key, routerInfo);
     }
 
-    @Override
+    //@Override
     public void publish(LeaseSet localLeaseSet) {
-        super.publish(localLeaseSet);
+        floodfillNetDB().publish(localLeaseSet);
+    }
+
+    //@Override
+    public void unpublish(LeaseSet localLeaseSet) {
+        floodfillNetDB().unpublish(localLeaseSet);
     }
 
     @Override
-    public void unpublish(LeaseSet localLeaseSet) {
-        super.unpublish(localLeaseSet);
+    public FloodfillNetworkDatabaseFacade floodfillNetDB() {
+        return this.getSubNetDB(null);
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade multiHomeNetDB() {
+        return this.getSubNetDB("multihomes");
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade clientNetDB(String id) {
+        return this.getSubNetDB("clients" + id);
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade exploratoryNetDB() {
+        return this.getSubNetDB("exploratory");
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade localNetDB() {
+        return this.getSubNetDB("local");
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade allNetDBS() {
+        FloodfillNetworkDatabaseFacade FNDFAll = new FloodfillNetworkDatabaseFacade(_context, "all");
+        // loop over all subnets
+        for (String id : _subDBs.keySet()) {
+            FNDFAll.copyNetworkDatabase(this.getSubNetDB(id));
+        }
+        return FNDFAll;
     }
 }

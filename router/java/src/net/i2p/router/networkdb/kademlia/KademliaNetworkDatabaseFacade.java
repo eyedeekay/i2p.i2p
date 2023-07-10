@@ -891,7 +891,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      * @throws UnsupportedCryptoException if that's why it failed.
      * @return reason why the entry is not valid, or null if it is valid
      */
-    private String validate(Hash key, LeaseSet leaseSet) throws UnsupportedCryptoException {
+    public String validate(Hash key, LeaseSet leaseSet) throws UnsupportedCryptoException {
         if (!key.equals(leaseSet.getHash())) {
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Invalid store attempt! key does not match leaseSet.destination!  key = "
@@ -1579,5 +1579,15 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     @Override
     public void renderStatusHTML(Writer out) throws IOException {
         out.write(_kb.toString().replace("\n", "<br>\n"));
+    }
+
+    /**
+     * Combine the Network Database with another network database passed as an argument
+     *  @since 0.9.59
+     */
+    public void copyNetworkDatabase(KademliaNetworkDatabaseFacade other) {
+        for (Hash h : other.getDataStore().getKeys()) {
+            _ds.put(h, other.getDataStore().get(h), false);
+        }
     }
 }

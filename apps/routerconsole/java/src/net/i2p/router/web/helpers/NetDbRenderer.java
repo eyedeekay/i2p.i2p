@@ -124,19 +124,19 @@ class NetDbRenderer {
             byte[] h = Base64.decode(routerPrefix);
             if (h != null && h.length == Hash.HASH_LENGTH) {
                 Hash hash = new Hash(h);
-                RouterInfo ri = (RouterInfo) _context.netDb(null).lookupLocallyWithoutValidation(hash);
+                RouterInfo ri = (RouterInfo) _context.floodfillNetDb().lookupLocallyWithoutValidation(hash);
                 boolean banned = false;
                 if (ri == null) {
                     banned = _context.banlist().isBanlisted(hash);
                     if (!banned) {
                         // remote lookup
                         LookupWaiter lw = new LookupWaiter();
-                        _context.netDb(null).lookupRouterInfo(hash, lw, lw, 8*1000);
+                        _context.floodfillNetDb().lookupRouterInfo(hash, lw, lw, 8*1000);
                         // just wait right here in the middle of the rendering, sure
                         synchronized(lw) {
                             try { lw.wait(9*1000); } catch (InterruptedException ie) {}
                         }
-                        ri = (RouterInfo) _context.netDb(null).lookupLocallyWithoutValidation(hash);
+                        ri = (RouterInfo) _context.floodfillNetDb().lookupLocallyWithoutValidation(hash);
                     }
                 }
                 if (ri != null) {
@@ -203,7 +203,7 @@ class NetDbRenderer {
                 buf.append("</div>");
             }
             boolean notFound = true;
-            Set<RouterInfo> routers = _context.netDb(null).getRouters();
+            Set<RouterInfo> routers = _context.floodfillNetDb().getRouters();
             int ipMode = 0;
             String ipArg = ip;  // save for error message
             String altIPv6 = null;
@@ -589,7 +589,7 @@ class NetDbRenderer {
             leases = new TreeSet<LeaseSet>(new LeaseSetComparator());
             fmt = null;
         }
-        leases.addAll(_context.netDb(null).getLeases());
+        leases.addAll(_context.floodfillNetDb().getLeases());
         int medianCount = 0;
         int rapCount = 0;
         BigInteger median = null;
@@ -597,7 +597,7 @@ class NetDbRenderer {
 
 
         // Summary
-        FloodfillNetworkDatabaseFacade netdb = (FloodfillNetworkDatabaseFacade)_context.netDb(null);
+        FloodfillNetworkDatabaseFacade netdb = (FloodfillNetworkDatabaseFacade)_context.floodfillNetDb();
         if (debug) {
             buf.append("<table id=\"leasesetdebug\">\n");
         } else {
@@ -693,16 +693,16 @@ class NetDbRenderer {
             buf.append(hostname);
             buf.append("</div>");
         } else {
-            LeaseSet ls = _context.netDb(null).lookupLeaseSetLocally(hash);
+            LeaseSet ls = _context.floodfillNetDb().lookupLeaseSetLocally(hash);
             if (ls == null) {
                 // remote lookup
                 LookupWaiter lw = new LookupWaiter();
-                _context.netDb(null).lookupLeaseSetRemotely(hash, lw, lw, 8*1000, null);
+                _context.floodfillNetDb().lookupLeaseSetRemotely(hash, lw, lw, 8*1000, null);
                 // just wait right here in the middle of the rendering, sure
                 synchronized(lw) {
                     try { lw.wait(9*1000); } catch (InterruptedException ie) {}
                 }
-                ls = _context.netDb(null).lookupLeaseSetLocally(hash);
+                ls = _context.floodfillNetDb().lookupLeaseSetLocally(hash);
             }
             if (ls != null) {
                 BigInteger dist = HashDistance.getDistance(_context.routerHash(), ls.getRoutingKey());
@@ -897,7 +897,7 @@ class NetDbRenderer {
      *         mode 3: Same as 0 but sort countries by count
      */
     public void renderStatusHTML(Writer out, int pageSize, int page, int mode) throws IOException {
-        if (!_context.netDb(null).isInitialized()) {
+        if (!_context.floodfillNetDb().isInitialized()) {
             out.write("<div id=\"notinitialized\">");
             out.write(_t("Not initialized"));
             out.write("</div>");
@@ -913,7 +913,7 @@ class NetDbRenderer {
         Hash us = _context.routerHash();
 
         Set<RouterInfo> routers = new TreeSet<RouterInfo>(new RouterInfoComparator());
-        routers.addAll(_context.netDb(null).getRouters());
+        routers.addAll(_context.floodfillNetDb().getRouters());
         int toSkip = pageSize * page;
         boolean nextpg = routers.size() > toSkip + pageSize;
         StringBuilder buf = new StringBuilder(8192);

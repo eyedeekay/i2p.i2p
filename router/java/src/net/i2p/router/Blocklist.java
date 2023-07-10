@@ -933,7 +933,7 @@ public class Blocklist {
      * Will not contain duplicates.
      */
     private List<byte[]> getAddresses(Hash peer) {
-        RouterInfo pinfo = _context.netDb(null).lookupRouterInfoLocally(peer);
+        RouterInfo pinfo = _context.floodfillNetDb().lookupRouterInfoLocally(peer);
         if (pinfo == null)
             return Collections.emptyList();
         return getAddresses(pinfo);
