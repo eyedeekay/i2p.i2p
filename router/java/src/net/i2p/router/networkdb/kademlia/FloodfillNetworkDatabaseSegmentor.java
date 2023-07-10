@@ -570,6 +570,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     @Override
     public boolean floodfillEnabled(String dbid) {
+        if (dbid != null && !dbid.isEmpty() && !dbid.equals("floodfill")) {
+            return false;
+        }
         return this.getSubNetDB(dbid).floodfillEnabled();
     };
 
@@ -727,7 +730,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     @Override
     public FloodfillNetworkDatabaseFacade floodfillNetDB() {
-        return this.getSubNetDB(null);
+        return this.getSubNetDB("floodfill");
     }
 
     @Override

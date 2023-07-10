@@ -33,6 +33,7 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
     public DummyNetworkDatabaseFacade(RouterContext ctx) {
         super(ctx);
         _fndb  = new FloodfillNetworkDatabaseFacade(ctx, "dummy");
+        _fndb.startup();
         _routers = Collections.synchronizedMap(new HashMap<Hash, RouterInfo>());
         _context = ctx;
     }
