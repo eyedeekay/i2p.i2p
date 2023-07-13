@@ -631,96 +631,11 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     //@Override
-    public void restart() {
+    /*public void restart() {
         for (String dbid : this._subDBs.keySet()) {
             this.getSubNetDB(dbid).restart();
         }
-    }
-
-    //@Override
-    public Set<Hash> findNearestRouters(Hash key, int maxNumRouters, Set<Hash> peersToIgnore) {
-        return floodfillNetDB().findNearestRouters(key, maxNumRouters, peersToIgnore);
-    }
-
-    //@Override
-    public DatabaseEntry lookupLocally(Hash key) {
-        return floodfillNetDB().lookupLocally(key);
-    }
-
-    //@Override
-    public DatabaseEntry lookupLocallyWithoutValidation(Hash key) {
-        return floodfillNetDB().lookupLocallyWithoutValidation(key);
-    }
-
-    //@Override
-    public void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs) {
-        for (String dbid : this._subDBs.keySet()) {
-            this.getSubNetDB(dbid).lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs);
-        }
-    }
-
-    //@Override
-    public void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, Hash fromLocalDest) {
-        for (String dbid : this._subDBs.keySet()) {
-            this.lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
-        }
-    }
-
-    //@Override
-    public LeaseSet lookupLeaseSetLocally(Hash key) {
-        return floodfillNetDB().lookupLeaseSetLocally(key);
-    }
-
-    //@Override
-    public void lookupRouterInfo(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs) {
-        floodfillNetDB().lookupRouterInfo(key, onFindJob, onFailedLookupJob, timeoutMs);
-    }
-
-    //@Override
-    public RouterInfo lookupRouterInfoLocally(Hash key) {
-        return floodfillNetDB().lookupRouterInfoLocally(key);
-    }
-
-    //@Override
-    public void lookupLeaseSetRemotely(Hash key, Hash fromLocalDest) {
-        floodfillNetDB().lookupLeaseSetRemotely(key, fromLocalDest);
-    }
-
-    //@Override
-    public void lookupLeaseSetRemotely(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs,
-            Hash fromLocalDest) {
-        floodfillNetDB().lookupLeaseSetRemotely(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
-    }
-
-    //@Override
-    public void lookupDestination(Hash key, Job onFinishedJob, long timeoutMs, Hash fromLocalDest) {
-        floodfillNetDB().lookupDestination(key, onFinishedJob, timeoutMs, fromLocalDest);
-    }
-
-    //@Override
-    public Destination lookupDestinationLocally(Hash key) {
-        return floodfillNetDB().lookupDestinationLocally(key);
-    }
-
-    //@Override
-    public LeaseSet store(Hash key, LeaseSet leaseSet) throws IllegalArgumentException {
-        return floodfillNetDB().store(key, leaseSet);
-    }
-
-    //@Override
-    public RouterInfo store(Hash key, RouterInfo routerInfo) throws IllegalArgumentException {
-        return floodfillNetDB().store(key, routerInfo);
-    }
-
-    //@Override
-    public void publish(LeaseSet localLeaseSet) {
-        floodfillNetDB().publish(localLeaseSet);
-    }
-
-    //@Override
-    public void unpublish(LeaseSet localLeaseSet) {
-        floodfillNetDB().unpublish(localLeaseSet);
-    }
+    }*/
 
     @Override
     public FloodfillNetworkDatabaseFacade floodfillNetDB() {
