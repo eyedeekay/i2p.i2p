@@ -48,6 +48,13 @@ public class FloodfillDatabaseLookupMessageHandler implements HandlerJobBuilder 
         _context.statManager().addRateData("netDb.lookupsReceived", 1);
 
         DatabaseLookupMessage dlm = (DatabaseLookupMessage)receivedMessage;
+        boolean ourRI = dlm.getSearchKey() != null && dlm.getSearchKey().equals(_context.routerHash());
+        if (!_context.netDb().floodfillEnabled() && !ourRI) {
+            if (_log.shouldLog(Log.WARN)) 
+                _log.warn("Dropping " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " (we are not a floodfill), reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());
+            _context.statManager().addRateData("netDb.nonFFLookupsDropped", 1);
+            return null;
+        }
 
         if (_facade.shouldBanLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
             if (_log.shouldLog(Log.WARN)) {
