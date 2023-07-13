@@ -79,14 +79,13 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     static final long PUBLISH_TIMEOUT = 90 * 1000;
 
     /**
-     * Send our RI to the closest floodfill.
+     * Send our RI to the closest floodfill. This should always be called from the
+     * floodFillNetDB context
      * 
      * @throws IllegalArgumentException if the local router info is invalid
      */
     public void publish(RouterInfo localRouterInfo) throws IllegalArgumentException {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            subdb.publish(localRouterInfo);
-        }
+        floodfillNetDB().publish(localRouterInfo);
     }
 
     /**
@@ -465,14 +464,6 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         if (entry.getType() == DatabaseEntry.KEY_TYPE_LEASESET)
             return store(key, (LeaseSet) entry, dbid);
         throw new IllegalArgumentException("unknown type");
-    }
-
-    /**
-     * @throws IllegalArgumentException if the local router is not valid
-     */
-    @Override
-    public void publish(RouterInfo localRouterInfo, String dbid) throws IllegalArgumentException {
-        this.getSubNetDB(dbid).publish(localRouterInfo);
     }
 
     @Override

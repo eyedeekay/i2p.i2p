@@ -135,7 +135,7 @@ public abstract class SegmentedNetworkDatabaseFacade { //extends FloodfillNetwor
     /**
      * @throws IllegalArgumentException if the local router is not valid
      */
-    public abstract void publish(RouterInfo localRouterInfo, String dbid) throws IllegalArgumentException;
+    public abstract void publish(RouterInfo localRouterInfo) throws IllegalArgumentException;
     public abstract void publish(LeaseSet localLeaseSet, String dbid);
     public abstract void unpublish(LeaseSet localLeaseSet, String dbid);
     public abstract void fail(Hash dbEntry, String dbid);

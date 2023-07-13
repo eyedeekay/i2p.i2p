@@ -161,11 +161,6 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
     }
 
     @Override
-    public void publish(RouterInfo localRouterInfo, String dbid) throws IllegalArgumentException {
-        _fndb.publish(localRouterInfo);
-    }
-
-    @Override
     public void publish(LeaseSet localLeaseSet, String dbid) {
         _fndb.publish(localLeaseSet);
     }
