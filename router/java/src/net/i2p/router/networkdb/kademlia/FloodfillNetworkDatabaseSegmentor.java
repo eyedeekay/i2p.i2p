@@ -2,6 +2,7 @@ package net.i2p.router.networkdb.kademlia;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -212,10 +213,11 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     public List<RouterInfo> getKnownRouterData() {
+        List<RouterInfo> rv = new ArrayList<RouterInfo>();
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-           return subdb.getKnownRouterData();
+           rv.addAll(subdb.getKnownRouterData());
         }
-        return null;
+        return rv;
     }
 
     /**
@@ -272,16 +274,17 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * List is not sorted and not shuffled.
      */
     public List<Hash> getFloodfillPeers() {
+        List<Hash> peers = new ArrayList<Hash>();
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-        return subdb.getFloodfillPeers();
+            peers.addAll(subdb.getFloodfillPeers());
         }
-        return null;
+        return peers;
     }
 
     /** @since 0.7.10 */
     boolean isVerifyInProgress(Hash h) {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-        return subdb.isVerifyInProgress(h);
+            return subdb.isVerifyInProgress(h);
         }
         return false;
     }
@@ -321,7 +324,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     @Override
     public Set<Hash> findNearestRouters(Hash key, int maxNumRouters, Set<Hash> peersToIgnore, String dbid) {
-        return null;
+        return getSubNetDB(dbid).findNearestRouters(key, maxNumRouters, peersToIgnore);
     }
 
     /**
@@ -437,7 +440,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     @Override
     public LeaseSet store(Hash key, LeaseSet leaseSet, String dbid) throws IllegalArgumentException {
-        return null;
+        return getSubNetDB(dbid).store(key, leaseSet);
     }
 
     /**
@@ -447,7 +450,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     @Override
     public RouterInfo store(Hash key, RouterInfo routerInfo, String dbid) throws IllegalArgumentException {
-        return null;
+        return getSubNetDB(dbid).store(key, routerInfo);
     }
 
     /**
@@ -458,9 +461,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public DatabaseEntry store(Hash key, DatabaseEntry entry, String dbid) throws IllegalArgumentException {
         if (entry.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO)
-            return store(key, (RouterInfo) entry);
+            return store(key, (RouterInfo) entry, dbid);
         if (entry.getType() == DatabaseEntry.KEY_TYPE_LEASESET)
-            return store(key, (LeaseSet) entry);
+            return store(key, (LeaseSet) entry, dbid);
         throw new IllegalArgumentException("unknown type");
     }
 
@@ -650,12 +653,12 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     //@Override
     public DatabaseEntry lookupLocally(Hash key) {
-        return localNetDB().lookupLocally(key);
+        return floodfillNetDB().lookupLocally(key);
     }
 
     //@Override
     public DatabaseEntry lookupLocallyWithoutValidation(Hash key) {
-        return localNetDB().lookupLocallyWithoutValidation(key);
+        return floodfillNetDB().lookupLocallyWithoutValidation(key);
     }
 
     //@Override
@@ -674,7 +677,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     //@Override
     public LeaseSet lookupLeaseSetLocally(Hash key) {
-        return localNetDB().lookupLeaseSetLocally(key);
+        return floodfillNetDB().lookupLeaseSetLocally(key);
     }
 
     //@Override
@@ -705,7 +708,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     //@Override
     public Destination lookupDestinationLocally(Hash key) {
-        return localNetDB().lookupDestinationLocally(key);
+        return floodfillNetDB().lookupDestinationLocally(key);
     }
 
     //@Override
