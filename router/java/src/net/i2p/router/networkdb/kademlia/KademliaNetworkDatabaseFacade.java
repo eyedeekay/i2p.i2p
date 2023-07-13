@@ -300,7 +300,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         _negativeCache = new NegativeLookupCache(_context);
         _blindCache.startup();
         
-        createHandlers(null);
+        createHandlers();
         
         _initialized = true;
         _started = System.currentTimeMillis();
@@ -363,7 +363,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     }
     
     /** unused, see override */
-    protected void createHandlers(String dbid) {}
+    protected void createHandlers() {}
     
     /**
      * Get the routers closest to that key in response to a remote lookup

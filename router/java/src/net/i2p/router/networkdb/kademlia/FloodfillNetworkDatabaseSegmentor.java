@@ -54,7 +54,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     protected void createHandlers(String dbid) {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            subdb.createHandlers(dbid);
+            subdb.createHandlers();
         }
     }
 
@@ -483,7 +483,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     public void fail(Hash dbEntry) {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-        subdb.fail(dbEntry);
+            subdb.fail(dbEntry);
         }
     }
 
@@ -649,7 +649,13 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     @Override
     public FloodfillNetworkDatabaseFacade clientNetDB(String id) {
+        if (id == null || id.isEmpty())
+            return exploratoryNetDB();
         return this.getSubNetDB("clients" + id);
+    }
+
+    public FloodfillNetworkDatabaseFacade clientNetDB() {
+        return clientNetDB(null);
     }
 
     @Override
