@@ -681,7 +681,9 @@ class InboundEstablishState extends EstablishBase implements NTCP2Payload.Payloa
 
         // s is verified, we may now ban the hash
         if (mismatchMessage != null) {
-            _context.banlist().banlistRouter(h, "IP mismatch", null, null, _context.clock().now() + 2*60*60*1000);
+            _context.banlist().banlistRouter(h, "IP mismatch", null,
+                                             _context.banlist().BANLIST_CODE_HARD,  null,
+                                             _context.clock().now() + 2*60*60*1000);
             _msg3p2FailReason = NTCPConnection.REASON_BANNED;
             throw new DataFormatException(mismatchMessage + ri);
         }
