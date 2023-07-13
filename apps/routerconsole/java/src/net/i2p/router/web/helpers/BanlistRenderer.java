@@ -78,8 +78,8 @@ class BanlistRenderer {
                 buf.append(" on the following transport: ").append(transports);
             if (entry.cause != null) {
                 buf.append("<br>\n");
-                if (entry.causeCode != null)
-                    buf.append(_t(entry.cause, entry.causeCode));
+                if (entry.causeComment != null)
+                    buf.append(_t(entry.cause, entry.causeComment));
                 else
                     buf.append(_t(entry.cause));
             }

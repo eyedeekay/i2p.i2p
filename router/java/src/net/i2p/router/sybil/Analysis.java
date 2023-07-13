@@ -1061,8 +1061,8 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
                 if (entry != null) {
                     if (entry.cause != null) {
                         buf.append(": ");
-                        if (entry.causeCode != null)
-                            buf.append(_t(entry.cause, entry.causeCode));
+                        if (entry.causeComment != null)
+                            buf.append(_t(entry.cause, entry.causeComment));
                         else
                             buf.append(_t(entry.cause));
                     }

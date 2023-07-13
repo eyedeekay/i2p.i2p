@@ -314,7 +314,7 @@ class InboundEstablishState2 extends InboundEstablishState implements SSU2Payloa
         // because we have his ikey and we verified he's the owner of the RI
 
         Hash h = _receivedUnconfirmedIdentity.calculateHash();
-        boolean isBanned = _context.banlist().isBanlistedForever(h);
+        boolean isBanned = _context.banlist().isBanlistedHard(h);
         if (isBanned) {
             // validate sig to prevent spoofing
             if (ri.verifySignature())

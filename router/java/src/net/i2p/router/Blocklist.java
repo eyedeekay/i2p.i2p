@@ -363,7 +363,7 @@ public class Blocklist {
         if (expireInterval() > 0)
             _context.banlist().banlistRouter(peer, reason, comment, null, expireInterval());
         else
-            _context.banlist().banlistRouterForever(peer, reason, comment);
+            _context.banlist().banlistRouterHard(peer, reason, comment);
     }
 
     /**
@@ -1272,11 +1272,11 @@ public class Blocklist {
      * So we also stagger these jobs.
      *
      */
-    private void banlistRouter( Hash peer, String reason, String reasonCode, long duration) {
+    private void banlistRouter( Hash peer, String reason, String reasonComment, long duration) {
         if (duration > 0)
-            _context.banlist().banlistRouter(peer, reason, reasonCode, null, System.currentTimeMillis()+expireInterval());
+            _context.banlist().banlistRouter(peer, reason, reasonComment, null, System.currentTimeMillis()+expireInterval());
         else
-            _context.banlist().banlistRouterForever(peer, reason, reasonCode);
+            _context.banlist().banlistRouterHard(peer, reason, reasonComment);
     }
     private synchronized void banlistRouter(Hash peer, List<byte[]> ips, long duration) {
         // This only checks one file for now, pick the best one
