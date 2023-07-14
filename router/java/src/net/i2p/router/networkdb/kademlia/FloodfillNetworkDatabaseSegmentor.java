@@ -21,12 +21,13 @@ import net.i2p.router.networkdb.reseed.ReseedChecker;
 
 
 public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseFacade {
-    private final RouterContext _context;
-    private Map<String, FloodfillNetworkDatabaseFacade> _subDBs = new HashMap<String, FloodfillNetworkDatabaseFacade>();
+    private  RouterContext _context;
+    private  Map<String, FloodfillNetworkDatabaseFacade> _subDBs = new HashMap<String, FloodfillNetworkDatabaseFacade>();
 
     public FloodfillNetworkDatabaseSegmentor(RouterContext context) {
         super(context);
-        _context = context;
+        if (_context == null)
+            _context = context;
     }
 
     /*public FloodfillNetworkDatabaseFacade getSubNetDB() {
@@ -34,8 +35,11 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }*/
     @Override
     public FloodfillNetworkDatabaseFacade getSubNetDB(String id) {
+        return GetSubNetDB(id);
+    }
+    private  FloodfillNetworkDatabaseFacade GetSubNetDB(String id) {
         if (id == null || id.isEmpty()) {
-            return this.getSubNetDB("floodfill");
+            return GetSubNetDB("floodfill");
         }
         FloodfillNetworkDatabaseFacade subdb = _subDBs.get(id);
         if (subdb == null) {
@@ -52,7 +56,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         }
     }
 
-    protected void createHandlers(String dbid) {
+    protected void createHandlers() {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
             subdb.createHandlers();
         }
@@ -89,72 +93,6 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     /**
-     * Send out a store.
-     *
-     * @param key         the DatabaseEntry hash
-     * @param onSuccess   may be null, always called if we are ff and ds is an RI
-     * @param onFailure   may be null, ignored if we are ff and ds is an RI
-     * @param sendTimeout ignored if we are ff and ds is an RI
-     * @param toIgnore    may be null, if non-null, all attempted and skipped
-     *                    targets will be added as of 0.9.53,
-     *                    unused if we are ff and ds is an RI
-     */
-    void sendStore(Hash key, DatabaseEntry ds, Job onSuccess, Job onFailure, long sendTimeout, Set<Hash> toIgnore) {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            subdb.sendStore(key, ds, onSuccess, onFailure, sendTimeout, toIgnore);
-        }
-    }
-
-    /**
-     * Increments and tests.
-     * 
-     * @since 0.7.11
-     */
-    boolean shouldThrottleFlood(Hash key) {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            return subdb.shouldThrottleFlood(key);
-        }
-        return false;
-    }
-
-    /**
-     * Increments and tests.
-     * 
-     * @since 0.7.11
-     */
-    boolean shouldThrottleLookup(Hash from, TunnelId id) {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-        return subdb.shouldThrottleLookup(from, id);
-        }
-        return false;
-    }
-
-    /**
-     * If we are floodfill AND the key is not throttled,
-     * flood it, otherwise don't.
-     *
-     * @return if we did
-     * @since 0.9.36 for NTCP2
-     */
-    public boolean floodConditional(DatabaseEntry ds) {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-        return subdb.floodConditional(ds);
-        }
-        return false;
-    }
-
-    /**
-     * Send to a subset of all floodfill peers.
-     * We do this to implement Kademlia within the floodfills, i.e.
-     * we flood to those closest to the key.
-     */
-    public void flood(DatabaseEntry ds) {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            subdb.flood(ds);
-        }
-    }
-
-    /**
      * @param type      database store type
      * @param lsSigType may be null
      * @since 0.9.39
@@ -180,9 +118,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * and call setFloodfillEnabledFromMonitor which really sets it.
      */
     public synchronized void setFloodfillEnabled(boolean yes) {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            subdb.setFloodfillEnabled(yes);
-        }
+        floodfillNetDB().setFloodfillEnabled(yes);
     }
 
     /**
@@ -192,23 +128,18 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @since 0.9.34
      */
     synchronized void setFloodfillEnabledFromMonitor(boolean yes) {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            subdb.setFloodfillEnabledFromMonitor(yes);
-        }
+        floodfillNetDB().setFloodfillEnabledFromMonitor(yes);
     }
 
     public boolean floodfillEnabled() {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            return subdb.floodfillEnabled();
-        }
-        return false;
+        return floodfillNetDB().floodfillEnabled();
     }
 
     /**
      * @param peer may be null, returns false if null
      */
-    public static boolean isFloodfill(RouterInfo peer) {
-        return FloodfillNetworkDatabaseSegmentor.isFloodfill(peer);
+    public  boolean isFloodfill(RouterInfo peer) {
+        return floodfillNetDB().isFloodfill(peer);
     }
 
     public List<RouterInfo> getKnownRouterData() {
@@ -263,7 +194,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     void complete(Hash key) {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-        subdb.complete(key);
+            subdb.complete(key);
         }
     }
 
@@ -499,6 +430,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     @Override
     public Set<Hash> getAllRouters(String dbid) {
+        if (dbid == null || dbid.isEmpty()) {
+            return getAllRouters();
+        }
         return this.getSubNetDB(dbid).getAllRouters();
     }
 
@@ -512,6 +446,14 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public int getKnownRouters(String dbid) {
         return this.getSubNetDB(dbid).getKnownRouters();
+    }
+
+    public int getKnownRouters() {
+        int total = 0;
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            total += subdb.getKnownRouters();
+        }
+        return total;
     }
 
     @Override
@@ -531,9 +473,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     /** Debug only - all user info moved to NetDbRenderer in router console */
     @Override
-    public void renderStatusHTML(Writer out, String dbid) throws IOException {
+    public void renderStatusHTML(Writer out) throws IOException {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-        subdb.renderStatusHTML(out);
+            subdb.renderStatusHTML(out);
         }
     }
 

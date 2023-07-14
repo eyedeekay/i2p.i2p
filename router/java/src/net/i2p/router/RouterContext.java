@@ -372,7 +372,7 @@ public class RouterContext extends I2PAppContext {
     /**
      * Our db cache
      */
-    public NetworkDatabaseFacade netDb() { return _netDb.allNetDBS(); }
+    public SegmentedNetworkDatabaseFacade netDb() { return _netDb; }
     public NetworkDatabaseFacade floodfillNetDb() { return _netDb.floodfillNetDB(); }
     public NetworkDatabaseFacade clientNetDb() { return _netDb.exploratoryNetDB(); }
     public NetworkDatabaseFacade clientNetDb(String id) { return _netDb.clientNetDB(id); }

@@ -153,7 +153,7 @@ public abstract class SegmentedNetworkDatabaseFacade { //extends FloodfillNetwor
     public void rescan(String dbid) {}
 
     /** Debug only - all user info moved to NetDbRenderer in router console */
-    public void renderStatusHTML(Writer out, String dbid) throws IOException {}
+    public void renderStatusHTML(Writer out) throws IOException {}
     /** public for NetDbRenderer in routerconsole */
     public Set<LeaseSet> getLeases(String dbid) { return Collections.emptySet(); }
     /** public for NetDbRenderer in routerconsole */
