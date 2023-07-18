@@ -29,6 +29,8 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         super(context);
         if (_context == null)
             _context = context;
+        FloodfillNetworkDatabaseFacade subdb = new FloodfillNetworkDatabaseFacade(_context, "floodfill");
+        _subDBs.put("floodfill", subdb);
     }
 
     /*public FloodfillNetworkDatabaseFacade getSubNetDB() {
@@ -53,7 +55,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     public synchronized void startup() {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            subdb.startup();
+            if (subdb.isInitialized()){
+                subdb.startup();
+            }
         }
     }
 
