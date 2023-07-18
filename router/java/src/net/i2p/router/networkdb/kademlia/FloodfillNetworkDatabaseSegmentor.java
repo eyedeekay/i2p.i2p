@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -274,6 +275,18 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     @Override
     public DatabaseEntry lookupLocallyWithoutValidation(Hash key, String dbid) {
+        if (dbid == null || dbid.isEmpty()) {
+            DatabaseEntry rv = this.lookupLocallyWithoutValidation(key, "floodfill");
+            if (rv != null) {
+                return rv;
+            }
+            for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+                rv = subdb.lookupLocallyWithoutValidation(key);
+                if (rv != null) {
+                    return rv;
+                }
+            }
+        }
         return this.getSubNetDB(dbid).lookupLocallyWithoutValidation(key);
     }
 
@@ -297,6 +310,18 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     @Override
     public LeaseSet lookupLeaseSetLocally(Hash key, String dbid) {
+        if (dbid == null || dbid.isEmpty()) {
+            LeaseSet rv = this.lookupLeaseSetLocally(key, "floodfill");
+            if (rv != null) {
+                return rv;
+            }
+            for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+                rv = subdb.lookupLeaseSetLocally(key);
+                if (rv != null) {
+                    return rv;
+                }
+            }
+        }
         return this.getSubNetDB(dbid).lookupLeaseSetLocally(key);
     }
 
@@ -488,6 +513,13 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     /** public for NetDbRenderer in routerconsole */
     @Override
     public Set<RouterInfo> getRouters(String dbid) {
+        if (dbid == null || dbid.isEmpty()) {
+            Set<RouterInfo> rv = new HashSet<>();
+            for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+                rv.addAll(subdb.getRouters());
+            }
+            return rv;
+        }
         return this.getSubNetDB(dbid).getRouters();
     }
 

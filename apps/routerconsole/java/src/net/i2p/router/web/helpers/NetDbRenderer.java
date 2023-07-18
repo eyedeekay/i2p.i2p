@@ -43,6 +43,8 @@ import net.i2p.router.JobImpl;
 import net.i2p.router.RouterContext;
 import net.i2p.router.TunnelPoolSettings;
 import net.i2p.router.crypto.FamilyKeyCrypto;
+import net.i2p.router.networkdb.kademlia.FloodfillNetworkDatabaseSegmentor;
+import net.i2p.router.networkdb.kademlia.SegmentedNetworkDatabaseFacade;
 import net.i2p.router.util.HashDistance;   // debug
 import net.i2p.router.networkdb.kademlia.FloodfillNetworkDatabaseFacade;
 import static net.i2p.router.sybil.Util.biLog2;
@@ -124,19 +126,19 @@ class NetDbRenderer {
             byte[] h = Base64.decode(routerPrefix);
             if (h != null && h.length == Hash.HASH_LENGTH) {
                 Hash hash = new Hash(h);
-                RouterInfo ri = (RouterInfo) _context.floodfillNetDb().lookupLocallyWithoutValidation(hash);
+                RouterInfo ri = (RouterInfo) _context.netDb().lookupLocallyWithoutValidation(hash, null);
                 boolean banned = false;
                 if (ri == null) {
                     banned = _context.banlist().isBanlisted(hash);
                     if (!banned) {
                         // remote lookup
                         LookupWaiter lw = new LookupWaiter();
-                        _context.floodfillNetDb().lookupRouterInfo(hash, lw, lw, 8*1000);
+                        _context.netDb().lookupRouterInfo(hash, lw, lw, 8*1000, null);
                         // just wait right here in the middle of the rendering, sure
                         synchronized(lw) {
                             try { lw.wait(9*1000); } catch (InterruptedException ie) {}
                         }
-                        ri = (RouterInfo) _context.floodfillNetDb().lookupLocallyWithoutValidation(hash);
+                        ri = (RouterInfo) _context.netDb().lookupLocallyWithoutValidation(hash, null);
                     }
                 }
                 if (ri != null) {
@@ -203,7 +205,7 @@ class NetDbRenderer {
                 buf.append("</div>");
             }
             boolean notFound = true;
-            Set<RouterInfo> routers = _context.floodfillNetDb().getRouters();
+            Set<RouterInfo> routers = _context.netDb().getRouters(null);
             int ipMode = 0;
             String ipArg = ip;  // save for error message
             String altIPv6 = null;
@@ -589,7 +591,7 @@ class NetDbRenderer {
             leases = new TreeSet<LeaseSet>(new LeaseSetComparator());
             fmt = null;
         }
-        leases.addAll(_context.floodfillNetDb().getLeases());
+        leases.addAll(_context.netDb().getLeases(null));
         int medianCount = 0;
         int rapCount = 0;
         BigInteger median = null;
@@ -597,7 +599,8 @@ class NetDbRenderer {
 
 
         // Summary
-        FloodfillNetworkDatabaseFacade netdb = (FloodfillNetworkDatabaseFacade)_context.floodfillNetDb();
+        //FloodfillNetworkDatabaseFacade netdb = (FloodfillNetworkDatabaseFacade)_context.netDb();
+        SegmentedNetworkDatabaseFacade netdb = (FloodfillNetworkDatabaseSegmentor)_context.netDb();
         if (debug) {
             buf.append("<table id=\"leasesetdebug\">\n");
         } else {
@@ -610,7 +613,7 @@ class NetDbRenderer {
            .append("<tr><td><b>Total Leasesets:</b></td><td colspan=\"3\">").append(leases.size()).append("</td></tr>\n");
         if (debug) {
             RouterKeyGenerator gen = _context.routerKeyGenerator();
-            buf.append("<tr><td><b>Published (RAP) Leasesets:</b></td><td colspan=\"3\">").append(netdb.getKnownLeaseSets()).append("</td></tr>\n")
+            buf.append("<tr><td><b>Published (RAP) Leasesets:</b></td><td colspan=\"3\">").append(netdb.getKnownLeaseSets(null)).append("</td></tr>\n")
                .append("<tr><td><b>Mod Data:</b></td><td>").append(DataHelper.getUTF8(gen.getModData())).append("</td>")
                .append("<td><b>Last Changed:</b></td><td>").append(DataHelper.formatTime(gen.getLastChanged())).append("</td></tr>\n")
                .append("<tr><td><b>Next Mod Data:</b></td><td>").append(DataHelper.getUTF8(gen.getNextModData())).append("</td>")
@@ -618,7 +621,7 @@ class NetDbRenderer {
         }
         int ff = _context.peerManager().getPeersByCapability(FloodfillNetworkDatabaseFacade.CAPABILITY_FLOODFILL).size();
         buf.append("<tr><td><b>Known Floodfills:</b></td><td colspan=\"3\">").append(ff).append("</td></tr>\n")
-           .append("<tr><td><b>Currently Floodfill?</b></td><td>").append(netdb.floodfillEnabled() ? "yes" : "no");
+           .append("<tr><td><b>Currently Floodfill?</b></td><td>").append(netdb.floodfillNetDB().floodfillEnabled() ? "yes" : "no");
         if (debug)
             buf.append("</td><td><b>Routing Key:</b></td><td>").append(ourRKey.toBase64());
         else
@@ -693,16 +696,16 @@ class NetDbRenderer {
             buf.append(hostname);
             buf.append("</div>");
         } else {
-            LeaseSet ls = _context.floodfillNetDb().lookupLeaseSetLocally(hash);
+            LeaseSet ls = _context.netDb().lookupLeaseSetLocally(hash, null);
             if (ls == null) {
                 // remote lookup
                 LookupWaiter lw = new LookupWaiter();
-                _context.floodfillNetDb().lookupLeaseSetRemotely(hash, lw, lw, 8*1000, null);
+                _context.netDb().lookupLeaseSetRemotely(hash, lw, lw, 8*1000, null, null);
                 // just wait right here in the middle of the rendering, sure
                 synchronized(lw) {
                     try { lw.wait(9*1000); } catch (InterruptedException ie) {}
                 }
-                ls = _context.floodfillNetDb().lookupLeaseSetLocally(hash);
+                ls = _context.netDb().lookupLeaseSetLocally(hash, null);
             }
             if (ls != null) {
                 BigInteger dist = HashDistance.getDistance(_context.routerHash(), ls.getRoutingKey());
@@ -913,7 +916,7 @@ class NetDbRenderer {
         Hash us = _context.routerHash();
 
         Set<RouterInfo> routers = new TreeSet<RouterInfo>(new RouterInfoComparator());
-        routers.addAll(_context.floodfillNetDb().getRouters());
+        routers.addAll(_context.netDb().getRouters(null));
         int toSkip = pageSize * page;
         boolean nextpg = routers.size() > toSkip + pageSize;
         StringBuilder buf = new StringBuilder(8192);
