@@ -480,7 +480,7 @@ class BuildHandler implements Runnable {
                     _context.statManager().addRateData("tunnel.dropTunnelFromCongestionCapability", 1);
                     if (_log.shouldLog(Log.WARN))
                         _log.warn("Drop request, we are denying tunnels due to congestion: " + from);
-                    RouterInfo fromRI = _context.netDb().lookupRouterInfoLocally(from);
+                    RouterInfo fromRI = _context.floodfillNetDb().lookupRouterInfoLocally(from);
                     if (fromRI != null){
                         String fromVersion = fromRI.getVersion().replaceAll(".", "");
                         // if fromVersion is greater than 0.9.58, then then ban the router due to it disrespecting our
