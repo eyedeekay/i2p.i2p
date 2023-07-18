@@ -34,10 +34,10 @@ class CapacityCalculator {
     private static final double PENALTY_NO_R_CAP = 1;
     private static final double PENALTY_U_CAP = 2;
     private static final double PENALTY_LAST_SEND_FAIL = 4;
-    private static final String PROP_D_CAP = "router.dcapPenalty";
-    private static final double PENALTY_D_CAP = 0.5;
-    private static final String PROP_E_CAP = "router.ecapPenalty";
-    private static final double PENALTY_E_CAP = 0.9;
+    private static final String PROP_D_CAP = "router.penaltyCapD";
+    private static final double PENALTY_CAP_D = 0.5;
+    private static final String PROP_E_CAP = "router.penaltyCapE";
+    private static final double PENALTY_CAP_E = 0.9;
     // private static final String PROP_G_CAP = "router.gcapPenalty";
     // private static final double PENALTY_G_CAP = 0;
     private static final double PENALTY_RECENT_SEND_FAIL = 4;
@@ -136,7 +136,7 @@ class CapacityCalculator {
                         double dcap = Double.parseDouble(dcapPenalty);
                         capacity -= dcap;
                     } else {
-                        capacity -= PENALTY_D_CAP;
+                        capacity -= PENALTY_CAP_D;
                     }
                 } else if (caps.indexOf(Router.CAPABILITY_CONGESTION_SEVERE) >= 0){
                     String ecapPenalty = context.getProperty(PROP_E_CAP);
@@ -144,7 +144,7 @@ class CapacityCalculator {
                         double ecap = Double.parseDouble(ecapPenalty);
                         capacity -= ecap;
                     } else {
-                        capacity -= PENALTY_E_CAP;
+                        capacity -= PENALTY_CAP_E;
                     }
                 }
                 /* TODO: G caps can be excluded in TunnelPeerSelector by adding it to DEFAULT_EXCLUDE_CAPS */
