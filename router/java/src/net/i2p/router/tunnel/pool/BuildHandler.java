@@ -30,6 +30,7 @@ import net.i2p.router.HandlerJobBuilder;
 import net.i2p.router.Job;
 import net.i2p.router.JobImpl;
 import net.i2p.router.OutNetMessage;
+import net.i2p.router.Router;
 import net.i2p.router.RouterContext;
 import net.i2p.router.networkdb.kademlia.MessageWrapper;
 import net.i2p.router.peermanager.TunnelHistory;
@@ -469,6 +470,34 @@ class BuildHandler implements Runnable {
                 _log.warn("Drop request, previous peer is banned: " + from);
             _context.commSystem().mayDisconnect(from);
             return -1;
+        }
+        // get my own RouterInfo
+        RouterInfo myRI = _context.router().getRouterInfo();
+        if (myRI != null) {
+            String caps = myRI.getCapabilities();
+            if (caps != null) {
+                if (caps.indexOf(Router.CAPABILITY_NO_TUNNELS) >= 0){
+                    _context.statManager().addRateData("tunnel.dropTunnelFromCongestionCapability", 1);
+                    if (_log.shouldLog(Log.WARN))
+                        _log.warn("Drop request, we are denying tunnels due to congestion: " + from);
+                    RouterInfo fromRI = _context.netDb().lookupRouterInfoLocally(from);
+                    if (fromRI != null){
+                        String fromVersion = fromRI.getVersion().replaceAll(".", "");
+                        // if fromVersion is greater than 0.9.58, then then ban the router due to it disrespecting our
+                        // congestion flags
+                        if (fromVersion != null){
+                            int intFromVersion = Integer.parseInt(fromVersion);
+                            if (intFromVersion >= 958){
+                                if (_log.shouldLog(Log.WARN))
+                                    _log.warn("Banning peer: " + fromRI.getHash() + " due to it disrespecting our congestion flags");
+                                _context.banlist().banlistRouter(from, "disrespected our tunnel flags", null, false);
+                            }
+                                
+                        }
+                    }
+                    return -1;
+                }
+            }
         }
 
         if (timeSinceReceived > (BuildRequestor.REQUEST_TIMEOUT*3)) {
