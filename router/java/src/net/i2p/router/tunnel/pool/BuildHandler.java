@@ -484,16 +484,19 @@ class BuildHandler implements Runnable {
                         _log.warn("Drop request, we are denying tunnels due to congestion: " + from);
                     RouterInfo fromRI = _context.floodfillNetDb().lookupRouterInfoLocally(from);
                     if (fromRI != null){
-                        String fromVersion = fromRI.getVersion().replaceAll(".", "");
+                        String fromVersion = fromRI.getVersion();
                         // if fromVersion is greater than 0.9.58, then then ban the router due to it disrespecting our
                         // congestion flags
                         if (fromVersion != null){
                             if (VersionComparator.comp(fromVersion, MIN_VERSION_HONOR_CAPS) >= 0) {
-                                if (_log.shouldLog(Log.WARN))
-                                    _log.warn("Banning peer: " + fromRI.getHash() + " due to it disrespecting our congestion flags");
-                                _context.banlist().banlistRouter(from, "disrespected our tunnel flags", null, false);
+                                _context.statManager().addRateData("tunnel.dropTunnelFromVersion"+from, 1);
+                                long knocks = _context.statManager().getRate("tunnel.dropTunnelFromVersion"+from).getLifetimeEventCount();
+                                if (knocks > 10) {
+                                    if (_log.shouldLog(Log.WARN))
+                                        _log.warn("Banning peer: " + fromRI.getHash() + " due to it disrespecting our congestion flags");
+                                    _context.banlist().banlistRouter(from, "disrespected our tunnel flags", null, false);    
+                                }
                             }
-                                
                         }
                     }
                     return -1;
