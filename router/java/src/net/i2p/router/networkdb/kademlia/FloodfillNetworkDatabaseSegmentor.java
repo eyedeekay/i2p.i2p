@@ -527,6 +527,18 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         return this.getSubNetDB(dbid).getRouters();
     }
 
+    public Set<RouterInfo> getRoutersKnownToClients() {
+        Set<RouterInfo> rv = new HashSet<>();
+        for (String key : _subDBs.keySet()) {
+            if (key != null && !key.isEmpty()){
+                if (key.startsWith("client"))
+                    rv.addAll(this.getSubNetDB(key).getRouters());
+            }
+        }
+        return rv;
+        
+    }
+
     /** @since 0.9 */
     @Override
     public ReseedChecker reseedChecker() {
