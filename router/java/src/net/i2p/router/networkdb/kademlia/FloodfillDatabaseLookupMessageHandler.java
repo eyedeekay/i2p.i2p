@@ -54,7 +54,7 @@ public class FloodfillDatabaseLookupMessageHandler implements HandlerJobBuilder 
         DatabaseLookupMessage dlm = (DatabaseLookupMessage)receivedMessage;
         boolean isBanned = dlm.getFrom() != null && (_context.banlist().isBanlistedForever(dlm.getFrom()) ||
         _context.banlist().isBanlisted(dlm.getFrom()));
-        if (!isBanned) {
+        if (isBanned) {
             _context.statManager().addRateData("netDb.lookupsDroppedDueToPriorBan", 1);
             return null;
         }
