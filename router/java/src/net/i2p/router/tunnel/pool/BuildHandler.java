@@ -490,7 +490,11 @@ class BuildHandler implements Runnable {
                         // congestion flags
                         if (fromVersion != null){
                             if (VersionComparator.comp(fromVersion, MIN_VERSION_HONOR_CAPS) >= 0) {
-                                _context.statManager().addRateData("tunnel.dropTunnelFromVersion"+from, 1);
+                                _context.statManager().addRateData("tunnel.dropTunnelFromCongestionCapability"+from, 1);
+                                _context.statManager().addRateData("tunnel.dropTunnelFromCongestionCapability"+fromVersion, 1);
+                                /*
+                                TODO: Determine if it's at all reasonable to do something about routers that are forwarding tunnel
+                                builds to us from other people who are spamming tunnel builds.
                                 long knocks = _context.statManager().getRate("tunnel.dropTunnelFromVersion"+from).getLifetimeEventCount();
                                 if (knocks > 10) {
                                     if (_log.shouldLog(Log.WARN))
@@ -508,7 +512,7 @@ class BuildHandler implements Runnable {
                                     OutNetMessage outMsg = new OutNetMessage(_context, dsm, _context.clock().now() + TIMEOUT, PRIORITY, fromRI);
                                     _context.outNetMessagePool().add(outMsg);
                                 }
-
+                                */
                             }
                         }
                     }
