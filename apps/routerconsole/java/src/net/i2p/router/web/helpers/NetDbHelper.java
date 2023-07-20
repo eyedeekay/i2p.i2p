@@ -313,7 +313,11 @@ public class NetDbHelper extends FormHandler {
     /**
      *   storeWriter() must be called previously
      */
-    public String getNetDbSummary() {
+    public String getFloodfillNetDbSummary() {
+        return getNetDbSummary(false);
+    }
+
+    public String getNetDbSummary(boolean clientOnly) {
         NetDbRenderer renderer = new NetDbRenderer(_context);
         try {
             renderNavBar();
@@ -341,12 +345,16 @@ public class NetDbHelper extends FormHandler {
             } else {
                 if (_full == 0 && _sort != null)
                     _full = 3;
-                renderer.renderStatusHTML(_out, _limit, _page, _full);
+                renderer.renderStatusHTML(_out, _limit, _page, _full, clientOnly);
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
         return "";
+    }
+
+    public String getClientNetDbSummaries() {
+        return getNetDbSummary(true);
     }
 
     /**

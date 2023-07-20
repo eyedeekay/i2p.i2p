@@ -899,7 +899,7 @@ class NetDbRenderer {
      *  @param mode 0: charts only; 1: full routerinfos; 2: abbreviated routerinfos
      *         mode 3: Same as 0 but sort countries by count
      */
-    public void renderStatusHTML(Writer out, int pageSize, int page, int mode) throws IOException {
+    public void renderStatusHTML(Writer out, int pageSize, int page, int mode, boolean clientsOnly) throws IOException {
         if (!_context.floodfillNetDb().isInitialized()) {
             out.write("<div id=\"notinitialized\">");
             out.write(_t("Not initialized"));
@@ -916,7 +916,11 @@ class NetDbRenderer {
         Hash us = _context.routerHash();
 
         Set<RouterInfo> routers = new TreeSet<RouterInfo>(new RouterInfoComparator());
-        routers.addAll(_context.netDb().getRouters(null));
+        if (clientsOnly) {
+            routers.addAll(_context.netDb().getRoutersKnownToClients());   
+        } else {
+            routers.addAll(_context.floodfillNetDb().getRouters());
+        }
         int toSkip = pageSize * page;
         boolean nextpg = routers.size() > toSkip + pageSize;
         StringBuilder buf = new StringBuilder(8192);
