@@ -45,13 +45,17 @@ public class NetDbHelper extends FormHandler {
                                            _x("Local Router"),                  // 1
                                            _x("Router Lookup"),                 // 2
                                            // advanced below here
-                                           _x("All Routers"),                   // 3
-                                           _x("All Routers with Full Stats"),   // 4
+                                           _x("All Routers in Floodfill NetDB"),                   // 3
+                                           _x("All Routers in Floodfill NetDB with Full Stats"),   // 4
                                            _x("LeaseSets"),                     // 5
                                            "LeaseSet Debug",                    // 6
                                            "Sybil",                             // 7
                                            "Advanced Lookup",                   // 8
-                                           "LeaseSet Lookup"   };               // 9
+                                           "LeaseSet Lookup",                   // 9
+                                           _x("All Routers in Client NetDBs"),   // 10
+                                           _x("All Routers in Client NetDBs with Full Stats"),   // 11
+                                           _x("LeaseSets in Client NetDBs"),                     // 12
+                                          };
 
     private static final String links[] =
                                           {"",                                  // 0
@@ -63,7 +67,12 @@ public class NetDbHelper extends FormHandler {
                                            "?l=2",                              // 6
                                            "?f=3",                              // 7
                                            "?f=4",                              // 8
-                                           "" };                                // 9
+                                           "",                                  // 9
+                                           "?f=5",                              // 10
+                                           "?f=6",                              // 11
+                                           "?l=3",                              // 12
+                                          };
+                                           
 
     public void setRouter(String r) {
         if (r != null && r.length() > 0)
