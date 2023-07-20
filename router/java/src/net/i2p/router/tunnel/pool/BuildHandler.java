@@ -11,6 +11,7 @@ import net.i2p.data.Base64;
 import net.i2p.data.DataHelper;
 import net.i2p.data.EmptyProperties;
 import net.i2p.data.Hash;
+import net.i2p.data.i2np.DatabaseStoreMessage;
 import net.i2p.data.router.RouterIdentity;
 import net.i2p.data.router.RouterInfo;
 import net.i2p.data.TunnelId;
@@ -495,7 +496,19 @@ class BuildHandler implements Runnable {
                                     if (_log.shouldLog(Log.WARN))
                                         _log.warn("Banning peer: " + fromRI.getHash() + " due to it disrespecting our congestion flags");
                                     _context.banlist().banlistRouter(from, "disrespected our tunnel flags", null, false);    
+                                } else if (knocks <= 1) {
+                                    if (_log.shouldLog(Log.WARN))
+                                        _log.warn("Replying with our RouterInfo to peer:" +fromRI.getHash() + 
+                                            " to give it a chance to update their own netDb and stop asking for new tunnels");
+                                    // send the peer our RouterInfo
+                                    int TIMEOUT = 10*1000;
+                                    DatabaseStoreMessage dsm = new DatabaseStoreMessage(_context);
+                                    dsm.setMessageExpiration(_context.clock().now() + TIMEOUT);
+                                    dsm.setEntry(myRI);
+                                    OutNetMessage outMsg = new OutNetMessage(_context, dsm, _context.clock().now() + TIMEOUT, PRIORITY, fromRI);
+                                    _context.outNetMessagePool().add(outMsg);
                                 }
+
                             }
                         }
                     }
