@@ -408,31 +408,27 @@ public abstract class TunnelPeerSelector extends ConnectChecker {
      * @return true if yes
      */
     private boolean filterUnreachable(boolean isInbound, boolean isExploratory) {
-        if (!isExploratory)
+        if (ctx.router().isHidden())
             return true;
-        // give them some cover without killing our success rate
-        return ctx.random().nextInt(4) != 0;
-/*
         if (SystemVersion.isSlow() || ctx.router().getUptime() < 65*60*1000)
+                return true;
+        if (ctx.random().nextInt(4) != 0) {
+            // give them some cover without killing our success rate
             return true;
+        }
         if (isExploratory) {
             if (isInbound) {
-                if (ctx.router().isHidden())
-                    return true;
                 return ctx.getProperty(PROP_INBOUND_EXPLORATORY_EXCLUDE_UNREACHABLE, DEFAULT_INBOUND_EXPLORATORY_EXCLUDE_UNREACHABLE);
             } else {
                 return ctx.getProperty(PROP_OUTBOUND_EXPLORATORY_EXCLUDE_UNREACHABLE, DEFAULT_OUTBOUND_EXPLORATORY_EXCLUDE_UNREACHABLE);
             }
         } else {
             if (isInbound) {
-                if (ctx.router().isHidden())
-                    return true;
                 return ctx.getProperty(PROP_INBOUND_CLIENT_EXCLUDE_UNREACHABLE, DEFAULT_INBOUND_CLIENT_EXCLUDE_UNREACHABLE);
             } else {
                 return ctx.getProperty(PROP_OUTBOUND_CLIENT_EXCLUDE_UNREACHABLE, DEFAULT_OUTBOUND_CLIENT_EXCLUDE_UNREACHABLE);
             }
         }
-*/
     }
 
 
