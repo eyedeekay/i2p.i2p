@@ -437,25 +437,27 @@ public abstract class TunnelPeerSelector extends ConnectChecker {
     private static final String PROP_INBOUND_EXPLORATORY_EXCLUDE_SLOW = "router.inboundExploratoryExcludeSlow";
     private static final String PROP_INBOUND_CLIENT_EXCLUDE_SLOW = "router.inboundClientExcludeSlow";
 
+    private static final boolean DEFAULT_OUTBOUND_EXPLORATORY_EXCLUDE_SLOW = false;
+    private static final boolean DEFAULT_OUTBOUND_CLIENT_EXCLUDE_SLOW = true;
+    private static final boolean DEFAULT_INBOUND_EXPLORATORY_EXCLUDE_SLOW = false;
+    private static final boolean DEFAULT_INBOUND_CLIENT_EXCLUDE_SLOW = true;
+
     /**
      * do we want to skip peers that are slow?
      * @return true unless configured otherwise
      */
     protected boolean filterSlow(boolean isInbound, boolean isExploratory) {
-        return true;
-/*
         if (isExploratory) {
             if (isInbound)
-                return ctx.getProperty(PROP_INBOUND_EXPLORATORY_EXCLUDE_SLOW, true);
+                return ctx.getProperty(PROP_INBOUND_EXPLORATORY_EXCLUDE_SLOW, DEFAULT_INBOUND_EXPLORATORY_EXCLUDE_SLOW);
             else
-                return ctx.getProperty(PROP_OUTBOUND_EXPLORATORY_EXCLUDE_SLOW, true);
+                return ctx.getProperty(PROP_OUTBOUND_EXPLORATORY_EXCLUDE_SLOW, DEFAULT_OUTBOUND_EXPLORATORY_EXCLUDE_SLOW);
         } else {
             if (isInbound)
-                return ctx.getProperty(PROP_INBOUND_CLIENT_EXCLUDE_SLOW, true);
+                return ctx.getProperty(PROP_INBOUND_CLIENT_EXCLUDE_SLOW, DEFAULT_INBOUND_CLIENT_EXCLUDE_SLOW);
             else
-                return ctx.getProperty(PROP_OUTBOUND_CLIENT_EXCLUDE_SLOW, true);
+                return ctx.getProperty(PROP_OUTBOUND_CLIENT_EXCLUDE_SLOW, DEFAULT_OUTBOUND_CLIENT_EXCLUDE_SLOW);
         }
-*/
     }
 
     /** see HashComparator */
