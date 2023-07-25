@@ -329,9 +329,9 @@ public class NetDbHelper extends FormHandler {
                 renderer.renderRouterInfoHTML(_out, _limit, _page,
                                               _routerPrefix, _version, _country,
                                               _family, _caps, _ip, _sybil, _port, _highPort, _type, _etype,
-                                              _mtu, _ipv6, _ssucaps, _transport, _cost, _icount, null, clientOnly);
+                                              _mtu, _ipv6, _ssucaps, _transport, _cost, _icount, client, clientOnly);
             } else if (_lease) {
-                renderer.renderLeaseSetHTML(_out, _debug);
+                renderer.renderLeaseSetHTML(_out, _debug, client, clientOnly);
             } else if (_hostname != null) {
                 renderer.renderLeaseSet(_out, _hostname, true);
             } else if (_full == 3) {
@@ -345,7 +345,7 @@ public class NetDbHelper extends FormHandler {
             } else {
                 if (_full == 0 && _sort != null)
                     _full = 3;
-                renderer.renderStatusHTML(_out, _limit, _page, _full, clientOnly);
+                renderer.renderStatusHTML(_out, _limit, _page, _full, client, clientOnly);
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();

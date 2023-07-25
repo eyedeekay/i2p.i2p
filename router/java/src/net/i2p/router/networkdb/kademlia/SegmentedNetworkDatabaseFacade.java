@@ -159,6 +159,7 @@ public abstract class SegmentedNetworkDatabaseFacade { //extends FloodfillNetwor
     /** public for NetDbRenderer in routerconsole */
     public Set<RouterInfo> getRouters(String dbid) { return Collections.emptySet(); }
     public Set<RouterInfo> getRoutersKnownToClients() { return Collections.emptySet(); }
+    public Set<LeaseSet> getLeasesKnownToClients() { return Collections.emptySet(); }   
     public List<String> getClients() { return Collections.emptyList(); }
 
     /**  @since 0.9.59 */
