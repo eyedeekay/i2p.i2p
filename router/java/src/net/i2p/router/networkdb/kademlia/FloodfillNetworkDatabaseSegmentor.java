@@ -539,7 +539,17 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             }
         }
         return rv;
+    }
 
+    public List<String> getClients() {
+        List<String> rv = new ArrayList<String>();
+        for (String key : _subDBs.keySet()) {
+            if (key != null && !key.isEmpty()) {
+                if (key.startsWith("client"))
+                    rv.add(key);
+            }
+        }
+        return rv;
     }
 
     /** @since 0.9 */

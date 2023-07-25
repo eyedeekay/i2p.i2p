@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -114,6 +115,19 @@ class NetDbRenderer {
                                      String ip, String sybil, int port, int highPort, SigType type, EncType etype,
                                      String mtu, String ipv6, String ssucaps,
                                      String tr, int cost, int icount) throws IOException {
+                                        renderRouterInfoHTML(out, pageSize, page,
+                                                                 routerPrefix, version,
+                                                                 country, family, caps,
+                                                                 ip, sybil, port, highPort, type, etype,
+                                                                 mtu, ipv6, ssucaps,
+                                                                 tr, cost, icount, null, false);
+                                     }
+    public void renderRouterInfoHTML(Writer out, int pageSize, int page,
+                                     String routerPrefix, String version,
+                                     String country, String family, String caps,
+                                     String ip, String sybil, int port, int highPort, SigType type, EncType etype,
+                                     String mtu, String ipv6, String ssucaps,
+                                     String tr, int cost, int icount, String client, boolean allClients) throws IOException {
         StringBuilder buf = new StringBuilder(4*1024);
         List<Hash> sybils = sybil != null ? new ArrayList<Hash>(128) : null;
         if (".".equals(routerPrefix)) {
@@ -205,7 +219,16 @@ class NetDbRenderer {
                 buf.append("</div>");
             }
             boolean notFound = true;
-            Set<RouterInfo> routers = _context.netDb().getRouters(null);
+            Set<RouterInfo> routers = new HashSet<RouterInfo>();
+            if (allClients){
+                    routers.addAll(_context.netDb().getRoutersKnownToClients());
+            } else {
+                if (client == null)
+                    routers.addAll(_context.floodfillNetDb().getRouters());
+                else
+                    routers.addAll(_context.clientNetDb(client).getRouters());
+                    
+            }
             int ipMode = 0;
             String ipArg = ip;  // save for error message
             String altIPv6 = null;
