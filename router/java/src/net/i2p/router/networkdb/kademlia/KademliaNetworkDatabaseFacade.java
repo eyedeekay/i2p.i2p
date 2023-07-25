@@ -974,7 +974,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      * @throws UnsupportedCryptoException if that's why it failed.
      * @return previous entry or null
      */
-    public LeaseSet store(Hash key, LeaseSet leaseSet) throws IllegalArgumentException {
+    public LeaseSet store(Hash key, LeaseSet leaseSet, Hash to) throws IllegalArgumentException {
         if (!_initialized) return null;
         
         LeaseSet rv;
@@ -996,7 +996,6 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                      */
                     _ds.put(key, leaseSet);
                     rv = (LeaseSet)_ds.get(key);
-                    Hash to = leaseSet.getReceivedBy();
                     if (to != null) {
                         rv.setReceivedBy(to);
                     } else if (leaseSet.getReceivedAsReply()) {

@@ -816,5 +816,30 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         for (Hash h : other.getDataStore().getKeys()) {
             this.getDataStore().put(h, other.getDataStore().get(h), false);
         }
-    }    
+    }
+
+    public LeaseSet store(Hash key, LeaseSet leaseSet) {
+        if (leaseSet == null) {
+            return null;
+        }
+        Hash to = leaseSet.getReceivedBy();
+        if (to != null) {
+            String b32 = to.toBase32();
+            // REMOVE THIS BEFORE DEPLOYING! Right now this stores into the floodfill netDB and to the client netDB, which is self-defeating.
+            if (_log.shouldLog(Log.DEBUG))
+                _log.debug("store " + key.toBase32() + " to client " + b32);
+            if (b32 != null)
+                if (this._dbid != "floodfill")
+                    _context.floodfillNetDb().store(key, leaseSet);
+                if (b32 != this._dbid)
+                    return _context.clientNetDb(b32).store(key, leaseSet);
+                else
+                    return this.store(key, leaseSet);
+        }
+        if (_log.shouldLog(Log.DEBUG))
+                _log.debug("store " + key.toBase32() + " to floodfill");
+        if (this._dbid != "floodfill")
+            return _context.floodfillNetDb().store(key, leaseSet);
+        return this.store(key, leaseSet, null);
+    }
 }
