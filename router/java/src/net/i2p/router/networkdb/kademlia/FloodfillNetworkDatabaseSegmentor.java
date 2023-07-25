@@ -20,10 +20,9 @@ import net.i2p.router.Job;
 import net.i2p.router.RouterContext;
 import net.i2p.router.networkdb.reseed.ReseedChecker;
 
-
 public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseFacade {
-    private  RouterContext _context;
-    private  Map<String, FloodfillNetworkDatabaseFacade> _subDBs = new HashMap<String, FloodfillNetworkDatabaseFacade>();
+    private RouterContext _context;
+    private Map<String, FloodfillNetworkDatabaseFacade> _subDBs = new HashMap<String, FloodfillNetworkDatabaseFacade>();
 
     public FloodfillNetworkDatabaseSegmentor(RouterContext context) {
         super(context);
@@ -33,14 +32,17 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         _subDBs.put("floodfill", subdb);
     }
 
-    /*public FloodfillNetworkDatabaseFacade getSubNetDB() {
-        return this;
-    }*/
+    /*
+     * public FloodfillNetworkDatabaseFacade getSubNetDB() {
+     * return this;
+     * }
+     */
     @Override
     public FloodfillNetworkDatabaseFacade getSubNetDB(String id) {
         return GetSubNetDB(id);
     }
-    private  FloodfillNetworkDatabaseFacade GetSubNetDB(String id) {
+
+    private FloodfillNetworkDatabaseFacade GetSubNetDB(String id) {
         if (id == null || id.isEmpty()) {
             return GetSubNetDB("floodfill");
         }
@@ -49,15 +51,16 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             subdb = new FloodfillNetworkDatabaseFacade(_context, id);
             _subDBs.put(id, subdb);
             subdb.startup();
-        }   
+            subdb.createHandlers();
+        }
         return subdb;
     }
 
     public synchronized void startup() {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            //if (!subdb.isInitialized()){
-                subdb.startup();
-            //}
+            // if (!subdb.isInitialized()){
+            subdb.startup();
+            // }
         }
     }
 
@@ -143,14 +146,14 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     /**
      * @param peer may be null, returns false if null
      */
-    public  boolean isFloodfill(RouterInfo peer) {
+    public boolean isFloodfill(RouterInfo peer) {
         return floodfillNetDB().isFloodfill(peer);
     }
 
     public List<RouterInfo> getKnownRouterData() {
         List<RouterInfo> rv = new ArrayList<RouterInfo>();
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-           rv.addAll(subdb.getKnownRouterData());
+            rv.addAll(subdb.getKnownRouterData());
         }
         return rv;
     }
@@ -171,7 +174,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     SearchJob search(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, boolean isLease) {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-        return subdb.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease);
+            return subdb.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease);
         }
         return null;
     }
@@ -188,9 +191,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     SearchJob search(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, boolean isLease,
             Hash fromLocalDest) {
-                for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-        return subdb.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease, fromLocalDest);
-                }
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            return subdb.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease, fromLocalDest);
+        }
         return null;
     }
 
@@ -530,13 +533,13 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     public Set<RouterInfo> getRoutersKnownToClients() {
         Set<RouterInfo> rv = new HashSet<>();
         for (String key : _subDBs.keySet()) {
-            if (key != null && !key.isEmpty()){
+            if (key != null && !key.isEmpty()) {
                 if (key.startsWith("client"))
                     rv.addAll(this.getSubNetDB(key).getRouters());
             }
         }
         return rv;
-        
+
     }
 
     /** @since 0.9 */
@@ -620,12 +623,14 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         this.getSubNetDB(dbid).routingKeyChanged();
     }
 
-    //@Override
-    /*public void restart() {
-        for (String dbid : this._subDBs.keySet()) {
-            this.getSubNetDB(dbid).restart();
-        }
-    }*/
+    // @Override
+    /*
+     * public void restart() {
+     * for (String dbid : this._subDBs.keySet()) {
+     * this.getSubNetDB(dbid).restart();
+     * }
+     * }
+     */
 
     @Override
     public FloodfillNetworkDatabaseFacade floodfillNetDB() {
