@@ -19,13 +19,16 @@ import net.i2p.data.router.RouterInfo;
 import net.i2p.router.Job;
 import net.i2p.router.RouterContext;
 import net.i2p.router.networkdb.reseed.ReseedChecker;
+import net.i2p.util.Log;
 
 public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseFacade {
+    protected final Log _log;
     private RouterContext _context;
     private Map<String, FloodfillNetworkDatabaseFacade> _subDBs = new HashMap<String, FloodfillNetworkDatabaseFacade>();
 
     public FloodfillNetworkDatabaseSegmentor(RouterContext context) {
         super(context);
+        _log = context.logManager().getLog(getClass());
         if (_context == null)
             _context = context;
         FloodfillNetworkDatabaseFacade subdb = new FloodfillNetworkDatabaseFacade(_context, "floodfill");
@@ -405,6 +408,25 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         return getSubNetDB(dbid).store(key, leaseSet);
     }
 
+    public LeaseSet store(Hash key, LeaseSet leaseSet) {
+        if (leaseSet == null) {
+            return null;
+        }
+        Hash to = leaseSet.getReceivedBy();
+        if (to != null) {
+            String b32 = to.toBase32();
+            FloodfillNetworkDatabaseFacade cndb = (FloodfillNetworkDatabaseFacade) _context.clientNetDb(b32);
+            if (_log.shouldLog(Log.DEBUG))
+                _log.debug("store " + key.toBase32() + " to client " + b32);
+            if (b32 != null)
+                return cndb.store(key, leaseSet);
+        }
+        FloodfillNetworkDatabaseFacade fndb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
+        if (_log.shouldLog(Log.DEBUG))
+            _log.debug("store " + key.toBase32() + " to floodfill");
+        return fndb.store(key, leaseSet);
+    }
+
     /**
      * @return the routerInfo if another router already existed at that key
      *
@@ -536,6 +558,17 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             if (key != null && !key.isEmpty()) {
                 if (key.startsWith("client"))
                     rv.addAll(this.getSubNetDB(key).getRouters());
+            }
+        }
+        return rv;
+    }
+
+    public Set<LeaseSet> getLeasesKnownToClients() {
+        Set<LeaseSet> rv = new HashSet<>();
+        for (String key : _subDBs.keySet()) {
+            if (key != null && !key.isEmpty()) {
+                if (key.startsWith("client"))
+                    rv.addAll(this.getSubNetDB(key).getLeases());
             }
         }
         return rv;

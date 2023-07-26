@@ -180,6 +180,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         _reseedChecker = new ReseedChecker(context);
         _blindCache = new BlindCache(context);
         _dbid = dbid;
+        if (_log.shouldLog(Log.DEBUG))
+            _log.debug("Created KademliaNetworkDatabaseFacade for id: " + dbid);
         context.statManager().createRateStat("netDb.lookupDeferred", "how many lookups are deferred?", "NetworkDatabase", new long[] { 60*60*1000 });
         context.statManager().createRateStat("netDb.exploreKeySet", "how many keys are queued for exploration?", "NetworkDatabase", new long[] { 60*60*1000 });
         context.statManager().createRateStat("netDb.negativeCache", "Aborted lookup, already cached", "NetworkDatabase", new long[] { 60*60*1000l });
@@ -974,7 +976,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      * @throws UnsupportedCryptoException if that's why it failed.
      * @return previous entry or null
      */
-    public LeaseSet store(Hash key, LeaseSet leaseSet, Hash to) throws IllegalArgumentException {
+    public LeaseSet store(Hash key, LeaseSet leaseSet) throws IllegalArgumentException {
         if (!_initialized) return null;
         
         LeaseSet rv;
@@ -996,6 +998,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                      */
                     _ds.put(key, leaseSet);
                     rv = (LeaseSet)_ds.get(key);
+                    Hash to = leaseSet.getReceivedBy();
                     if (to != null) {
                         rv.setReceivedBy(to);
                     } else if (leaseSet.getReceivedAsReply()) {

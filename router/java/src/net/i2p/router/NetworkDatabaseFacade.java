@@ -121,7 +121,7 @@ public abstract class NetworkDatabaseFacade implements Service {
      *  @throws IllegalArgumentException if the data is not valid
      *  @since 0.9.16
      */
-    public DatabaseEntry store(Hash key, DatabaseEntry entry, Hash to) throws IllegalArgumentException {
+    public DatabaseEntry store(Hash key, DatabaseEntry entry) throws IllegalArgumentException {
         if (entry.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO)
             return store(key, (RouterInfo) entry);
         if (entry.getType() == DatabaseEntry.KEY_TYPE_LEASESET)

@@ -828,18 +828,19 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
             // REMOVE THIS BEFORE DEPLOYING! Right now this stores into the floodfill netDB and to the client netDB, which is self-defeating.
             if (_log.shouldLog(Log.DEBUG))
                 _log.debug("store " + key.toBase32() + " to client " + b32);
-            if (b32 != null)
+            if (b32 != null) {
                 if (this._dbid != "floodfill")
                     _context.floodfillNetDb().store(key, leaseSet);
                 if (b32 != this._dbid)
                     return _context.clientNetDb(b32).store(key, leaseSet);
                 else
-                    return this.store(key, leaseSet);
+                    return super.store(key, leaseSet);
+            }
         }
         if (_log.shouldLog(Log.DEBUG))
                 _log.debug("store " + key.toBase32() + " to floodfill");
         if (this._dbid != "floodfill")
             return _context.floodfillNetDb().store(key, leaseSet);
-        return this.store(key, leaseSet, null);
+        return super.store(key, leaseSet);
     }
 }

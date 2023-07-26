@@ -132,6 +132,10 @@ public abstract class SegmentedNetworkDatabaseFacade { //extends FloodfillNetwor
         throw new IllegalArgumentException("unknown type");
     }
 
+    public LeaseSet store(Hash key, LeaseSet leaseSet) {
+        return store(key, leaseSet, null);
+    }
+
     /**
      * @throws IllegalArgumentException if the local router is not valid
      */

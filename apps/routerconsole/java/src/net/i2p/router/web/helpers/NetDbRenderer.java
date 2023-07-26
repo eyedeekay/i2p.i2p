@@ -643,8 +643,13 @@ class NetDbRenderer {
         } else {
             buf.append("<table id=\"leasesetsummary\">\n");
         }
-        buf.append("<tr><th colspan=\"3\">Leaseset Summary</th>")
-           .append("<th><a href=\"/configadvanced\" title=\"").append(_t("Manually Configure Floodfill Participation")).append("\">[")
+        if (clientsOnly)
+            buf.append("<tr><th colspan=\"3\">Leaseset Summary for All Clients: ").append(client).append("</th>");
+        else if (client != null)
+            buf.append("<tr><th colspan=\"3\">Leaseset Summary for Client: ").append(client).append("</th>");
+        else
+            buf.append("<tr><th colspan=\"3\">Leaseset Summary for Floodfill</th>");
+           buf.append("<th><a href=\"/configadvanced\" title=\"").append(_t("Manually Configure Floodfill Participation")).append("\">[")
            .append(_t("Configure Floodfill Participation"))
            .append("]</a></th></tr>\n")
            .append("<tr><td><b>Total Leasesets:</b></td><td colspan=\"3\">").append(leases.size()).append("</td></tr>\n");
@@ -656,10 +661,12 @@ class NetDbRenderer {
                .append("<tr><td><b>Next Mod Data:</b></td><td>").append(DataHelper.getUTF8(gen.getNextModData())).append("</td>")
                .append("<td><b>Change in:</b></td><td>").append(DataHelper.formatDuration(gen.getTimeTillMidnight())).append("</td></tr>\n");
         }
-        int ff = _context.peerManager().getPeersByCapability(FloodfillNetworkDatabaseFacade.CAPABILITY_FLOODFILL).size();
-        buf.append("<tr><td><b>Known Floodfills:</b></td><td colspan=\"3\">").append(ff).append("</td></tr>\n");
-        if (!clientsOnly)
-           buf.append("<tr><td><b>Currently Floodfill?</b></td><td>").append(netdb.floodfillEnabled() ? "yes" : "no");
+        int ff = 0;
+        if (client == null) {
+            ff = _context.peerManager().getPeersByCapability(FloodfillNetworkDatabaseFacade.CAPABILITY_FLOODFILL).size();
+            buf.append("<tr><td><b>Known Floodfills:</b></td><td colspan=\"3\">").append(ff).append("</td></tr>\n");
+            buf.append("<tr><td><b>Currently Floodfill?</b></td><td>").append(netdb.floodfillEnabled() ? "yes" : "no");
+        }
         if (debug)
             buf.append("</td><td><b>Routing Key:</b></td><td>").append(ourRKey.toBase64());
         else
