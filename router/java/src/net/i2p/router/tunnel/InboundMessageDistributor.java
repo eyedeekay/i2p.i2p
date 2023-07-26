@@ -126,6 +126,7 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                         if (_context.routerHash().equals(key))
                             return;
                         RouterInfo ri = (RouterInfo) dsm.getEntry();
+                        ri.setReceivedBy(_client);
                         if (!key.equals(ri.getIdentity().getHash()))
                             return;
                         if (!ri.isValid())

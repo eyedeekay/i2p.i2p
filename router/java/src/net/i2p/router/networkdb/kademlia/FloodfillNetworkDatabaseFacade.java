@@ -818,6 +818,10 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         }
     }
 
+    public LeaseSet superStore(Hash key, LeaseSet leaseSet) {
+        return super.store(key, leaseSet);
+    }
+
     public LeaseSet store(Hash key, LeaseSet leaseSet) {
         if (leaseSet == null) {
             return null;
@@ -829,10 +833,8 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
             if (_log.shouldLog(Log.DEBUG))
                 _log.debug("store " + key.toBase32() + " to client " + b32);
             if (b32 != null) {
-                if (this._dbid != "floodfill")
-                    _context.floodfillNetDb().store(key, leaseSet);
                 if (b32 != this._dbid)
-                    return _context.clientNetDb(b32).store(key, leaseSet);
+                    return _context.clientNetDb(b32).superStore(key, leaseSet);
                 else
                     return super.store(key, leaseSet);
             }
@@ -840,7 +842,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         if (_log.shouldLog(Log.DEBUG))
                 _log.debug("store " + key.toBase32() + " to floodfill");
         if (this._dbid != "floodfill")
-            return _context.floodfillNetDb().store(key, leaseSet);
+            return _context.floodfillNetDb().superStore(key, leaseSet);
         return super.store(key, leaseSet);
     }
 }
