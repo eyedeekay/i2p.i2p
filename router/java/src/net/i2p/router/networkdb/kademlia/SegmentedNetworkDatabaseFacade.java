@@ -136,6 +136,10 @@ public abstract class SegmentedNetworkDatabaseFacade { //extends FloodfillNetwor
         return store(key, leaseSet, null);
     }
 
+    public RouterInfo store(Hash key, RouterInfo routerInfo) {
+        return store(key, routerInfo, null);
+    }
+
     /**
      * @throws IllegalArgumentException if the local router is not valid
      */

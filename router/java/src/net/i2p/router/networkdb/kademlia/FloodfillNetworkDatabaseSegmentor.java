@@ -426,6 +426,22 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             _log.debug("store " + key.toBase32() + " to floodfill");
         return fndb.store(key, leaseSet);
     }
+    
+    public RouterInfo store(Hash key, RouterInfo routerInfo) {
+        Hash to = routerInfo.getReceivedBy();
+        if (to != null) {
+            String b32 = to.toBase32();
+            FloodfillNetworkDatabaseFacade cndb = (FloodfillNetworkDatabaseFacade) _context.clientNetDb(b32);
+            if (_log.shouldLog(Log.DEBUG))
+                _log.debug("store " + key.toBase32() + " to client " + b32);
+            if (b32 != null)
+                return cndb.store(key, routerInfo);
+        }
+        FloodfillNetworkDatabaseFacade fndb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
+        if (_log.shouldLog(Log.DEBUG))
+            _log.debug("store " + key.toBase32() + " to floodfill");
+        return fndb.store(key, routerInfo);
+    }
 
     /**
      * @return the routerInfo if another router already existed at that key

@@ -687,7 +687,7 @@ class InboundEstablishState extends EstablishBase implements NTCP2Payload.Payloa
         }
 
         try {
-            RouterInfo old = _context.floodfillNetDb().store(h, ri);
+            RouterInfo old = _context.netDb().store(h, ri);
             if (flood && !ri.equals(old)) {
                 FloodfillNetworkDatabaseFacade fndf = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
                 if (fndf.floodConditional(ri)) {
