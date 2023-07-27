@@ -2,6 +2,7 @@ package net.i2p.router.networkdb.kademlia;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.rmi.dgc.Lease;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -418,6 +419,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             FloodfillNetworkDatabaseFacade cndb = (FloodfillNetworkDatabaseFacade) _context.clientNetDb(b32);
             if (_log.shouldLog(Log.DEBUG))
                 _log.debug("store " + key.toBase32() + " to client " + b32);
+            alsoStoreFloodfill(key, leaseSet);
             if (b32 != null)
                 return cndb.store(key, leaseSet);
         }
@@ -425,6 +427,13 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         if (_log.shouldLog(Log.DEBUG))
             _log.debug("store " + key.toBase32() + " to floodfill");
         return fndb.store(key, leaseSet);
+    }
+
+    private void alsoStoreFloodfill(Hash key, LeaseSet leaseSet) {
+        FloodfillNetworkDatabaseFacade fndb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
+        if (_log.shouldLog(Log.DEBUG))
+            _log.debug("store " + key.toBase32() + " to floodfill");
+        fndb.store(key, leaseSet);
     }
     
     public RouterInfo store(Hash key, RouterInfo routerInfo) {
