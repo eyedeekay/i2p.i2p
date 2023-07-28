@@ -2,7 +2,7 @@ package net.i2p.router.networkdb.kademlia;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.rmi.dgc.Lease;
+//import java.rmi.dgc.Lease;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,6 +56,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             _subDBs.put(id, subdb);
             subdb.startup();
             subdb.createHandlers();
+            List<RouterInfo> ris = floodfillNetDB().pickRandomFloodfillPeers();
+            for (RouterInfo ri : ris) {
+                subdb.store(ri.calculateHash(), ri);
+            }
         }
         return subdb;
     }
@@ -275,6 +279,19 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     @Override
     public DatabaseEntry lookupLocally(Hash key, String dbid) {
+        if (dbid == null || dbid.isEmpty()) {
+            DatabaseEntry rv = null;
+            for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+                rv = subdb.lookupLocally(key);
+                if (rv != null) {
+                    return rv;
+                }
+            }
+            rv = this.lookupLocally(key, "floodfill");
+            if (rv != null) {
+                return rv;
+            }
+        }
         return this.getSubNetDB(dbid).lookupLocally(key);
     }
 
@@ -287,15 +304,16 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public DatabaseEntry lookupLocallyWithoutValidation(Hash key, String dbid) {
         if (dbid == null || dbid.isEmpty()) {
-            DatabaseEntry rv = this.lookupLocallyWithoutValidation(key, "floodfill");
-            if (rv != null) {
-                return rv;
-            }
+            DatabaseEntry rv = null;
             for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
                 rv = subdb.lookupLocallyWithoutValidation(key);
                 if (rv != null) {
                     return rv;
                 }
+            }
+            rv = this.lookupLocallyWithoutValidation(key, "floodfill");
+            if (rv != null) {
+                return rv;
             }
         }
         return this.getSubNetDB(dbid).lookupLocallyWithoutValidation(key);
@@ -316,24 +334,32 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, Hash fromLocalDest,
             String dbid) {
+        if (dbid == null || dbid.isEmpty()) {
+            dbid = fromLocalDest.toBase32();
+        }
         this.getSubNetDB(dbid).lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
     }
 
     @Override
     public LeaseSet lookupLeaseSetLocally(Hash key, String dbid) {
         if (dbid == null || dbid.isEmpty()) {
-            LeaseSet rv = this.lookupLeaseSetLocally(key, "floodfill");
-            if (rv != null) {
-                return rv;
-            }
+            LeaseSet rv = null;
             for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
                 rv = subdb.lookupLeaseSetLocally(key);
                 if (rv != null) {
                     return rv;
                 }
             }
+            rv = this.lookupLeaseSetLocally(key, "floodfill");
+            if (rv != null) {
+                return rv;
+            }
         }
         return this.getSubNetDB(dbid).lookupLeaseSetLocally(key);
+    }
+
+    public LeaseSet lookupLeaseSetLocally(Hash key) {
+        return lookupLeaseSetLocally(key, null);
     }
 
     @Override
@@ -385,6 +411,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     @Override
     public void lookupDestination(Hash key, Job onFinishedJob, long timeoutMs, Hash fromLocalDest, String dbid) {
+        if (dbid == null || dbid.isEmpty()) {
+            dbid = fromLocalDest.toBase32();
+        }
         this.getSubNetDB(dbid).lookupDestination(key, onFinishedJob, timeoutMs, fromLocalDest);
     }
 
@@ -406,6 +435,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      */
     @Override
     public LeaseSet store(Hash key, LeaseSet leaseSet, String dbid) throws IllegalArgumentException {
+        if (dbid == null || dbid.isEmpty()) {
+            dbid = key.toBase32();
+        }
         return getSubNetDB(dbid).store(key, leaseSet);
     }
 
@@ -429,13 +461,14 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         return fndb.store(key, leaseSet);
     }
 
+    // DELETE THIS FUNCTION WHEN YOU'RE DONE!
     private void alsoStoreFloodfill(Hash key, LeaseSet leaseSet) {
         FloodfillNetworkDatabaseFacade fndb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
         if (_log.shouldLog(Log.DEBUG))
             _log.debug("store " + key.toBase32() + " to floodfill");
         fndb.store(key, leaseSet);
     }
-    
+
     public RouterInfo store(Hash key, RouterInfo routerInfo) {
         Hash to = routerInfo.getReceivedBy();
         if (to != null) {
@@ -614,21 +647,6 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public ReseedChecker reseedChecker() {
         return floodfillNetDB().reseedChecker();
-    };
-
-    /**
-     * For convenience, so users don't have to cast to FNDF, and unit tests using
-     * Dummy NDF will work.
-     *
-     * @return false; FNDF overrides to return actual setting
-     * @since IPv6
-     */
-    @Override
-    public boolean floodfillEnabled(String dbid) {
-        if (dbid != null && !dbid.isEmpty() && !dbid.equals("floodfill")) {
-            return false;
-        }
-        return this.getSubNetDB(dbid).floodfillEnabled();
     };
 
     /**

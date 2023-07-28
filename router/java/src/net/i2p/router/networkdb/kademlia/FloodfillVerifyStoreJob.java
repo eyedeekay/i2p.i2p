@@ -432,7 +432,7 @@ class FloodfillVerifyStoreJob extends JobImpl {
      *  So at least we'll try THREE ffs round-robin if things continue to fail...
      */
     private void resend() {
-        DatabaseEntry ds = _facade.lookupLocally(_key);
+        DatabaseEntry ds = getContext().netDb().lookupLocally(_key, null);
         if (ds != null) {
             // By the time we get here, a minute or more after the store started, 
             // we may have already started a new store

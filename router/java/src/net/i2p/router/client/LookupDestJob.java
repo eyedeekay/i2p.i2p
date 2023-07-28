@@ -201,7 +201,7 @@ class LookupDestJob extends JobImpl {
             Destination dest = getContext().floodfillNetDb().lookupDestinationLocally(_hash);
             if (dest == null && _blindData != null) {
                 // TODO store and lookup original hash instead
-                LeaseSet ls = getContext().floodfillNetDb().lookupLeaseSetLocally(_hash);
+                LeaseSet ls = getContext().netDb().lookupLeaseSetLocally(_hash, _fromLocalDest.toBase32());
                 if (ls != null && ls.getType() == DatabaseEntry.KEY_TYPE_ENCRYPTED_LS2) {
                     // already decrypted
                     EncryptedLeaseSet encls = (EncryptedLeaseSet) ls;

@@ -711,7 +711,7 @@ class ClientMessageEventListener implements I2CPMessageReader.I2CPMessageEventLi
             }
             if (_log.shouldDebug())
                 _log.debug("Publishing: " + ls);
-            _context.floodfillNetDb().publish(ls);
+            _context.netDb().publish(ls, _runner.getDestHash().toBase32());
             if (type == DatabaseEntry.KEY_TYPE_ENCRYPTED_LS2) {
                 // store the decrypted ls also
                 EncryptedLeaseSet encls = (EncryptedLeaseSet) ls;
@@ -861,9 +861,9 @@ class ClientMessageEventListener implements I2CPMessageReader.I2CPMessageEventLi
                 _log.warn("Unsupported BlindingInfo type: " + message);
             return;
         }
-        BlindData obd = _context.floodfillNetDb().getBlindData(spk);
+        BlindData obd = _context.netDb().getBlindData(spk);
         if (obd == null) {
-            _context.floodfillNetDb().setBlindData(bd);
+            _context.netDb().setBlindData(bd, _runner.getDestHash().toBase32());
             if (_log.shouldWarn())
                 _log.warn("New: " + bd);
         } else {
@@ -884,7 +884,7 @@ class ClientMessageEventListener implements I2CPMessageReader.I2CPMessageEventLi
                         return;
                     }
                 }
-                _context.floodfillNetDb().setBlindData(bd);
+                _context.netDb().setBlindData(bd, _runner.getDestHash().toBase32());
                 if (_log.shouldWarn())
                     _log.warn("Updated: " + bd);
             } else {
@@ -893,7 +893,7 @@ class ClientMessageEventListener implements I2CPMessageReader.I2CPMessageEventLi
                 if (nexp > oexp) {
                     obd.setExpiration(nexp);
                     // to force save at shutdown
-                    _context.floodfillNetDb().setBlindData(obd);
+                    _context.netDb().setBlindData(obd, _runner.getDestHash().toBase32());
                     if (_log.shouldWarn())
                         _log.warn("Updated expiration: " + obd);
                 } else {
