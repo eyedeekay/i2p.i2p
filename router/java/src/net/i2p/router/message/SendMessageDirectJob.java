@@ -97,7 +97,7 @@ public class SendMessageDirectJob extends JobImpl {
         _msgIDBloomXor = msgIDBloomXor;
         _message = message;
         _targetHash = toPeer;
-        if (timeoutMs < 10*1000) {
+        if (timeoutMs < 5*1000) {
             if (_log.shouldLog(Log.WARN))
                 _log.warn("Very little time given [" + timeoutMs + "], resetting to 10s", new Exception("stingy caller!"));
             _expiration = ctx.clock().now() + 10*1000;
