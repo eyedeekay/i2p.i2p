@@ -101,7 +101,11 @@ class RepublishLeaseSetJob extends JobImpl {
 
         public void runJob() {
             // Don't requeue if there's a newer LS, KNDF will have already done that
-            LeaseSet ls = getContext().netDb().lookupLeaseSetLocally(_ls.getHash(), _dest.toBase32());
+            LeaseSet ls = null;
+            if (_dest != null)
+                ls = getContext().netDb().lookupLeaseSetLocally(_ls.getHash(), _dest.toBase32());
+            else
+                getContext().netDb().lookupLeaseSetLocally(_ls.getHash(), null);
             if (ls != null && ls.getEarliestLeaseDate() == _ls.getEarliestLeaseDate()) {
                 requeueRepublish();
             } else {

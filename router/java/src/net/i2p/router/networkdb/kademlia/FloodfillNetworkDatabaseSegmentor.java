@@ -50,6 +50,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         if (id == null || id.isEmpty()) {
             return GetSubNetDB("floodfill");
         }
+        if (id.endsWith(".i2p")){
+            if (!id.startsWith("clients_"))
+                id = "clients_" + id;
+        }
         FloodfillNetworkDatabaseFacade subdb = _subDBs.get(id);
         if (subdb == null) {
             subdb = new FloodfillNetworkDatabaseFacade(_context, id);
@@ -58,7 +62,9 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             subdb.createHandlers();
             List<RouterInfo> ris = floodfillNetDB().pickRandomFloodfillPeers();
             for (RouterInfo ri : ris) {
-                subdb.store(ri.calculateHash(), ri);
+                if (_log.shouldLog(_log.DEBUG))
+                    _log.debug("Seeding: " + id + " with " + ris.size() + " peers " + ri.getHash());
+                subdb.store(ri.getIdentity().getHash(), ri);
             }
         }
         return subdb;
@@ -412,7 +418,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public void lookupDestination(Hash key, Job onFinishedJob, long timeoutMs, Hash fromLocalDest, String dbid) {
         if (dbid == null || dbid.isEmpty()) {
-            dbid = fromLocalDest.toBase32();
+            if (fromLocalDest != null)
+                dbid = fromLocalDest.toBase32();
+            else
+                dbid = null;
         }
         this.getSubNetDB(dbid).lookupDestination(key, onFinishedJob, timeoutMs, fromLocalDest);
     }
@@ -436,7 +445,8 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public LeaseSet store(Hash key, LeaseSet leaseSet, String dbid) throws IllegalArgumentException {
         if (dbid == null || dbid.isEmpty()) {
-            dbid = key.toBase32();
+            if (key != null)
+                dbid = key.toBase32();
         }
         return getSubNetDB(dbid).store(key, leaseSet);
     }
@@ -448,14 +458,14 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         Hash to = leaseSet.getReceivedBy();
         if (to != null) {
             String b32 = to.toBase32();
-            FloodfillNetworkDatabaseFacade cndb = (FloodfillNetworkDatabaseFacade) _context.clientNetDb(b32);
+            FloodfillNetworkDatabaseFacade cndb = _context.clientNetDb(b32);
             if (_log.shouldLog(Log.DEBUG))
                 _log.debug("store " + key.toBase32() + " to client " + b32);
             alsoStoreFloodfill(key, leaseSet);
             if (b32 != null)
                 return cndb.store(key, leaseSet);
         }
-        FloodfillNetworkDatabaseFacade fndb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
+        FloodfillNetworkDatabaseFacade fndb = _context.floodfillNetDb();
         if (_log.shouldLog(Log.DEBUG))
             _log.debug("store " + key.toBase32() + " to floodfill");
         return fndb.store(key, leaseSet);
@@ -463,23 +473,27 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     // DELETE THIS FUNCTION WHEN YOU'RE DONE!
     private void alsoStoreFloodfill(Hash key, LeaseSet leaseSet) {
-        FloodfillNetworkDatabaseFacade fndb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
-        if (_log.shouldLog(Log.DEBUG))
-            _log.debug("store " + key.toBase32() + " to floodfill");
-        fndb.store(key, leaseSet);
+        FloodfillNetworkDatabaseFacade fndb = _context.floodfillNetDb();
+        if (_log.shouldLog(Log.DEBUG)) {
+            // change these comments depending on whether you store or not. For testing
+            // purposes.
+             _log.debug("don't store " + key.toBase32() + " to floodfill");
+            //_log.debug("also store " + key.toBase32() + " to floodfill");
+        }
+        //fndb.store(key, leaseSet);
     }
 
     public RouterInfo store(Hash key, RouterInfo routerInfo) {
         Hash to = routerInfo.getReceivedBy();
         if (to != null) {
             String b32 = to.toBase32();
-            FloodfillNetworkDatabaseFacade cndb = (FloodfillNetworkDatabaseFacade) _context.clientNetDb(b32);
+            FloodfillNetworkDatabaseFacade cndb =  _context.clientNetDb(b32);
             if (_log.shouldLog(Log.DEBUG))
                 _log.debug("store " + key.toBase32() + " to client " + b32);
             if (b32 != null)
                 return cndb.store(key, routerInfo);
         }
-        FloodfillNetworkDatabaseFacade fndb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
+        FloodfillNetworkDatabaseFacade fndb =  _context.floodfillNetDb();
         if (_log.shouldLog(Log.DEBUG))
             _log.debug("store " + key.toBase32() + " to floodfill");
         return fndb.store(key, routerInfo);
@@ -520,6 +534,17 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     @Override
+    public void unpublish(LeaseSet localLeaseSet) {
+        if (localLeaseSet == null) {
+            return;
+        }
+        Hash client = localLeaseSet.getReceivedBy();
+        if (client != null)
+            this.getSubNetDB(client.toBase32()).unpublish(localLeaseSet);
+        this.getSubNetDB(null).unpublish(localLeaseSet);
+    }
+
+    @Override
     public void fail(Hash dbEntry, String dbid) {
         this.getSubNetDB(dbid).fail(dbEntry);
     }
@@ -538,6 +563,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public long getLastRouterInfoPublishTime(String dbid) {
         return this.getSubNetDB(dbid).getLastRouterInfoPublishTime();
+    }
+
+    public long getLastRouterInfoPublishTime() {
+        return this.floodfillNetDB().getLastRouterInfoPublishTime();
     }
 
     @Override
@@ -576,6 +605,17 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public boolean isInitialized(String dbid) {
         return this.getSubNetDB(dbid).isInitialized();
+    }
+
+    public boolean isInitialized() {
+        boolean rv = false;
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            rv = subdb.isInitialized();
+            if (!rv) {
+                break;
+            }
+        }
+        return rv;
     }
 
     @Override
@@ -732,7 +772,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     public FloodfillNetworkDatabaseFacade clientNetDB(String id) {
         if (id == null || id.isEmpty())
             return exploratoryNetDB();
-        return this.getSubNetDB("clients" + id);
+        return this.getSubNetDB("clients_" + id);
     }
 
     public FloodfillNetworkDatabaseFacade clientNetDB() {

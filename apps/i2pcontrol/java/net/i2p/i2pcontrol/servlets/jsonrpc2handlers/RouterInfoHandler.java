@@ -200,7 +200,7 @@ public class RouterInfoHandler implements RequestHandler {
           case CommSystemFacade.STATUS_IPV4_DISABLED_IPV6_FIREWALLED:
             if (_context.router().getRouterInfo().getTargetAddress("NTCP2") != null)
                 return NETWORK_STATUS.WARN_FIREWALLED_WITH_INBOUND_TCP;
-            if (((FloodfillNetworkDatabaseFacade) _context.floodfillNetDb()).floodfillEnabled())
+            if (_context.netDb().floodfillEnabled())
                 return NETWORK_STATUS.WARN_FIREWALLED_AND_FLOODFILL;
             if (_context.router().getRouterInfo().getCapabilities().indexOf('O') >= 0)
                 return NETWORK_STATUS.WARN_FIREWALLED_AND_FAST;

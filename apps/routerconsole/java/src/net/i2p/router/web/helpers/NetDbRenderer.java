@@ -130,9 +130,15 @@ class NetDbRenderer {
                                      String tr, int cost, int icount, String client, boolean allClients) throws IOException {
         StringBuilder buf = new StringBuilder(4*1024);
         List<Hash> sybils = sybil != null ? new ArrayList<Hash>(128) : null;
-        FloodfillNetworkDatabaseFacade netdb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
-        if (client == null)
-            netdb = (FloodfillNetworkDatabaseFacade) _context.clientNetDb(client);
+        FloodfillNetworkDatabaseFacade netdb = _context.floodfillNetDb();
+        if (allClients) {
+            netdb = _context.floodfillNetDb();
+        }else{
+            if (client != null)
+                netdb = _context.clientNetDb(client);
+            else
+                netdb = _context.floodfillNetDb();
+        }
 
         if (".".equals(routerPrefix)) {
             buf.append("<table><tr><td class=\"infohelp\">")
@@ -611,12 +617,12 @@ class NetDbRenderer {
         DecimalFormat fmt;
         FloodfillNetworkDatabaseFacade netdb = null;
         if (clientsOnly){
-            netdb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
+            netdb = _context.floodfillNetDb();
         }else{
             if (client != null)
-                netdb = (FloodfillNetworkDatabaseFacade) _context.clientNetDb(client);
+                netdb = _context.clientNetDb(client);
             else
-                netdb = (FloodfillNetworkDatabaseFacade) _context.floodfillNetDb();
+                netdb = _context.floodfillNetDb();
         }
         if (debug) {
             ourRKey = _context.routerHash();
@@ -961,7 +967,9 @@ class NetDbRenderer {
         Hash us = _context.routerHash();
 
         Set<RouterInfo> routers = new TreeSet<RouterInfo>(new RouterInfoComparator());
-        if (clientsOnly) {
+        if (client != null) {
+            routers.addAll(_context.clientNetDb(client).getRouters());
+        } else if (clientsOnly) {
             routers.addAll(_context.netDb().getRoutersKnownToClients());   
         } else {
             routers.addAll(_context.floodfillNetDb().getRouters());

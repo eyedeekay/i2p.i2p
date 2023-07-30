@@ -37,6 +37,8 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
 
     public abstract FloodfillNetworkDatabaseFacade allNetDBS();
 
+    public abstract void startup();
+
     /**
      * Return the RouterInfo structures for the routers closest to the given key.
      * At most maxNumRouters will be returned
@@ -165,6 +167,8 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
 
     public abstract void unpublish(LeaseSet localLeaseSet, String dbid);
 
+    public abstract void unpublish(LeaseSet localLeaseSet);
+
     public abstract void fail(Hash dbEntry, String dbid);
 
     /**
@@ -176,9 +180,17 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
         return 0;
     }
 
+    public long getLastRouterInfoPublishTime() {
+        return 0;
+    }
+
     public abstract Set<Hash> getAllRouters(String dbid);
 
     public int getKnownRouters(String dbid) {
+        return 0;
+    }
+
+    public int getKnownRouters() {
         return 0;
     }
 
@@ -187,6 +199,10 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
     }
 
     public boolean isInitialized(String dbid) {
+        return true;
+    }
+
+    public boolean isInitialized() {
         return true;
     }
 

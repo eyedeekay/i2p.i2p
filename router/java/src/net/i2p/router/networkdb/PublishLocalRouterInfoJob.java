@@ -76,7 +76,7 @@ public class PublishLocalRouterInfoJob extends JobImpl {
             requeue(100);
             return;
         }
-        long last = getContext().floodfillNetDb().getLastRouterInfoPublishTime();
+        long last = getContext().netDb().getLastRouterInfoPublishTime();
         long now = getContext().clock().now();
         if (last + MIN_PUBLISH_DELAY > now) {
             long delay = getDelay();
