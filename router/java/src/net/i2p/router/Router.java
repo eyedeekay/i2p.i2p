@@ -924,7 +924,7 @@ public class Router implements RouterClock.ClockShiftListener {
                 changed = true;
             }
         }
-        if (_context.floodfillNetDb().isInitialized()) {
+        if (_context.netDb().isInitialized()) {
             if (_log.shouldWarn())
                 _log.warn("NetDB ready, publishing RI");
             // any previous calls to netdb().publish() did not
@@ -1603,7 +1603,7 @@ public class Router implements RouterClock.ClockShiftListener {
         try { _context.jobQueue().shutdown(); } catch (Throwable t) { _log.error("Error shutting down the job queue", t); }
         try { _context.tunnelManager().shutdown(); } catch (Throwable t) { _log.error("Error shutting down the tunnel manager", t); }
         try { _context.tunnelDispatcher().shutdown(); } catch (Throwable t) { _log.error("Error shutting down the tunnel dispatcher", t); }
-        try { _context.floodfillNetDb().shutdown(); } catch (Throwable t) { _log.error("Error shutting down the networkDb", t); }
+        try { _context.netDb().shutdown(); } catch (Throwable t) { _log.error("Error shutting down the networkDb", t); }
         try { _context.commSystem().shutdown(); } catch (Throwable t) { _log.error("Error shutting down the comm system", t); }
         try { _context.bandwidthLimiter().shutdown(); } catch (Throwable t) { _log.error("Error shutting down the comm system", t); }
         try { _context.peerManager().shutdown(); } catch (Throwable t) { _log.error("Error shutting down the peer manager", t); }

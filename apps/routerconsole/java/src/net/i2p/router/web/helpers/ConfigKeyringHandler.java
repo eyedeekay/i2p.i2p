@@ -88,7 +88,8 @@ public class ConfigKeyringHandler extends FormHandler {
                         return;
                     }
                     // from BlindCache
-                    BlindData bdold = _context.floodfillNetDb().getBlindData(spk);
+                    String clientBase32 = _context.netDb().lookupClientBySigningPublicKey(spk);
+                    BlindData bdold = _context.netDb().getBlindData(spk, clientBase32);
                     if (bdold != null && d == null)
                         d = bdold.getDestination();
                     if (d != null && _context.clientManager().isLocal(d)) {
@@ -157,7 +158,7 @@ public class ConfigKeyringHandler extends FormHandler {
                             _log.debug("already cached: " + bdold);
                     }
                     try {
-                        _context.floodfillNetDb().setBlindData(bdout);
+                        _context.netDb().setBlindData(bdout, clientBase32);
                         addFormNotice(_t("Key for {0} added to keyring", bdout.toBase32()));
                         if (_mode == 6 || _mode == 7) {
                             addFormNotice(_t("Send key to server operator.") + ' ' + pk.toPublic().toBase64());

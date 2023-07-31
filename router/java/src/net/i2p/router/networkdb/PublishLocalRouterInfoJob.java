@@ -141,7 +141,7 @@ public class PublishLocalRouterInfoJob extends JobImpl {
                           + new Date(ri.getPublished()));
             try {
                 // This won't really publish until the netdb is initialized.
-                getContext().floodfillNetDb().publish(ri);
+                getContext().netDb().publish(ri);
             } catch (IllegalArgumentException iae) {
                 _log.log(Log.CRIT, "Error publishing our identity - corrupt? Restart required", iae);
                 getContext().router().rebuildNewIdentity();

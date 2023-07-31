@@ -35,9 +35,9 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
 
     public abstract FloodfillNetworkDatabaseFacade localNetDB();
 
-    public abstract FloodfillNetworkDatabaseFacade allNetDBS();
-
     public abstract void startup();
+
+    public abstract void shutdown();
 
     /**
      * Return the RouterInfo structures for the routers closest to the given key.
@@ -76,6 +76,8 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
             Hash fromLocalDest, String dbid);
 
     public abstract LeaseSet lookupLeaseSetLocally(Hash key, String dbid);
+
+    public abstract LeaseSet lookupLeaseSetLocally(Hash key);
 
     public abstract void lookupRouterInfo(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, String dbid);
 
@@ -171,6 +173,8 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
 
     public abstract void fail(Hash dbEntry, String dbid);
 
+    public abstract void fail(Hash dbEntry);
+
     /**
      * The last time we successfully published our RI.
      * 
@@ -185,6 +189,7 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
     }
 
     public abstract Set<Hash> getAllRouters(String dbid);
+    public abstract Set<Hash> getAllRouters();
 
     public int getKnownRouters(String dbid) {
         return 0;
@@ -220,6 +225,10 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
 
     /** public for NetDbRenderer in routerconsole */
     public Set<RouterInfo> getRouters(String dbid) {
+        return Collections.emptySet();
+    }
+
+    public Set<RouterInfo> getRouters() {
         return Collections.emptySet();
     }
 
@@ -270,6 +279,10 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
         return floodfillNetDB().getBlindData(spk);
     }
 
+    public List<BlindData> getLocalClientsBlindData() {
+        return floodfillNetDB().getBlindData();
+    }
+
     /**
      * @param bd new BlindData to put in the cache
      * @since 0.9.59
@@ -302,11 +315,17 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
      *
      * @since 0.9.59
      */
-    public void routingKeyChanged(String dbid) {
+    public void routingKeyChanged() {
         floodfillNetDB().routingKeyChanged();
     }
 
     public void lookupLeaseSetRemotely(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, String dbid) {
         floodfillNetDB().lookupLeaseSetRemotely(key, onFindJob, onFailedLookupJob, timeoutMs, key);
+    }
+    public String lookupClientBySigningPublicKey(SigningPublicKey spk) {
+        return "floodfill";
+    }
+    public BlindData getBlindData(SigningPublicKey spk, String dbid) {
+        return floodfillNetDB().getBlindData(spk);
     }
 }

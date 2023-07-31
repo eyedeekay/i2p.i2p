@@ -50,7 +50,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         if (id == null || id.isEmpty()) {
             return GetSubNetDB("floodfill");
         }
-        if (id.endsWith(".i2p")){
+        if (id.endsWith(".i2p")) {
             if (!id.startsWith("clients_"))
                 id = "clients_" + id;
         }
@@ -375,6 +375,18 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     @Override
     public RouterInfo lookupRouterInfoLocally(Hash key, String dbid) {
+        if (dbid == null || dbid.isEmpty()) {
+            RouterInfo ri = floodfillNetDB().lookupRouterInfoLocally(key);
+            if (ri != null) {
+                return ri;
+            }
+            for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+                ri = subdb.lookupRouterInfoLocally(key);
+                if (ri != null) {
+                    return ri;
+                }
+            }
+        }
         return this.getSubNetDB(dbid).lookupRouterInfoLocally(key);
     }
 
@@ -477,23 +489,23 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         if (_log.shouldLog(Log.DEBUG)) {
             // change these comments depending on whether you store or not. For testing
             // purposes.
-             _log.debug("don't store " + key.toBase32() + " to floodfill");
-            //_log.debug("also store " + key.toBase32() + " to floodfill");
+            _log.debug("don't store " + key.toBase32() + " to floodfill");
+            // _log.debug("also store " + key.toBase32() + " to floodfill");
         }
-        //fndb.store(key, leaseSet);
+        // fndb.store(key, leaseSet);
     }
 
     public RouterInfo store(Hash key, RouterInfo routerInfo) {
         Hash to = routerInfo.getReceivedBy();
         if (to != null) {
             String b32 = to.toBase32();
-            FloodfillNetworkDatabaseFacade cndb =  _context.clientNetDb(b32);
+            FloodfillNetworkDatabaseFacade cndb = _context.clientNetDb(b32);
             if (_log.shouldLog(Log.DEBUG))
                 _log.debug("store " + key.toBase32() + " to client " + b32);
             if (b32 != null)
                 return cndb.store(key, routerInfo);
         }
-        FloodfillNetworkDatabaseFacade fndb =  _context.floodfillNetDb();
+        FloodfillNetworkDatabaseFacade fndb = _context.floodfillNetDb();
         if (_log.shouldLog(Log.DEBUG))
             _log.debug("store " + key.toBase32() + " to floodfill");
         return fndb.store(key, routerInfo);
@@ -549,6 +561,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         this.getSubNetDB(dbid).fail(dbEntry);
     }
 
+    @Override
     public void fail(Hash dbEntry) {
         for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
             subdb.fail(dbEntry);
@@ -650,6 +663,15 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         return this.getSubNetDB(dbid).getRouters();
     }
 
+    @Override
+    public Set<RouterInfo> getRouters() {
+        Set<RouterInfo> rv = new HashSet<>();
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            rv.addAll(subdb.getRouters());
+        }
+        return rv;
+    }
+
     public Set<RouterInfo> getRoutersKnownToClients() {
         Set<RouterInfo> rv = new HashSet<>();
         for (String key : _subDBs.keySet()) {
@@ -745,8 +767,8 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @since 0.9.50
      */
     @Override
-    public void routingKeyChanged(String dbid) {
-        this.getSubNetDB(dbid).routingKeyChanged();
+    public void routingKeyChanged() {
+        this.floodfillNetDB().routingKeyChanged();
     }
 
     // @Override
@@ -790,12 +812,24 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     @Override
-    public FloodfillNetworkDatabaseFacade allNetDBS() {
-        FloodfillNetworkDatabaseFacade FNDFAll = new FloodfillNetworkDatabaseFacade(_context, "all");
-        // loop over all subnets
-        for (String id : _subDBs.keySet()) {
-            FNDFAll.copyNetworkDatabase(this.getSubNetDB(id));
+    public List<BlindData> getLocalClientsBlindData() {
+        ArrayList<BlindData> rv = new ArrayList<>();
+        for (String subdb : _subDBs.keySet()) {
+            if (subdb.startsWith("clients_"));
+                rv.addAll(_subDBs.get(subdb).getBlindData());
         }
-        return FNDFAll;
+        return rv;
+    }
+
+    @Override
+    public String lookupClientBySigningPublicKey(SigningPublicKey spk) {
+        for (String subdb : _subDBs.keySet()) {
+            if (subdb.startsWith("clients_"));
+                BlindData bd = _subDBs.get(subdb).getBlindData(spk);
+                if (bd != null) {
+                    return subdb;
+                }
+        }
+        return null;
     }
 }
