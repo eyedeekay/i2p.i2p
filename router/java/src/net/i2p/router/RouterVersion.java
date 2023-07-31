@@ -18,11 +18,17 @@ public class RouterVersion {
     /** deprecated */
     public final static String ID = "Git";
     public final static String VERSION = CoreVersion.VERSION;
+<<<<<<< HEAD
     public final static long BUILD = 1;
 
+=======
+    /** for example: "beta", "alpha", "rc" */
+    public final static String STATUS = "";
+    public final static long BUILD = 1;
+>>>>>>> 3952ce693ae22302a5c1fc15d583a46d88db1575
     /** for example "-test" */
     public final static String EXTRA = "";
-    public final static String FULL_VERSION = VERSION + "-" + BUILD + EXTRA;
+    public final static String FULL_VERSION = VERSION + "-" + STATUS + BUILD + EXTRA;
     public static void main(String args[]) {
         System.out.println("I2P Router version: " + FULL_VERSION);
         System.out.println("Router ID: " + RouterVersion.ID);
