@@ -3460,7 +3460,7 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
             (!_context.router().isHidden()) &&
             (!introducersRequired(ipv6)) &&
             haveCapacity() &&
-            (!_context.floodfillNetDb().floodfillEnabled()) &&
+            (!_context.netDb().floodfillEnabled()) &&
             (!ipv6 || _haveIPv6Address) &&
             ((!ipv6 && getIPv6Config() != IPV6_ONLY) ||
              (ipv6 && getIPv6Config() != IPV6_DISABLED)) &&
@@ -3850,7 +3850,7 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
             boolean shouldPingFirewall = !STATUS_OK.contains(_reachabilityStatus);
             int currentListenPort = getListenPort(false);
             boolean pingOneOnly = shouldPingFirewall && getExternalPort(false) == currentListenPort;
-            boolean shortLoop = shouldPingFirewall || !haveCap || _context.floodfillNetDb().floodfillEnabled();
+            boolean shortLoop = shouldPingFirewall || !haveCap || _context.netDb().floodfillEnabled();
             long loopTime = shortLoop ? SHORT_LOOP_TIME : LONG_LOOP_TIME;
             _lastLoopShort = shortLoop;
             _expireBuffer.clear();

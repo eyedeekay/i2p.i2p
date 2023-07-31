@@ -373,9 +373,9 @@ public class RouterContext extends I2PAppContext {
      * Our db cache
      */
     public SegmentedNetworkDatabaseFacade netDb() { return _netDb; }
-    public NetworkDatabaseFacade floodfillNetDb() { return _netDb.floodfillNetDB(); }
-    public NetworkDatabaseFacade clientNetDb() { return _netDb.exploratoryNetDB(); }
-    public NetworkDatabaseFacade clientNetDb(String id) { return _netDb.clientNetDB(id); }
+    public FloodfillNetworkDatabaseFacade floodfillNetDb() { return _netDb.floodfillNetDB(); }
+    public FloodfillNetworkDatabaseFacade exploratoryNetDb() { return _netDb.exploratoryNetDB(); }
+    public FloodfillNetworkDatabaseFacade clientNetDb(String id) { return _netDb.clientNetDB(id); }
     /**
      * The actual driver of the router, where all jobs are enqueued and processed.
      */

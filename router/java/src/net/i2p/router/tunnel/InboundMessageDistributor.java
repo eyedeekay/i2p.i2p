@@ -48,11 +48,13 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
 
         if (_client != null) {
             TunnelPoolSettings clienttps = _context.tunnelManager().getInboundSettings(_client);
-            if (_log.shouldLog(Log.DEBUG))
+            if (_log.shouldLog(Log.DEBUG)){
+                _log.debug("Initializing client for " + _client.toBase32());
                 _log.debug("Initializing client (nickname: "
                            + clienttps.getDestinationNickname()
                            + " b32: " + _client.toBase32()
                            + ") InboundMessageDistributor with tunnel pool settings: " + clienttps);
+            }
             _clientNickname = clienttps.getDestinationNickname();
             _msgIDBloomXor = clienttps.getMsgIdBloomXor();
         } else {
@@ -126,11 +128,16 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                         if (_context.routerHash().equals(key))
                             return;
                         RouterInfo ri = (RouterInfo) dsm.getEntry();
+                        ri.setReceivedBy(_client);
                         if (!key.equals(ri.getIdentity().getHash()))
                             return;
                         if (!ri.isValid())
                             return;
-                        RouterInfo oldri = _context.floodfillNetDb().lookupRouterInfoLocally(key);
+                        RouterInfo oldri = null;
+                        if (_client != null)
+                            oldri = _context.netDb().lookupRouterInfoLocally(key, _client.toBase32());
+                        else
+                            oldri = _context.netDb().lookupRouterInfoLocally(key, "floodfill");
                         // only update if RI is newer and non-ff
                         if (oldri != null && oldri.getPublished() < ri.getPublished() &&
                             !FloodfillNetworkDatabaseFacade.isFloodfill(ri)) {

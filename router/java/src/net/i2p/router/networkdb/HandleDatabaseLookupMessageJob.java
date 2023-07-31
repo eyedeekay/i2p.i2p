@@ -110,7 +110,7 @@ public class HandleDatabaseLookupMessageJob extends JobImpl {
 
         DatabaseLookupMessage.Type lookupType = _message.getSearchType();
         // only lookup once, then cast to correct type
-        DatabaseEntry dbe = getContext().floodfillNetDb().lookupLocally(searchKey);
+        DatabaseEntry dbe = getContext().netDb().lookupLocally(searchKey, null);
         int type = dbe != null ? dbe.getType() : -1;
         if (DatabaseEntry.isLeaseSet(type) &&
             (lookupType == DatabaseLookupMessage.Type.ANY || lookupType == DatabaseLookupMessage.Type.LS)) {

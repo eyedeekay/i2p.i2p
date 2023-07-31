@@ -125,7 +125,7 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 //boolean rap = ls.getReceivedAsPublished();
                 //if (_log.shouldLog(Log.INFO))
                 //    _log.info("oldrap? " + oldrap + " oldrar? " + oldrar + " newrap? " + rap);
-                LeaseSet match = _facade.store(key, ls);
+                LeaseSet match = getContext().netDb().store(key, ls);
                 if (match == null) {
                     wasNew = true;
                 } else if (match.getEarliestLeaseDate() < ls.getEarliestLeaseDate()) {
@@ -286,7 +286,7 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                     }
                 }
                 if (shouldStore) {
-                    prevNetDb = _facade.store(key, ri);
+                    prevNetDb = getContext().netDb().store(key, ri);
                     wasNew = ((null == prevNetDb) || (prevNetDb.getPublished() < ri.getPublished()));
                 }
                 // Check new routerinfo address against blocklist

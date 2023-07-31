@@ -8,6 +8,7 @@ package net.i2p.router.networkdb.kademlia;
  *
  */
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
@@ -180,6 +181,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         _reseedChecker = new ReseedChecker(context);
         _blindCache = new BlindCache(context);
         _dbid = dbid;
+        if (_log.shouldLog(Log.DEBUG))
+            _log.debug("Created KademliaNetworkDatabaseFacade for id: " + dbid);
         context.statManager().createRateStat("netDb.lookupDeferred", "how many lookups are deferred?", "NetworkDatabase", new long[] { 60*60*1000 });
         context.statManager().createRateStat("netDb.exploreKeySet", "how many keys are queued for exploration?", "NetworkDatabase", new long[] { 60*60*1000 });
         context.statManager().createRateStat("netDb.negativeCache", "Aborted lookup, already cached", "NetworkDatabase", new long[] { 60*60*1000l });
@@ -262,7 +265,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     }
     
     public synchronized void restart() {
-        _dbDir = _context.router().getConfigSetting(PROP_DB_DIR);
+        _dbDir = getDbDir();
         if (_dbDir == null) {
             _log.info("No DB dir specified [" + PROP_DB_DIR + "], using [" + DEFAULT_DB_DIR + "]");
             _dbDir = DEFAULT_DB_DIR;
@@ -283,20 +286,31 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
            _ds.rescan();
     }
 
-    String getDbDir() { return _dbDir; }
+    String getDbDir() {
+        if (_dbDir == null) {
+            String dbDir = _context.getProperty(PROP_DB_DIR, DEFAULT_DB_DIR);
+            if (!_dbid.equals("floodfill") && _dbid != null) {
+                File subDir = new File(dbDir, _dbid);
+                if (!subDir.exists())
+                    subDir.mkdirs();
+                dbDir = subDir.toString();
+            }
+            return dbDir; 
+        }
+        return _dbDir;
+    }
     
     public synchronized void startup() {
         _log.info("Starting up the kademlia network database");
         RouterInfo ri = _context.router().getRouterInfo();
-        String dbDir = _context.getProperty(PROP_DB_DIR, DEFAULT_DB_DIR);
         _kb = new KBucketSet<Hash>(_context, ri.getIdentity().getHash(),
                                    BUCKET_SIZE, KAD_B, new RejectTrimmer<Hash>());
+        _dbDir = getDbDir();
         try {
-            _ds = new PersistentDataStore(_context, dbDir, this);
+            _ds = new PersistentDataStore(_context, _dbDir, this);
         } catch (IOException ioe) {
             throw new RuntimeException("Unable to initialize netdb storage", ioe);
         }
-        _dbDir = dbDir;
         _negativeCache = new NegativeLookupCache(_context);
         _blindCache.startup();
         

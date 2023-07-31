@@ -314,10 +314,10 @@ public class NetDbHelper extends FormHandler {
      *   storeWriter() must be called previously
      */
     public String getFloodfillNetDbSummary() {
-        return getNetDbSummary(false);
+        return getNetDbSummary(null, false);
     }
 
-    public String getNetDbSummary(boolean clientOnly) {
+    public String getNetDbSummary(String client, boolean clientOnly) {
         NetDbRenderer renderer = new NetDbRenderer(_context);
         try {
             renderNavBar();
@@ -329,9 +329,9 @@ public class NetDbHelper extends FormHandler {
                 renderer.renderRouterInfoHTML(_out, _limit, _page,
                                               _routerPrefix, _version, _country,
                                               _family, _caps, _ip, _sybil, _port, _highPort, _type, _etype,
-                                              _mtu, _ipv6, _ssucaps, _transport, _cost, _icount);
+                                              _mtu, _ipv6, _ssucaps, _transport, _cost, _icount, client, clientOnly);
             } else if (_lease) {
-                renderer.renderLeaseSetHTML(_out, _debug);
+                renderer.renderLeaseSetHTML(_out, _debug, client, clientOnly);
             } else if (_hostname != null) {
                 renderer.renderLeaseSet(_out, _hostname, true);
             } else if (_full == 3) {
@@ -345,7 +345,7 @@ public class NetDbHelper extends FormHandler {
             } else {
                 if (_full == 0 && _sort != null)
                     _full = 3;
-                renderer.renderStatusHTML(_out, _limit, _page, _full, clientOnly);
+                renderer.renderStatusHTML(_out, _limit, _page, _full, client, clientOnly);
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
@@ -354,7 +354,18 @@ public class NetDbHelper extends FormHandler {
     }
 
     public String getClientNetDbSummaries() {
-        return getNetDbSummary(true);
+        String rv = "";
+        for (String client : _context.netDb().getClients()){
+            rv += "<div id=\"client_" + client + "\">\n";
+            rv += "<h3>Client Network Database for " + client + "</h3>\n";
+            rv += getClientNetDbSummary(client) + "\n";
+            rv += "</div>\n";
+        }
+        return rv;
+    }
+
+    public String getClientNetDbSummary(String client) {
+        return getNetDbSummary(client, true);
     }
 
     /**

@@ -27,6 +27,7 @@ import net.i2p.stat.Rate;
 import net.i2p.stat.RateStat;
 import net.i2p.util.ConcurrentHashSet;
 import net.i2p.util.Log;
+import net.i2p.util.RandomSource;
 import net.i2p.util.SystemVersion;
 
 /**
@@ -275,6 +276,29 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         }
         flood(ds);
         return true;
+    }
+
+    public List<RouterInfo> pickRandomFloodfillPeers() {
+        List<RouterInfo> list = new ArrayList<RouterInfo>();
+        // get the total number of known routers
+        int count = getFloodfillPeers().size();
+        if (count == 0)
+            return list;
+        // pick a random number of routers between 4 and 4+1% of the total routers
+        int max = 4 + (count / 100);
+        while (list.size() < max) {
+            int randVal = new RandomSource(_context).nextInt(count);
+            RouterInfo ri = lookupRouterInfoLocally(getFloodfillPeers().get(randVal));
+            if (ri != null) {
+                if (!list.contains(ri)) {
+                    if (validate(ri) == null) {
+                        list.add(ri);
+                    }
+                }
+            }
+            
+        }
+        return list;
     }
 
     /**
@@ -807,14 +831,4 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
             }
         }
     }
-
-    /**
-     * Combine the Network Database with another network database passed as an argument
-     *  @since 0.9.59
-     */
-    public void copyNetworkDatabase(FloodfillNetworkDatabaseFacade other) {
-        for (Hash h : other.getDataStore().getKeys()) {
-            this.getDataStore().put(h, other.getDataStore().get(h), false);
-        }
-    }    
 }
