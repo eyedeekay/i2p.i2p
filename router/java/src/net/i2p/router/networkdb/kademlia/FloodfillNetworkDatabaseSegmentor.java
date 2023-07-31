@@ -772,7 +772,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     public FloodfillNetworkDatabaseFacade clientNetDB(String id) {
         if (id == null || id.isEmpty())
             return exploratoryNetDB();
-        return this.getSubNetDB("clients_" + id);
+        return this.getSubNetDB(id);
     }
 
     public FloodfillNetworkDatabaseFacade clientNetDB() {
