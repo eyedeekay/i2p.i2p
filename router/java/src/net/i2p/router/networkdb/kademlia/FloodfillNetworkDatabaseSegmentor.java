@@ -822,14 +822,15 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     @Override
-    public String lookupClientBySigningPublicKey(SigningPublicKey spk) {
+    public List<String> lookupClientBySigningPublicKey(SigningPublicKey spk) {
+        List <String> rv = new ArrayList<>();
         for (String subdb : _subDBs.keySet()) {
             if (subdb.startsWith("clients_"));
                 BlindData bd = _subDBs.get(subdb).getBlindData(spk);
                 if (bd != null) {
-                    return subdb;
+                    rv.add(subdb);
                 }
         }
-        return null;
+        return rv;
     }
 }

@@ -322,8 +322,8 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
     public void lookupLeaseSetRemotely(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, String dbid) {
         floodfillNetDB().lookupLeaseSetRemotely(key, onFindJob, onFailedLookupJob, timeoutMs, key);
     }
-    public String lookupClientBySigningPublicKey(SigningPublicKey spk) {
-        return "floodfill";
+    public List<String> lookupClientBySigningPublicKey(SigningPublicKey spk) {
+        return Collections.emptyList();
     }
     public BlindData getBlindData(SigningPublicKey spk, String dbid) {
         return floodfillNetDB().getBlindData(spk);
