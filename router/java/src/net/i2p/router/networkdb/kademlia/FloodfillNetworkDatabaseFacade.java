@@ -35,6 +35,7 @@ import net.i2p.util.SystemVersion;
  */
 public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacade {
     public static final char CAPABILITY_FLOODFILL = 'f';
+    private static final String MINIMUM_SUBDB_PEERS = "router.subDbMinimumPeers";
     private final Map<Hash, FloodSearchJob> _activeFloodQueries;
     private boolean _floodfillEnabled;
     private final Set<Hash> _verifiesInProgress;
@@ -278,6 +279,11 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         return true;
     }
 
+    public int minFloodfillPeers() {
+        int mfp = _context.getProperty(MINIMUM_SUBDB_PEERS, 3);
+        return mfp;
+    }
+
     public List<RouterInfo> pickRandomFloodfillPeers() {
         List<RouterInfo> list = new ArrayList<RouterInfo>();
         // get the total number of known routers
@@ -285,7 +291,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         if (count == 0)
             return list;
         // pick a random number of routers between 4 and 4+1% of the total routers
-        int max = 4 + (count / 100);
+        int max = minFloodfillPeers() + (count / 100);
         while (list.size() < max) {
             int randVal = new RandomSource(_context).nextInt(count);
             RouterInfo ri = lookupRouterInfoLocally(getFloodfillPeers().get(randVal));
