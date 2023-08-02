@@ -453,7 +453,11 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     }
 
     @Override
-    protected PeerSelector createPeerSelector() { return new FloodfillPeerSelector(_context); }
+    protected PeerSelector createPeerSelector() { 
+        if (_peerSelector != null)
+            return _peerSelector;
+        return new FloodfillPeerSelector(_context);
+    }
     
     /**
      *  Public, called from console. This wakes up the floodfill monitor,

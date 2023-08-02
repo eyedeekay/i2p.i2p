@@ -127,11 +127,11 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * }
      */
 
-    protected PeerSelector createPeerSelector() {
-        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
-            return subdb.createPeerSelector();
-        }
-        return null;
+    protected PeerSelector createPeerSelector(String dbid) {
+        // for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+        // return subdb.createPeerSelector();
+        // }
+        return this.getSubNetDB(dbid).createPeerSelector();
     }
 
     /**
@@ -815,21 +815,23 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     public List<BlindData> getLocalClientsBlindData() {
         ArrayList<BlindData> rv = new ArrayList<>();
         for (String subdb : _subDBs.keySet()) {
-            if (subdb.startsWith("clients_"));
-                rv.addAll(_subDBs.get(subdb).getBlindData());
+            if (subdb.startsWith("clients_"))
+                ;
+            rv.addAll(_subDBs.get(subdb).getBlindData());
         }
         return rv;
     }
 
     @Override
     public List<String> lookupClientBySigningPublicKey(SigningPublicKey spk) {
-        List <String> rv = new ArrayList<>();
+        List<String> rv = new ArrayList<>();
         for (String subdb : _subDBs.keySet()) {
-            if (subdb.startsWith("clients_"));
-                BlindData bd = _subDBs.get(subdb).getBlindData(spk);
-                if (bd != null) {
-                    rv.add(subdb);
-                }
+            if (subdb.startsWith("clients_"))
+                ;
+            BlindData bd = _subDBs.get(subdb).getBlindData(spk);
+            if (bd != null) {
+                rv.add(subdb);
+            }
         }
         return rv;
     }
