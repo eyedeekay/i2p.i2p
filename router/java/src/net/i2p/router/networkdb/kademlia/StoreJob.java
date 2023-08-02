@@ -89,7 +89,7 @@ abstract class StoreJob extends JobImpl {
         _onFailure = onFailure;
         _timeoutMs = timeoutMs;
         _expiration = context.clock().now() + timeoutMs;
-        _peerSelector = facade.getPeerSelector();
+        _peerSelector = facade.createPeerSelector();
         if (data.isLeaseSet()) {
             _connectChecker = null;
             _connectMask = 0;
