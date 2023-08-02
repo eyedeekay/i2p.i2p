@@ -1341,12 +1341,12 @@ public abstract class I2PSessionImpl implements I2PSession, I2CPMessageReader.I2
             if (base32 != null) {
                 // get the netDb directory
                 File netDbDir = new File(_context.getConfigDir(), "netDb");
-                File subNetDbDir = new File(netDbDir, "client_"+base32);
+                File subNetDbDir = new File(netDbDir, "clients_"+base32);
                 if (subNetDbDir.exists()) {
                     subNetDbDir.delete();
                 }
                 File baseNetDbDir = new File(_context.getConfigDir(), "netDb");
-                File baseSubNetDbDir = new File(baseNetDbDir, "client_"+base32);
+                File baseSubNetDbDir = new File(baseNetDbDir, "clients_"+base32);
                 if (baseSubNetDbDir.exists()) {
                     baseSubNetDbDir.delete();
                 }
