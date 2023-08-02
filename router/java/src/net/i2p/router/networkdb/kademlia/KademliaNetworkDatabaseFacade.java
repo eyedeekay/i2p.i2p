@@ -1594,14 +1594,4 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     public void renderStatusHTML(Writer out) throws IOException {
         out.write(_kb.toString().replace("\n", "<br>\n"));
     }
-
-    /**
-     * Combine the Network Database with another network database passed as an argument
-     *  @since 0.9.59
-     */
-    public void copyNetworkDatabase(KademliaNetworkDatabaseFacade other) {
-        for (Hash h : other.getDataStore().getKeys()) {
-            _ds.put(h, other.getDataStore().get(h), false);
-        }
-    }
 }
