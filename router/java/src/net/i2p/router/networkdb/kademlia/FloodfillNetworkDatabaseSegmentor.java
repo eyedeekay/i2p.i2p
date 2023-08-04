@@ -111,7 +111,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
      * @throws IllegalArgumentException if the local router info is invalid
      */
     public void publish(RouterInfo localRouterInfo) throws IllegalArgumentException {
-        floodfillNetDB().publish(localRouterInfo);
+        if (localRouterInfo == null)
+            throw new IllegalArgumentException("localRouterInfo must not be null");
+        if (localRouterInfo.getReceivedBy() == null)
+            floodfillNetDB().publish(localRouterInfo);
     }
 
     /**
