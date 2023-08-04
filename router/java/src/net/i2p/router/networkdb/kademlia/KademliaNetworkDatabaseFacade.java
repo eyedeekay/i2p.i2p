@@ -299,7 +299,11 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         }
         return _dbDir;
     }
-    
+
+    public boolean isClientDb() {
+        return _dbid.startsWith("clients_");
+    }
+
     public synchronized void startup() {
         _log.info("Starting up the kademlia network database");
         RouterInfo ri = _context.router().getRouterInfo();
