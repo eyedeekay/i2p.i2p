@@ -1999,7 +1999,6 @@ public class UDPTransport extends TransportImpl implements TimedWeightedPriority
         
         _activeThrottle.unchoke(peer.getRemotePeer());
         markReachable(peer.getRemotePeer(), peer.isInbound());
-        //_context.banlist().unbanlistRouter(peer.getRemotePeer(), STYLE);
 
         //if (SHOULD_FLOOD_PEERS)
         //    _flooder.addPeer(peer);
