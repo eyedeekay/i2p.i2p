@@ -314,12 +314,18 @@ abstract class StoreJob extends JobImpl {
 *****/
 
     private List<Hash> getClosestFloodfillRouters(Hash key, int numClosest, Set<Hash> alreadyChecked) {
+        List<Hash> rv;
         Hash rkey = getContext().routingKeyGenerator().getRoutingKey(key);
         KBucketSet<Hash> ks = _facade.getKBuckets();
         if (ks == null) return new ArrayList<Hash>();
         if (_log.shouldLog(Log.DEBUG))
             _log.debug(getJobId() + "(dbid: " + _facade._dbid + "): Selecting Floodfill Participants");
-        List<Hash> rv = ((FloodfillPeerSelector)_peerSelector).selectFloodfillParticipants(rkey, numClosest, alreadyChecked, ks);
+        if (_facade.isClientDb()) {
+            FloodfillPeerSelector ffNetDbPS = (FloodfillPeerSelector)getContext().floodfillNetDb().getPeerSelector();
+            rv = ffNetDbPS.selectFloodfillParticipants(rkey, numClosest, alreadyChecked, ks);
+        } else {
+            rv = ((FloodfillPeerSelector)_peerSelector).selectFloodfillParticipants(rkey, numClosest, alreadyChecked, ks);
+        }
         return rv;
     }
 

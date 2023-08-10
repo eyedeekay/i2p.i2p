@@ -390,7 +390,10 @@ class SearchJob extends JobImpl {
         Hash rkey = getContext().routingKeyGenerator().getRoutingKey(key);
         if (_log.shouldLog(Log.DEBUG))
             _log.debug(getJobId() + ": Current routing key for " + key + ": " + rkey);
-        return _peerSelector.selectNearestExplicit(rkey, numClosest, alreadyChecked, _facade.getKBuckets());
+        if (_facade.isClientDb())
+            return getContext().floodfillNetDb().getPeerSelector().selectNearestExplicit(rkey, numClosest, alreadyChecked, _facade.getKBuckets());
+        else
+            return _peerSelector.selectNearestExplicit(rkey, numClosest, alreadyChecked, _facade.getKBuckets());
     }
     
     /**
