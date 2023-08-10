@@ -493,6 +493,11 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
             return;
         }
         if (toUs) {
+            if (_facade.isClientDb()) {
+                _log.error("Error! SendMessageDirectJob (toUs) attempted in Client netDb ("
+                           + _facade._dbid + ")! Message: " + msg);
+                return;
+            }
             Job send = new SendMessageDirectJob(getContext(), msg, toPeer, REPLY_TIMEOUT, MESSAGE_PRIORITY, _msgIDBloomXor);
             send.runJob();
             if (msg2 != null) {
@@ -554,7 +559,7 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 }
             }
         }
-        if (isEstab) {
+        if (isEstab && !_facade.isClientDb()) {
             I2NPMessage out1 = msg;
             I2NPMessage out2 = msg2;
             if (replyTunnel != null) {
@@ -571,6 +576,12 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                     tgm2.setMessageExpiration(msg.getMessageExpiration());
                     out2 = tgm2;
                 }
+            }
+            if (_facade.isClientDb()) {
+                // We shouldn't be reaching this point given the above conditional.
+                _log.error("Error! SendMessageDirectJob (isEstab) attempted in Client netDb ("
+                           + _facade._dbid + ")! Message: " + out1);
+                return;
             }
             Job send = new SendMessageDirectJob(getContext(), out1, toPeer, REPLY_TIMEOUT, MESSAGE_PRIORITY, _msgIDBloomXor);
             send.runJob();

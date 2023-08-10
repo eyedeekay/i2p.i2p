@@ -509,6 +509,11 @@ class SearchJob extends JobImpl {
                       + " for " + _state.getTarget());
         SearchMessageSelector sel = new SearchMessageSelector(getContext(), router, _expiration, _state);
         SearchUpdateReplyFoundJob reply = new SearchUpdateReplyFoundJob(getContext(), router, _state, _facade, this);
+        if (_facade.isClientDb()) {
+            _log.error("Error! SendMessageDirectJob attempted in Client netDb ("
+                       + _facade._dbid + ")! Message: " + msg, new Exception ("backtrace..."));
+            return;
+        }
         SendMessageDirectJob j = new SendMessageDirectJob(getContext(), msg, to,
                                                           reply, new FailedJob(getContext(), router), sel, timeout,
                                                           OutNetMessage.PRIORITY_EXPLORATORY, _msgIDBloomXor);
