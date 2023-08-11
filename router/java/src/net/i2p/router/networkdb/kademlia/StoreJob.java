@@ -205,7 +205,11 @@ abstract class StoreJob extends JobImpl {
                                       _state.getData().getKeysAndCert().getSigningPublicKey().getType() :
                                       null;
             for (Hash peer : closestHashes) {
-                DatabaseEntry ds = _facade.getDataStore().get(peer);
+                DatabaseEntry ds;
+                if (_facade.isClientDb())
+                    ds = getContext().floodfillNetDb().getDataStore().get(peer);
+                else
+                    ds = _facade.getDataStore().get(peer);
                 if ( (ds == null) || !(ds.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO) ) {
                     if (_log.shouldLog(Log.INFO))
                         _log.info("JobId: " + getJobId()
