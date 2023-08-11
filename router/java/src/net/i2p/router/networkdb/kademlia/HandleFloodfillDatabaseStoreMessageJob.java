@@ -232,6 +232,11 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                     dontBlamePeer = true;
                     throw new IllegalArgumentException("Peer attempted to store our RouterInfo");
                 }
+                // If we're in the client netDb context, log a warning since
+                // it should be rare that RI DSM are handled in the client context.
+                if (_log.shouldWarn())
+                    _log.warn("[dbid: " + _facade._dbid
+                              + "]:  Handling RI dbStore in client netDb context of router " + key.toBase64());
                 boolean shouldStore = true;
                 if (ri.getReceivedAsPublished()) {
                     // these are often just dup stores from concurrent lookups
@@ -345,6 +350,9 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                     }
                 }
                 if (shouldStore) {
+                    if (_log.shouldDebug())
+                        _log.debug("[dbid: " + _facade._dbid
+                                   + "]: Storing RI with the context netDb " + key.toBase64());
                     prevNetDb = _facade.store(key, ri);
                     wasNew = ((null == prevNetDb) || (prevNetDb.getPublished() < ri.getPublished()));
                 }
