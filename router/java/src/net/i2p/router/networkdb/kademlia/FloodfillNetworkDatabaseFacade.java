@@ -87,19 +87,29 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         _context.statManager().createRateStat("netDb.republishQuantity", "How many peers do we need to send a found leaseSet to?", "NetworkDatabase", rate);
         // for ISJ
         _context.statManager().createRateStat("netDb.RILookupDirect", "Was an iterative RI lookup sent directly?", "NetworkDatabase", rate);
-        _ffMonitor = new FloodfillMonitorJob(_context, this);
+        // No need to start the FloodfillMonitorJob for client subDb.
+        if (super.isClientDb())
+            _ffMonitor = null;
+        else
+            _ffMonitor = new FloodfillMonitorJob(_context, this);
     }
 
     @Override
     public synchronized void startup() {
+        boolean isFF;
         super.startup();
-        _context.jobQueue().addJob(_ffMonitor);
+        if (_ffMonitor != null)
+            _context.jobQueue().addJob(_ffMonitor);
+        if (super.isClientDb())
+            isFF = false;
+        else
+            isFF = _context.getBooleanProperty(FloodfillMonitorJob.PROP_FLOODFILL_PARTICIPANT);
+
         _lookupThrottler = new LookupThrottler();
         _lookupBanner = new LookupThrottler(BAN_LOOKUP_BASE, BAN_LOOKUP_BASE_INTERVAL);
         _lookupThrottlerBurst = new LookupThrottler(DROP_LOOKUP_BURST, DROP_LOOKUP_BURST_INTERVAL);
         _lookupBannerBurst = new LookupThrottler(BAN_LOOKUP_BURST, BAN_LOOKUP_BURST_INTERVAL);
 
-        boolean isFF = _context.getBooleanProperty(FloodfillMonitorJob.PROP_FLOODFILL_PARTICIPANT);
         long down = _context.router().getEstimatedDowntime();
         if (!_context.commSystem().isDummy() &&
             (down == 0 || (!isFF && down > 30*60*1000) || (isFF && down > 24*60*60*1000))) {
@@ -142,7 +152,8 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
                 } catch (InterruptedException ie) {}
             }
         }
-        _context.jobQueue().removeJob(_ffMonitor);
+        if (_ffMonitor != null)
+            _context.jobQueue().removeJob(_ffMonitor);
         super.shutdown();
     }
 
@@ -465,7 +476,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
      *  and call setFloodfillEnabledFromMonitor which really sets it.
      */
     public synchronized void setFloodfillEnabled(boolean yes) {
-        if (yes != _floodfillEnabled) {
+        if ((yes != _floodfillEnabled) && (_ffMonitor != null)) {
             _context.jobQueue().removeJob(_ffMonitor);
             _ffMonitor.getTiming().setStartAfter(_context.clock().now() + 1000);
             _context.jobQueue().addJob(_ffMonitor);
