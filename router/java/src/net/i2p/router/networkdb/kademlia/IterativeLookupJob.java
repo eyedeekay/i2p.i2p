@@ -62,7 +62,7 @@ class IterativeLookupJob extends JobImpl {
                         invalidPeers++;
                         continue;
                     }
-                    if (getContext().banlist().isBanlistedForever(peer)) {
+                    if (getContext().banlist().isBanlistedHard(peer)) {
                         oldPeers++;
                         continue;
                     }

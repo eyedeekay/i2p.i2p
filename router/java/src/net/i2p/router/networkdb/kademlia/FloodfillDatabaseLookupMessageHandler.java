@@ -52,8 +52,9 @@ public class FloodfillDatabaseLookupMessageHandler implements HandlerJobBuilder 
         _context.statManager().addRateData("netDb.lookupsReceived", 1);
 
         DatabaseLookupMessage dlm = (DatabaseLookupMessage)receivedMessage;
-        boolean isBanned = dlm.getFrom() != null && (_context.banlist().isBanlistedForever(dlm.getFrom()) ||
-        _context.banlist().isBanlisted(dlm.getFrom()));
+        boolean isBanned = dlm.getFrom() != null
+                           && (_context.banlist().isBanlistedHard(dlm.getFrom())
+                           || _context.banlist().isBanlisted(dlm.getFrom()));
         if (isBanned) {
             _context.statManager().addRateData("netDb.lookupsDroppedDueToPriorBan", 1);
             return null;
@@ -84,7 +85,9 @@ public class FloodfillDatabaseLookupMessageHandler implements HandlerJobBuilder 
                 _log.warn("Banning " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " because requests are being sent extremely fast in a very short time, reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());    
                 _context.statManager().addRateData("netDb.repeatedBurstLookupsDropped", 1);
             }
-            _context.banlist().banlistRouter(dlm.getFrom(), " <b>➜</b> Excessive lookup requests, burst", null, null, _context.clock().now() + 4*60*60*1000);
+            _context.banlist().banlistRouter(dlm.getFrom(), " <b>➜</b> Excessive lookup requests, burst", null,
+                                             _context.banlist().BANLIST_CODE_HARD, null,
+                                             _context.clock().now() + 4*60*60*1000);
             _context.commSystem().mayDisconnect(dlm.getFrom());
             _context.statManager().addRateData("netDb.lookupsDropped", 1);
             return null;
