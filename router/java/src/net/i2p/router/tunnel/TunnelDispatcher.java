@@ -181,7 +181,7 @@ public class TunnelDispatcher implements Service {
         ctx.statManager().createRateStat("tunnel.failedCompletelyMessages", 
                                          "How many messages are sent through a tunnel that failed prematurely (period == failures)?", "Tunnels", 
                                          new long[] { 60*1000l, 10*60*1000l, 60*60*1000l });
-        ctx.statManager().createRateStat("tunnel.failedPartially", 
+        ctx.statManager().createRateStat("tunnel.failedPartiallyMessages",
                                          "How many messages are sent through a tunnel that only failed partially (period == failures)?", "Tunnels", 
                                          new long[] { 60*1000l, 10*60*1000l, 60*60*1000l });
         // following are for BatchedPreprocessor
