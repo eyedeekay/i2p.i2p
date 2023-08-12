@@ -102,7 +102,9 @@ abstract class StoreJob extends JobImpl {
                 _connectMask = ConnectChecker.ANY_V4;
         }
         if (_log.shouldLog(Log.DEBUG))
-            _log.debug(getJobId() + ": New store job for\n" + data, new Exception("I did it"));
+            _log.debug(getJobId() + ": New store job (dbid: "
+                       + _facade._dbid + "for\n"
+                       + data, new Exception("I did it"));
     }
 
     public String getName() { return "Kademlia NetDb Store";}
@@ -184,7 +186,9 @@ abstract class StoreJob extends JobImpl {
         if ( (closestHashes == null) || (closestHashes.isEmpty()) ) {
             if (_state.getPendingCount() <= 0) {
                 if (_log.shouldLog(Log.INFO))
-                    _log.info(getJobId() + ": No more peers left and none pending");
+                    _log.info("JobId: " + getJobId()
+                              + " (dbid: " + _facade._dbid
+                              + "): No more peers left and none pending");
                 fail();
             } else {
                 if (_log.shouldLog(Log.INFO))
@@ -204,7 +208,9 @@ abstract class StoreJob extends JobImpl {
                 DatabaseEntry ds = _facade.getDataStore().get(peer);
                 if ( (ds == null) || !(ds.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO) ) {
                     if (_log.shouldLog(Log.INFO))
-                        _log.info(getJobId() + ": Error selecting closest hash that wasnt a router! " + peer + " : " + ds);
+                        _log.info("JobId: " + getJobId()
+                                  + " (for dbid: " + _facade._dbid
+                                  + "): Error selecting closest hash that wasnt a router! " + peer + " : " + ds);
                     _state.addSkipped(peer);
                     skipped++;
                 } else if (!shouldStoreTo((RouterInfo)ds)) {
@@ -258,8 +264,9 @@ abstract class StoreJob extends JobImpl {
                     // // Do not store to hidden nodes
                     // if (!((RouterInfo)ds).isHidden()) {
                        if (_log.shouldLog(Log.INFO))
-                           _log.info(getJobId() + ": Continue sending key " + _state.getTarget() +
-                                     " after " + _state.getAttemptedCount() + " tries to " + closestHashes);
+                           _log.info(getJobId() + "(dbid: " + _facade._dbid
+                                     + "): Continue sending key " + _state.getTarget()
+                                     + " after " + _state.getAttemptedCount() + " tries to " + closestHashes);
                         _state.addPending(peer);
                         sendStore((RouterInfo)ds, peerTimeout);
                         queued++;
@@ -268,7 +275,8 @@ abstract class StoreJob extends JobImpl {
             }
             if (queued == 0 && _state.getPendingCount() <= 0) {
                 if (_log.shouldLog(Log.INFO))
-                    _log.info(getJobId() + ": No more peers left after skipping " + skipped + " and none pending");
+                    _log.info(getJobId() + "(dbid: " + _facade._dbid
+                              + "): No more peers left after skipping " + skipped + " and none pending");
                 // queue a job to go around again rather than recursing
                 getContext().jobQueue().addJob(new WaitJob(getContext()));
             }
@@ -309,6 +317,8 @@ abstract class StoreJob extends JobImpl {
         Hash rkey = getContext().routingKeyGenerator().getRoutingKey(key);
         KBucketSet<Hash> ks = _facade.getKBuckets();
         if (ks == null) return new ArrayList<Hash>();
+        if (_log.shouldLog(Log.DEBUG))
+            _log.debug(getJobId() + "(dbid: " + _facade._dbid + "): Selecting Floodfill Participants");
         List<Hash> rv = ((FloodfillPeerSelector)_peerSelector).selectFloodfillParticipants(rkey, numClosest, alreadyChecked, ks);
         return rv;
     }
@@ -394,7 +404,8 @@ abstract class StoreJob extends JobImpl {
         SendSuccessJob onReply = new SendSuccessJob(getContext(), peer);
         FailedJob onFail = new FailedJob(getContext(), peer, getContext().clock().now());
         StoreMessageSelector selector = new StoreMessageSelector(getContext(), getJobId(), peer, msg.getReplyToken(), expiration);
-        
+
+        // ToDo: Craft a nasty error message here if the _facade is not the floodfill facade.
         if (_log.shouldLog(Log.DEBUG))
             _log.debug(getJobId() + ": sending store directly to " + to);
         OutNetMessage m = new OutNetMessage(getContext(), msg, expiration, STORE_PRIORITY, peer);
@@ -555,7 +566,10 @@ abstract class StoreJob extends JobImpl {
             StoreMessageSelector selector = new StoreMessageSelector(ctx, getJobId(), peer, msg.getReplyToken(), expiration);
     
             if (_log.shouldLog(Log.DEBUG)) {
-                _log.debug(getJobId() + ": sending encrypted store to " + to + " through " + outTunnel + ": " + sent + " with reply to " + replyGW + ' ' + replyTunnelId);
+                _log.debug(getJobId() + "(dbid: " + _facade._dbid
+                           + "): sending encrypted store through client tunnel to " + to
+                           + " through " + outTunnel + ": " + sent + " with reply to "
+                           + replyGW + ' ' + replyTunnelId);
             }
             ctx.messageRegistry().registerPending(selector, onReply, onFail);
             ctx.tunnelDispatcher().dispatchOutbound(sent, outTunnel.getSendTunnelId(0), null, to);

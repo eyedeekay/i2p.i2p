@@ -129,7 +129,7 @@ class FloodfillVerifyStoreJob extends JobImpl {
             return;
         }
         DatabaseLookupMessage lookup = buildLookup(replyTunnelInfo);
- 
+
         // If we are verifying a leaseset, use the destination's own tunnels,
         // to avoid association by the exploratory tunnel OBEP.
         // Unless it is an encrypted leaseset.
@@ -151,7 +151,9 @@ class FloodfillVerifyStoreJob extends JobImpl {
         RouterInfo peer = _facade.lookupRouterInfoLocally(_target);
         if (peer == null) {
              if (_log.shouldLog(Log.WARN))
-                 _log.warn("Fail finding target RI");
+                 _log.warn("(JobId: " + getJobId()
+                           + "; dbid: " + _facade._dbid
+                           + ") Fail looking up RI locally for target " + _target);
             _facade.verifyFinished(_key);
             return;
         }
@@ -400,7 +402,8 @@ class FloodfillVerifyStoreJob extends JobImpl {
                 pm.dbLookupReply(_target,  0,
                                 dsrm.getNumReplies(), 0, 0, delay);
                 if (_log.shouldLog(Log.WARN))
-                    _log.warn(getJobId() + ": Verify failed (DSRM) for " + _key);
+                    _log.warn(getJobId() + ": DSRM verify failed (dbid: "
+                              + _facade._dbid + ") for " + _key);
                 // only for RI... LS too dangerous?
                 if (_isRouterInfo)
                     ctx.jobQueue().addJob(new SingleLookupJob(ctx, dsrm));
