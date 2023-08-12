@@ -382,7 +382,9 @@ abstract class StoreJob extends JobImpl {
         if (msg.getEntry().isLeaseSet()) {
             ctx.statManager().addRateData("netDb.storeLeaseSetSent", 1);
             // if it is an encrypted leaseset...
-            if (ctx.keyRing().get(msg.getKey()) != null)
+            if (_facade.isClientDb())
+                sendStoreThroughClient(msg, peer, expiration);
+            else if (ctx.keyRing().get(msg.getKey()) != null)
                 sendStoreThroughExploratory(msg, peer, expiration);
             else if (msg.getEntry().getType() == DatabaseEntry.KEY_TYPE_META_LS2)
                 sendWrappedStoreThroughExploratory(msg, peer, expiration);
@@ -390,9 +392,22 @@ abstract class StoreJob extends JobImpl {
                 sendStoreThroughClient(msg, peer, expiration);
         } else {
             ctx.statManager().addRateData("netDb.storeRouterInfoSent", 1);
-            // if we can't connect to peer directly, just send it out an exploratory tunnel
+            // Special handling if we're in the client context.
+            // Otherwise, if we can't connect to peer directly,
+            // just send it out an exploratory tunnel
             Hash h = peer.getIdentity().getHash();
-            if (ctx.commSystem().isEstablished(h) ||
+            if (_facade.isClientDb()) {
+                // If we're in the client netDb context, sending RI
+                // should be rare.  Perhaps even forbidden.
+                // For now, send it out through exploratory tunnels,
+                // and issue a warning.
+                sendStoreThroughExploratory(msg, peer, expiration);
+                if (_log.shouldLog(Log.WARN))
+                    _log.warn("[JobId: " + getJobId() + "; dbid: " + _facade._dbid
+                          +"]: Sending RI store (though exploratory tunnels) in a client context to "
+                          + peer.getIdentity().getHash() + " with message " + msg);
+            }
+            else if (ctx.commSystem().isEstablished(h) ||
                 (!ctx.commSystem().wasUnreachable(h) && _connectChecker.canConnect(_connectMask, peer)))
                 sendDirect(msg, peer, expiration);
             else
@@ -406,6 +421,11 @@ abstract class StoreJob extends JobImpl {
      *
      */
     private void sendDirect(DatabaseStoreMessage msg, RouterInfo peer, long expiration) {
+        if (_facade.isClientDb()) {
+            _log.error("Error! Direct DatabaseStoreMessage attempted in client context! Message: " + msg);
+            return;
+        }
+
         msg.setReplyGateway(getContext().routerHash());
 
         Hash to = peer.getIdentity().getHash();
