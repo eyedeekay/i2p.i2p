@@ -160,9 +160,13 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                     //    match.setReceivedAsPublished(true);
                 }
             } catch (UnsupportedCryptoException uce) {
+               if (_log.shouldError())
+                   _log.error("UCE: ", uce);
                 invalidMessage = uce.getMessage();
                 dontBlamePeer = true;
             } catch (IllegalArgumentException iae) {
+               if (_log.shouldError())
+                   _log.error("LS Store IAE: ", iae);
                 invalidMessage = iae.getMessage();
             }
         } else if (type == DatabaseEntry.KEY_TYPE_ROUTERINFO) {
