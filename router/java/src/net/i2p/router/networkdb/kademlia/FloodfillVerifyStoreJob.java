@@ -245,7 +245,8 @@ class FloodfillVerifyStoreJob extends JobImpl {
         }
 
         if (_log.shouldLog(Log.INFO))
-            _log.info(getJobId() + ": Starting verify (stored " + _key + " to " + _sentTo + "), asking " + _target);
+            _log.info("[JobId: " + getJobId() + "; dbid: " + _facade._dbid
+                      + "]: Starting verify (stored " + _key + " to " + _sentTo + "), asking " + _target);
         _sendTime = ctx.clock().now();
         _expiration = _sendTime + VERIFY_TIMEOUT;
         ctx.messageRegistry().registerPending(new VerifyReplySelector(),
@@ -333,7 +334,18 @@ class FloodfillVerifyStoreJob extends JobImpl {
                 return _key.equals(dsm.getKey());
             } else if (type == DatabaseSearchReplyMessage.MESSAGE_TYPE) {
                 DatabaseSearchReplyMessage dsrm = (DatabaseSearchReplyMessage)message;
-                return _key.equals(dsrm.getSearchKey());
+                boolean rv = _key.equals(dsrm.getSearchKey());
+                if (rv) {
+                    if (_log.shouldInfo())
+                        _log.info("[JobId: " + getJobId() + "; dbid: " + _facade._dbid
+                                  + "DSRM key match successful.");
+                } else {
+                    if (_log.shouldWarn())
+                        _log.warn("[JobId: " + getJobId() + "; dbid: " + _facade._dbid
+                                  + "]: DSRM key mismatch for key " + _key
+                                  + " with DSRM: " + message);
+                }
+                return rv;
             }
             return false;
         }
@@ -401,12 +413,23 @@ class FloodfillVerifyStoreJob extends JobImpl {
                 // assume 0 old, all new, 0 invalid, 0 dup
                 pm.dbLookupReply(_target,  0,
                                 dsrm.getNumReplies(), 0, 0, delay);
+                // ToDo: Clarify the following log message.
+                // This message is phrased in a manner that draws attention, and indicates
+                // the possibility of a problem that may need follow-up. But examination
+                // of the code did not provide insight as to what is being verified,
+                // and what is failing. This message will be displayed unconditionally
+                // every time a DSRM is handled here.
                 if (_log.shouldLog(Log.WARN))
                     _log.warn(getJobId() + ": DSRM verify failed (dbid: "
                               + _facade._dbid + ") for " + _key);
                 // only for RI... LS too dangerous?
-                if (_isRouterInfo)
+                if (_isRouterInfo) {
+                    if (_facade.isClientDb())
+                        if (_log.shouldLog(Log.WARN))
+                            _log.warn("[Jobid: " + getJobId() + "; dbid: " + _facade._dbid
+                                      + "Warning! Client is starting a SingleLookupJob (DIRECT?) for RouterInfo");
                     ctx.jobQueue().addJob(new SingleLookupJob(ctx, dsrm));
+                }
             }
             // store failed, boo, hiss!
             // blame the sent-to peer, but not the verify peer
