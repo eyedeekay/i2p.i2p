@@ -547,6 +547,10 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
      * @return null always
      * @since 0.9.10
      */
+    // ToDo: With repect to segmented netDb clients, this framework needs
+    // refinement.  A client with a segmented netDb can not use exploratory
+    // tunnels.  The return messages will not have sufficient information
+    // to be directed back to the clientmaking the query.
     SearchJob search(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, boolean isLease,
                      Hash fromLocalDest) {
         //if (true) return super.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease);
@@ -570,7 +574,10 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         
         if (isNew) {
             if (_log.shouldDebug())
-                _log.debug("New ISJ for " + key.toBase64());
+                _log.debug("[dbid: " + super._dbid
+                           + "]: New ISJ ("
+                           + ((fromLocalDest != null) ? "through client tunnels" : "through exploratory tunnels")
+                           + ") for " + key.toBase64());
             _context.jobQueue().addJob(searchJob);
         } else {
             if (_log.shouldDebug())
