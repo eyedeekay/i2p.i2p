@@ -75,6 +75,7 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
         // set if invalid store but not his fault
         boolean dontBlamePeer = false;
         boolean wasNew = false;
+        boolean isLocal = false;
         RouterInfo prevNetDb = null;
         Hash key = _message.getKey();
         DatabaseEntry entry = _message.getEntry();
@@ -103,7 +104,16 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 // See ../HDLMJ for more info
                 if (!ls.getReceivedAsReply())
                     ls.setReceivedAsPublished();
-                if (getContext().clientManager().isLocal(key)) {
+                if (_facade.isClientDb() && _facade.matchClientKey(key))
+                    // In the client subDb context, the only local key to worry about
+                    // is the key for this client.
+                    isLocal = true;
+                else if (getContext().clientManager().isLocal(key))
+                    // Non-client context (probably floodfill)
+                    isLocal = true;
+                else
+                    isLocal = false;
+                if (isLocal) {
                     getContext().statManager().addRateData("netDb.storeLocalLeaseSetAttempt", 1, 0);
                     // throw rather than return, so that we send the ack below (prevent easy attack)
                     dontBlamePeer = true;
