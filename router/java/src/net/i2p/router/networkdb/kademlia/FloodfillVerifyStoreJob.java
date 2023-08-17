@@ -458,7 +458,12 @@ class FloodfillVerifyStoreJob extends JobImpl {
      *  So at least we'll try THREE ffs round-robin if things continue to fail...
      */
     private void resend() {
-        DatabaseEntry ds = getContext().netDb().lookupLocally(_key, null);
+        // It's safe to check the default netDb first, but if the lookup is for
+        // a client, nearly all RI is expected to be found in the FF netDb.
+        DatabaseEntry ds = getContext().netDb().lookupLocally(_key, _facade._dbid);
+        if ((ds == null) && _facade.isClientDb() && _isRouterInfo)
+            // It's safe to check the floodfill netDb for RI
+            ds = getContext().netDb().lookupLocally(_key, "floodfill");
         if (ds != null) {
             // By the time we get here, a minute or more after the store started, 
             // we may have already started a new store
