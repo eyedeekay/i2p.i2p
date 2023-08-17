@@ -407,6 +407,19 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         this.getSubNetDB(dbid).lookupLeaseSet(key, onFindJob, onFailedLookupJob, timeoutMs, fromLocalDest);
     }
 
+    /**
+     * Lookup using the client's tunnels when the client LS key is know
+     *    but the client dbid is not.
+     *
+     * @param key       The LS key for client.
+     * @since 0.9.60
+     */
+    @Override
+    public LeaseSet lookupLeaseSetHashIsClient(Hash key) {
+        String dbid = matchDbid(key);
+        return lookupLeaseSetLocally(key, dbid);
+    }
+
     @Override
     public LeaseSet lookupLeaseSetLocally(Hash key, String dbid) {
         if (dbid == null || dbid.isEmpty()) {
@@ -919,5 +932,19 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             }
         }
         return rv;
+    }
+
+    /**
+     * Return the dbid that is associated with the supplied client LS key
+     *
+     * @param clientKey The LS key of the subDb context
+     * @since 0.9.60
+     */
+    private String matchDbid(Hash clientKey) {
+        for (FloodfillNetworkDatabaseFacade subdb : _subDBs.values()) {
+            if (subdb.matchClientKey(clientKey))
+                return subdb._dbid;
+        }
+        return null;
     }
 }
