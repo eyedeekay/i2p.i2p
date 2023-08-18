@@ -330,4 +330,6 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
     public BlindData getBlindData(SigningPublicKey spk, String dbid) {
         return floodfillNetDB().getBlindData(spk);
     }
+
+    public abstract String getDbidByHash(Hash clientKey);
 }

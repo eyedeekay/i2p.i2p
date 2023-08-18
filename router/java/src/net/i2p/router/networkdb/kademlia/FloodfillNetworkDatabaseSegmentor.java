@@ -935,6 +935,18 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     /**
+     * Public helper to return the dbid that is associated with the
+     * supplied client key.
+     *
+     * @param clientKey The LS key of the subDb context
+     * @since 0.9.60
+     */
+    @Override
+    public String getDbidByHash(Hash clientKey) {
+        return matchDbid(clientKey);
+    }
+
+    /**
      * Return the dbid that is associated with the supplied client LS key
      *
      * @param clientKey The LS key of the subDb context

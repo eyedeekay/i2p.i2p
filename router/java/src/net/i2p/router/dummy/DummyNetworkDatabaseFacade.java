@@ -209,4 +209,9 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
     public FloodfillNetworkDatabaseFacade localNetDB() {
         return _fndb;
     }
+
+    @Override
+    public String getDbidByHash(Hash clientKey) {
+        throw new UnsupportedOperationException("Unimplemented method 'lookupLeaseSetHashIsClient'");
+    }
 }
