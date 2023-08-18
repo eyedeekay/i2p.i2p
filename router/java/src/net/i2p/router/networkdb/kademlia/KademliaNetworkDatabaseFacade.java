@@ -81,6 +81,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     protected final int _networkID;
     private final BlindCache _blindCache;
     protected final String _dbid;
+    private Hash _localKey;
 
     /** 
      * Map of Hash to RepublishLeaseSetJob for leases we'realready managing.
@@ -181,6 +182,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         _reseedChecker = new ReseedChecker(context);
         _blindCache = new BlindCache(context);
         _dbid = dbid;
+        _localKey = null;
         if (_log.shouldLog(Log.DEBUG))
             _log.debug("Created KademliaNetworkDatabaseFacade for id: " + dbid);
         context.statManager().createRateStat("netDb.lookupDeferred", "how many lookups are deferred?", "NetworkDatabase", new long[] { 60*60*1000 });
@@ -807,6 +809,19 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
             _log.error("locally published leaseSet is not valid?", iae);
             throw iae;
         }
+        if (_localKey != null) {
+            if (!_localKey.equals(localLeaseSet.getHash()))
+                if (_log.shouldLog(Log.ERROR))
+                    _log.error("Error, the local LS hash ("
+                               + _localKey + ") does not match the published hash ("
+                               + localLeaseSet.getHash() + ")! This shouldn't happen!",
+                               new Exception());
+        } else {
+            // This will only happen once when the local LS is first published
+            _localKey = localLeaseSet.getHash();
+            if (_log.shouldLog(Log.INFO))
+                _log.info("Local client LS key initialized to: " + _localKey);
+        }
         if (!_context.clientManager().shouldPublishLeaseSet(h))
             return;
         // If we're exiting, don't publish.
@@ -873,6 +888,13 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     @Override
     public long getLastRouterInfoPublishTime() {
         return _lastRIPublishTime;
+    }
+
+    public boolean matchClientKey(Hash key) {
+        if ((_localKey != null) && (_localKey.equals(key)))
+            return true;
+        else
+            return false;
     }
 
     /**
