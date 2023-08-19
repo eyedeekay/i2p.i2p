@@ -62,14 +62,22 @@ public class FloodfillDatabaseLookupMessageHandler implements HandlerJobBuilder 
         boolean ourRI = dlm.getSearchKey() != null && dlm.getSearchKey().equals(_context.routerHash());
         if (!_context.floodfillNetDb().floodfillEnabled() && (dlm.getReplyTunnel() == null && !ourRI)) {
             if (_log.shouldLog(Log.WARN)) 
-                _log.warn("Dropping " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " (we are not a floodfill), reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());
+                _log.warn("[dbid: " + _facade._dbid
+                          + "] Dropping " + dlm.getSearchType()
+                          + " lookup request for " + dlm.getSearchKey()
+                          + " (we are not a floodfill), reply was to: "
+                          + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());
             _context.statManager().addRateData("netDb.nonFFLookupsDropped", 1);
             return null;
         }
 
         if (_facade.shouldBanLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
             if (_log.shouldLog(Log.WARN)) {
-                _log.warn("Possibly throttling " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " because requests are being sent extremely fast, reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());    
+                _log.warn("[dbid: " + _facade._dbid
+                          + "] Possibly throttling " + dlm.getSearchType()
+                          + " lookup request for " + dlm.getSearchKey()
+                          + " because requests are being sent extremely fast, reply was to: "
+                          + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());
                 _context.statManager().addRateData("netDb.repeatedLookupsDropped", 1);
             }
             /* 
@@ -82,7 +90,11 @@ public class FloodfillDatabaseLookupMessageHandler implements HandlerJobBuilder 
         }
         if (_facade.shouldBanBurstLookup(dlm.getFrom(), dlm.getReplyTunnel())) {
             if (_log.shouldLog(Log.WARN)) {
-                _log.warn("Banning " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " because requests are being sent extremely fast in a very short time, reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());    
+                _log.warn("[dbid: " + _facade._dbid
+                          + "] Banning " + dlm.getSearchType()
+                          + " lookup request for " + dlm.getSearchKey()
+                          + " because requests are being sent extremely fast in a very short time, reply was to: "
+                          + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());
                 _context.statManager().addRateData("netDb.repeatedBurstLookupsDropped", 1);
             }
             _context.banlist().banlistRouter(dlm.getFrom(), " <b>➜</b> Excessive lookup requests, burst", null,
@@ -104,7 +116,11 @@ public class FloodfillDatabaseLookupMessageHandler implements HandlerJobBuilder 
             //}
         } else {
             if (_log.shouldLog(Log.WARN)) 
-                _log.warn("Dropping " + dlm.getSearchType() + " lookup request for " + dlm.getSearchKey() + " (throttled), reply was to: " + dlm.getFrom() + " tunnel: " + dlm.getReplyTunnel());
+                _log.warn("[dbid: " + _facade._dbid
+                          + "] Dropping " + dlm.getSearchType()
+                          + " lookup request for " + dlm.getSearchKey()
+                          + " (throttled), reply was to: " + dlm.getFrom()
+                          + " tunnel: " + dlm.getReplyTunnel());
             _context.statManager().addRateData("netDb.lookupsDropped", 1);
             return null;
         }
