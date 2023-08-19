@@ -248,7 +248,7 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 }
                 // If we're in the client netDb context, log a warning since
                 // it should be rare that RI DSM are handled in the client context.
-                if (_log.shouldWarn())
+                if (_facade.isClientDb() && _log.shouldWarn())
                     _log.warn("[dbid: " + _facade._dbid
                               + "]:  Handling RI dbStore in client netDb context of router " + key.toBase64());
                 boolean shouldStore = true;
