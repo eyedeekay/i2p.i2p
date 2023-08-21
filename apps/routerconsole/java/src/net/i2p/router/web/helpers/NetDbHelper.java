@@ -320,7 +320,8 @@ public class NetDbHelper extends FormHandler {
     public String getNetDbSummary(String client, boolean clientOnly) {
         NetDbRenderer renderer = new NetDbRenderer(_context);
         try {
-            renderNavBar();
+            if (!clientOnly)
+                renderNavBar();
             if (_routerPrefix != null || _version != null || _country != null ||
                 _family != null || _caps != null || _ip != null || _sybil != null ||
                 _port != 0 || _type != null || _mtu != null || _ipv6 != null ||
@@ -356,8 +357,7 @@ public class NetDbHelper extends FormHandler {
     public String getClientNetDbSummaries() {
         String rv = "";
         for (String client : _context.netDb().getClients()){
-            rv += "<div id=\"client_" + client + "\">\n";
-            rv += "<h3>Client Network Database for " + client + "</h3>\n";
+            rv += "<div id=\"" + client + "\">\n";
             rv += getClientNetDbSummary(client) + "\n";
             rv += "</div>\n";
         }

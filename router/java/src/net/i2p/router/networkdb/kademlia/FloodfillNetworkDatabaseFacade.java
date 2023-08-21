@@ -290,7 +290,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         int count = getFloodfillPeers().size();
         if (count == 0)
             return list;
-        // pick a random number of routers between 4 and 4+1% of the total routers
+        // pick a random number of routers between 4 and 4+1% of the total routers we know about.
         int max = minFloodfillPeers() + (count / 100);
         while (list.size() < max) {
             int randVal = new RandomSource(_context).nextInt(count);
