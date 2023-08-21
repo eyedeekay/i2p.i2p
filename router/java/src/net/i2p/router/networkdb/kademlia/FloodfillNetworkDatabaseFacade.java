@@ -296,16 +296,19 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     }
 
     public int minFloodfillPeers() {
-        int mfp = _context.getProperty(MINIMUM_SUBDB_PEERS, 3);
+        int mfp = _context.getProperty(MINIMUM_SUBDB_PEERS, 0);
         return mfp;
     }
 
     public List<RouterInfo> pickRandomFloodfillPeers() {
         List<RouterInfo> list = new ArrayList<RouterInfo>();
+        // In normal operation, client subDb do not need RI.
+        // pickRandomFloodfillPeers() is provided for future use cases.
+
         // get the total number of known routers
         int count = getFloodfillPeers().size();
-        if (count == 0)
-            return list;
+        if ((count == 0) || (minFloodfillPeers() == 0))
+            return list;  // Return empty list.
         // pick a random number of routers between 4 and 4+1% of the total routers we know about.
         int max = minFloodfillPeers() + (count / 100);
         while (list.size() < max) {
