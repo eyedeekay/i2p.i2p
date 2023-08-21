@@ -327,7 +327,8 @@ public class NetDbHelper extends FormHandler {
                 _port != 0 || _type != null || _mtu != null || _ipv6 != null ||
                 _ssucaps != null || _transport != null || _cost != 0 || _etype != null ||
                 _icount > 0) {
-                renderer.renderRouterInfoHTML(_out, _limit, _page,
+                if (!clientOnly)
+                    renderer.renderRouterInfoHTML(_out, _limit, _page,
                                               _routerPrefix, _version, _country,
                                               _family, _caps, _ip, _sybil, _port, _highPort, _type, _etype,
                                               _mtu, _ipv6, _ssucaps, _transport, _cost, _icount, client, clientOnly);
