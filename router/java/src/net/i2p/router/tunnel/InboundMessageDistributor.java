@@ -173,7 +173,7 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                     return;
 
             } // switch
-        } else {
+        } else { // client == null/exploratory
             // expl. tunnel
             switch (type) {
                 case DatabaseStoreMessage.MESSAGE_TYPE:
@@ -221,7 +221,63 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                               + " (for client " + _clientNickname + " ("
                               + ((_client != null) ? _client.toBase32() : "null")
                               + ") to target=NULL/tunnel=NULL " + msg);
-                _context.inNetMessagePool().add(msg, null, null, _msgIDBloomXor);
+                // Tunnel Build Messages and Delivery Status Messages (used for tunnel
+                // testing) need to go back to the inNetMessagePool, whether or not
+                // they came through a client tunnel.
+                if ( (type == OutboundTunnelBuildReplyMessage.MESSAGE_TYPE) ||
+                     (type == TunnelBuildReplyMessage.MESSAGE_TYPE) ||
+                     (type == VariableTunnelBuildReplyMessage.MESSAGE_TYPE) ||
+                     (type == DeliveryStatusMessage.MESSAGE_TYPE)) {
+                    _context.inNetMessagePool().add(msg, null, null, _msgIDBloomXor);
+                    return;
+                }
+
+                // Handling of client tunnel messages need explicit handling
+                // in the context of the client subDb.
+                if (_client != null) {
+                    String dbid = _context.netDb().getDbidByHash(_client);
+                    if (dbid == null) {
+                        // This error shouldn't occur.  All clients should have their own netDb.
+                        if (_log.shouldLog(Log.ERROR))
+                            _log.error("Error, client (" + _clientNickname + ") dbid not found while processing messages in the IBMD.");
+                            return;
+                    }
+                    // For now, the only client message we know how to handle here is a DSM.
+                    // There aren't normally DSM messages here, but it should be safe to store
+                    // them in the client netDb.
+                    if (type == DatabaseStoreMessage.MESSAGE_TYPE) {
+                        DatabaseStoreMessage dsm = (DatabaseStoreMessage)msg;
+                        // Ensure the reply info is cleared, just in case
+                        dsm.setReplyToken(0);
+                        dsm.setReplyTunnel(null);
+                        dsm.setReplyGateway(null);
+
+                        if (dsm.getEntry().isLeaseSet()) {
+                            if (_log.shouldLog(Log.INFO))
+                                _log.info("[client: " + _clientNickname + "] Saving LS DSM from client tunnel.");
+                            // ToDo: This skips any matching of outstanding searches.
+                            _context.netDb().store(dsm.getKey(), (LeaseSet) dsm.getEntry(), dbid);
+                            return;
+                        } else {
+                            // drop it, since the data we receive shouldn't include router references.
+                            _context.statManager().addRateData("tunnel.dropDangerousClientTunnelMessage", 1,
+                                                               DatabaseStoreMessage.MESSAGE_TYPE);
+                            if (_log.shouldLog(Log.WARN))
+                                _log.warn("Dropped dangerous RI DSM message from a tunnel for " + _clientNickname
+                                           + " ("+ _client.toBase32() + ") : " + dsm, new Exception("cause"));
+                            return;
+                        }
+                    }
+                    // Don't know what to do with other message types here.
+                    // The most common message here is a DSRM, which would need to
+                    // be matched against its outstanding search.
+                    if (_log.shouldLog(Log.WARN))
+                        _log.warn("[client: " + _clientNickname + "] Dropping a client message from a tunnel due to lack of delivery handling instructions. Message: " + msg);
+                    return;
+                } else {
+                    // These messages came down a exploratory tunnel since client == null.
+                    _context.inNetMessagePool().add(msg, null, null, _msgIDBloomXor);
+                }
             }
         } else if (_context.routerHash().equals(target)) {
             if (type == GarlicMessage.MESSAGE_TYPE)
@@ -295,7 +351,24 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                                         _log.info("Storing garlic LS down tunnel for: " + dsm.getKey() + " sent to: "
                                                   + _clientNickname + " ("
                                                   + (_client != null ? _client.toBase32() : ") router"));
-                                    _context.inNetMessagePool().add(dsm, null, null, _msgIDBloomXor);
+
+                                    String dbid = null;
+                                    if (_client != null)
+                                        dbid = _context.netDb().getDbidByHash(_client);
+                                    if (dbid != null) {
+                                        // ToDo: This should actually have a try and catch.
+                                        if (_log.shouldLog(Log.INFO))
+                                            _log.info("Store the LS in the correct dbid subDb: " + dbid);
+                                        _context.netDb().store(dsm.getKey(), (LeaseSet) dsm.getEntry(), dbid);
+
+                                    } else if (_client == null) {
+                                        if (_log.shouldLog(Log.DEBUG))
+                                            _log.info("Routing Exploratory Tunnel message back to the inNetMessagePool.");
+                                        _context.inNetMessagePool().add(dsm, null, null, _msgIDBloomXor);
+                                    } else {
+                                        if (_log.shouldLog(Log.ERROR))
+                                            _log.error("No handling provisions for message: " + data);
+                                    }
                             } else {                                        
                                 if (_client != null) {
                                     // drop it, since the data we receive shouldn't include router 
@@ -317,8 +390,8 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                                 // ... and inject it.
                                 _context.statManager().addRateData("tunnel.inboundI2NPGarlicRIDSM", 1);
                                 if (_log.shouldLog(Log.INFO))
-                                    _log.info("Storing garlic RI down tunnel (" + _clientNickname
-                                              + ") for: " + dsm.getKey()
+                                    _log.info("Storing garlic RI from exploratory tunnel for: "
+                                              + dsm.getKey()
                                               + " dsm: " + dsm);
                                 _context.inNetMessagePool().add(dsm, null, null, _msgIDBloomXor);
                             }
@@ -329,7 +402,6 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                     // in a reply to a LS lookup over client tunnels.
                     // ILJ would also have to follow references via client tunnels
                     DatabaseSearchReplyMessage orig = (DatabaseSearchReplyMessage) data;
-                  /****
                     if (orig.getNumReplies() > 0) {
                         if (_log.shouldLog(Log.INFO))
                             _log.info("Removing replies from a garlic DSRM down a tunnel for " + _client + ": " + data);
@@ -338,8 +410,16 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                         newMsg.setSearchKey(orig.getSearchKey());
                         orig = newMsg;
                      }
-                   ****/
-                    _context.inNetMessagePool().add(orig, null, null, _msgIDBloomXor);
+                    /*
+                     * ToDo: Need to figure out what to do with client DSRM, but dropping
+                     *  them back into the inNetMessagePool does no good with
+                     *  segmented netDb.  The floodfill context will have no idea
+                     *  what to do with a client DSRM.
+                     */
+                     // _context.inNetMessagePool().add(orig, null, null, _msgIDBloomXor);
+                     if (_log.shouldLog(Log.WARN))
+                         _log.warn("Dropping inbound DSRM for client " + _clientNickname
+                                   + "; msg: " + data);
                 } else if (type == DataMessage.MESSAGE_TYPE) {
                         // a data message targetting the local router is how we send load tests (real
                         // data messages target destinations)
@@ -356,7 +436,17 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                                        + _clientNickname + " (" + _client.toBase32() + ") : "
                                        + data, new Exception("cause"));
                 } else {
+                    if ((type == OutboundTunnelBuildReplyMessage.MESSAGE_TYPE) ||
+                        (type == TunnelBuildReplyMessage.MESSAGE_TYPE) ||
+                        (type == VariableTunnelBuildReplyMessage.MESSAGE_TYPE) ||
+                        (type == DeliveryStatusMessage.MESSAGE_TYPE)) {
                         _context.inNetMessagePool().add(data, null, null, _msgIDBloomXor);
+                    } else if (_client != null) {
+                        _log.warn("Dropping inbound Message for client " + _clientNickname
+                                  + " due to lack of handling instructions. Msg: " + data);
+                    } else {
+                        _context.inNetMessagePool().add(data, null, null, _msgIDBloomXor);
+                    }
                 }
                 return;
 
