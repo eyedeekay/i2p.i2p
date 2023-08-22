@@ -358,6 +358,10 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                         _log.debug("[dbid: " + _facade._dbid
                                    + "]: Storing RI with the context netDb " + key.toBase64());
                     prevNetDb = _facade.store(key, ri);
+                    if (_facade.isClientDb() && _log.shouldWarn())
+                        _log.warn("[dbid: " + _facade._dbid
+                                  + "] Storing RI to client netDb (this is rare, should have been handled by IBMD) "
+                                  + key.toBase64());
                     wasNew = ((null == prevNetDb) || (prevNetDb.getPublished() < ri.getPublished()));
                 }
                 // Check new routerinfo address against blocklist
