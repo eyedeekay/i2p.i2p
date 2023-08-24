@@ -75,7 +75,7 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
         // set if invalid store but not his fault
         boolean dontBlamePeer = false;
         boolean wasNew = false;
-        boolean isLocal = false;
+        boolean blockStore = false;
         RouterInfo prevNetDb = null;
         Hash key = _message.getKey();
         DatabaseEntry entry = _message.getEntry();
@@ -87,12 +87,41 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                            + ") Starting handling of dbStore of leaseset " + _message);
 
             try {
-                // Never store a leaseSet for a local dest received from somebody else.
-                // This generally happens from a FloodfillVerifyStoreJob.
-                // If it is valid, it shouldn't be newer than what we have - unless
-                // somebody has our keys... 
-                // This could happen with multihoming - where it's really important to prevent
-                // storing the other guy's leaseset, it will confuse us badly.
+                // With the introduction of segmented netDb, the handling of
+                // local LeaseSets has changed substantially, based on the role
+                // being assumed.
+                // Role #1) The 'floodfill' netDb when the router is a FloodFill
+                //          In this case, the router would actually de-anonymize
+                //          the clients it is hosting if it refuses LeaseSets for
+                //          these clients.
+                //          The LS will be checked to make sure it arrived directly,
+                //          and handled as a normal LS.
+                // Role #2) The 'floodfill' netDb when the router is *NOT* an I2P
+                //          network Floodfill.
+                //          In this case, the 'floodfill' netDb only stores RouterInfo.
+                //          There is no use case for the 'floodfill' netDb to store any
+                //          LeaseSets when the router is not a FloodFill.
+                // Role #3) Client netDb should only receive LeaseSets from their
+                //          tunnels.  And clients will only publish their LeaseSet
+                //          out their client tunnel.
+                //          In this role, the only LeaseSet that should be rejected
+                //          is its own LeaseSet.
+                //
+                //          ToDo: Currently, the 'floodfill' netDb will be excluded
+                //          from directly receiving a client LeaseSet, due to the
+                //          way the selection of FloodFill routers are selected
+                //          when flooding a LS.
+                //          But even if the host router does not directly receive the
+                //          LeaseSets of the clients it hosts, those LeaseSets will
+                //          usually be flooded back to it.
+                //          Is this enough, or do we need to pierce the segmentation
+                //          under certain conditions?
+                //
+                //          ToDo: What considerations are needed for multihoming?
+                //          with multihoming, it's really important to prevent the
+                //          client netDb from storing the other guy's LeaseSet.
+                //          It will confuse us badly.
+
                 LeaseSet ls = (LeaseSet) entry;
                 // If this was received as a response to a query,
                 // FloodOnlyLookupMatchJob called setReceivedAsReply(),
@@ -107,13 +136,19 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 if (_facade.isClientDb() && _facade.matchClientKey(key))
                     // In the client subDb context, the only local key to worry about
                     // is the key for this client.
-                    isLocal = true;
+                    blockStore = true;
                 else if (getContext().clientManager().isLocal(key))
-                    // Non-client context (probably floodfill)
-                    isLocal = true;
+                    // Non-client context
+                    if (_facade.floodfillEnabled() && (_fromHash != null))
+                        blockStore = false;
+                    else
+                        // FloodFill disabled, but in the 'floodfill' netDb context.
+                        // We should never get here, the 'floodfill' netDb doesn't
+                        // store LS when FloodFill is disabled.
+                        blockStore = true;
                 else
-                    isLocal = false;
-                if (isLocal) {
+                    blockStore = false;
+                if (blockStore) {
                     getContext().statManager().addRateData("netDb.storeLocalLeaseSetAttempt", 1, 0);
                     // throw rather than return, so that we send the ack below (prevent easy attack)
                     dontBlamePeer = true;
