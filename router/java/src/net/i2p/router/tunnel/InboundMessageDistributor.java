@@ -423,7 +423,7 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                      // _context.inNetMessagePool().add(orig, null, null, _msgIDBloomXor);
                      if (_log.shouldLog(Log.WARN))
                          _log.warn("Dropping inbound DSRM for client " + _clientNickname
-                                   + "; msg: " + data);
+                                   + "; msg: " + orig);
                 } else if (type == DataMessage.MESSAGE_TYPE) {
                         // a data message targetting the local router is how we send load tests (real
                         // data messages target destinations)
