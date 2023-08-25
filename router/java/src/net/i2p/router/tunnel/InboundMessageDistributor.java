@@ -17,11 +17,13 @@ import net.i2p.data.i2np.OutboundTunnelBuildReplyMessage;
 import net.i2p.data.i2np.TunnelBuildReplyMessage;
 import net.i2p.data.i2np.VariableTunnelBuildReplyMessage;
 import net.i2p.router.ClientMessage;
+import net.i2p.router.Job;
 import net.i2p.router.RouterContext;
 import net.i2p.router.TunnelInfo;
 import net.i2p.router.TunnelPoolSettings;
 import net.i2p.router.message.GarlicMessageReceiver;
 import net.i2p.router.networkdb.kademlia.FloodfillNetworkDatabaseFacade;
+import net.i2p.router.networkdb.kademlia.FloodfillDatabaseStoreMessageHandler;
 import net.i2p.util.Log;
 import net.i2p.util.RandomSource;
 
@@ -255,8 +257,9 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                         if (dsm.getEntry().isLeaseSet()) {
                             if (_log.shouldLog(Log.INFO))
                                 _log.info("[client: " + _clientNickname + "] Saving LS DSM from client tunnel.");
-                            // ToDo: This skips any matching of outstanding searches.
-                            _context.netDb().store(dsm.getKey(), (LeaseSet) dsm.getEntry(), dbid);
+                            FloodfillDatabaseStoreMessageHandler _FDSMH = new FloodfillDatabaseStoreMessageHandler(_context, _context.netDb().getSubNetDB(dbid));
+                            Job j = _FDSMH.createJob(msg, null, null);
+                            j.runJob();
                             return;
                         } else {
                             // drop it, since the data we receive shouldn't include router references.
@@ -359,8 +362,9 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                                         // ToDo: This should actually have a try and catch.
                                         if (_log.shouldLog(Log.INFO))
                                             _log.info("Store the LS in the correct dbid subDb: " + dbid);
-                                        _context.netDb().store(dsm.getKey(), (LeaseSet) dsm.getEntry(), dbid);
-
+                                        FloodfillDatabaseStoreMessageHandler _FDSMH = new FloodfillDatabaseStoreMessageHandler(_context, _context.netDb().getSubNetDB(dbid));
+                                        Job j = _FDSMH.createJob(data, null, null);
+                                        j.runJob();
                                     } else if (_client == null) {
                                         if (_log.shouldLog(Log.DEBUG))
                                             _log.info("Routing Exploratory Tunnel message back to the inNetMessagePool.");
