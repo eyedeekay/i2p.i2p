@@ -272,8 +272,7 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                         }
                     }
                     // Don't know what to do with other message types here.
-                    // The most common message here is a DSRM, which would need to
-                    // be matched against its outstanding search.
+                    // But, in testing, it is uncommon to end up here.
                     if (_log.shouldLog(Log.WARN))
                         _log.warn("[client: " + _clientNickname + "] Dropping a client message from a tunnel due to lack of delivery handling instructions. Message: " + msg);
                     return;
@@ -414,16 +413,15 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                         newMsg.setSearchKey(orig.getSearchKey());
                         orig = newMsg;
                      }
-                    /*
-                     * ToDo: Need to figure out what to do with client DSRM, but dropping
-                     *  them back into the inNetMessagePool does no good with
-                     *  segmented netDb.  The floodfill context will have no idea
-                     *  what to do with a client DSRM.
-                     */
-                     // _context.inNetMessagePool().add(orig, null, null, _msgIDBloomXor);
-                     if (_log.shouldLog(Log.WARN))
-                         _log.warn("Dropping inbound DSRM for client " + _clientNickname
+                     // Client DSRM are safe to pass back to the inNetMessagePool when
+                     // the replies are stripped.
+                     // Even though the inNetMessagePool will lack information to understand
+                     // the client context, DSRM will be matched against their search,
+                     // which will place the handling back in the client context.
+                     if (_log.shouldLog(Log.DEBUG))
+                         _log.debug("Passing inbound garlic DSRM back to inNetMessagePool for client " + _clientNickname
                                    + "; msg: " + orig);
+                     _context.inNetMessagePool().add(orig, null, null, _msgIDBloomXor);
                 } else if (type == DataMessage.MESSAGE_TYPE) {
                         // a data message targetting the local router is how we send load tests (real
                         // data messages target destinations)
