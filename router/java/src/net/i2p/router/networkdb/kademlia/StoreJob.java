@@ -103,7 +103,7 @@ abstract class StoreJob extends JobImpl {
         }
         if (_log.shouldLog(Log.DEBUG))
             _log.debug(getJobId() + ": New store job (dbid: "
-                       + _facade._dbid + "for\n"
+                       + _facade._dbid + ") for\n"
                        + data, new Exception("I did it"));
     }
 
