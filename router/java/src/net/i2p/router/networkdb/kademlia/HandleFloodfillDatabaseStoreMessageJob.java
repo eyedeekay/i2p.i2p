@@ -133,10 +133,13 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 // See ../HDLMJ for more info
                 if (!ls.getReceivedAsReply())
                     ls.setReceivedAsPublished();
-                if (_facade.isClientDb() && _facade.matchClientKey(key))
-                    // In the client subDb context, the only local key to worry about
-                    // is the key for this client.
-                    blockStore = true;
+                if (_facade.isClientDb())
+                    if (_facade.matchClientKey(key))
+                        // In the client subDb context, the only local key to worry about
+                        // is the key for this client.
+                        blockStore = true;
+                    else
+                        blockStore = false;
                 else if (getContext().clientManager().isLocal(key))
                     // Non-client context
                     if (_facade.floodfillEnabled() && (_fromHash != null))
@@ -210,8 +213,16 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 invalidMessage = uce.getMessage();
                 dontBlamePeer = true;
             } catch (IllegalArgumentException iae) {
-               if (_log.shouldError())
-                   _log.error("LS Store IAE: ", iae);
+               // This is somewhat normal behavior in client netDb context,
+               // and safely handled.
+               // This is more worrisome in the floodfill netDb context.
+               // It is not expected to happen since we check if it was sent directly.
+                if (_facade.isClientDb())
+                    if (_log.shouldInfo())
+                        _log.info("LS Store IAE (safely handled): ", iae);
+                else
+                    if (_log.shouldError())
+                        _log.error("LS Store IAE (unexpected): ", iae);
                 invalidMessage = iae.getMessage();
             }
         } else if (type == DatabaseEntry.KEY_TYPE_ROUTERINFO) {
