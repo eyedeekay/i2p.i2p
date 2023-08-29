@@ -1,5 +1,7 @@
 package net.i2p.router.tunnel;
 
+import java.util.List;
+
 import net.i2p.data.DatabaseEntry;
 import net.i2p.data.Hash;
 import net.i2p.data.LeaseSet;
@@ -18,6 +20,8 @@ import net.i2p.data.i2np.TunnelBuildReplyMessage;
 import net.i2p.data.i2np.VariableTunnelBuildReplyMessage;
 import net.i2p.router.ClientMessage;
 import net.i2p.router.Job;
+import net.i2p.router.OutNetMessage;
+import net.i2p.router.ReplyJob;
 import net.i2p.router.RouterContext;
 import net.i2p.router.TunnelInfo;
 import net.i2p.router.TunnelPoolSettings;
@@ -254,12 +258,45 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                         dsm.setReplyTunnel(null);
                         dsm.setReplyGateway(null);
 
+                        // We need to replicate some of the handling that was previously
+                        // performed when these types of messages were passed back to
+                        // the inNetMessagePool.
+                        // There's important inline handling made when fetching the original messages.
+                        List<OutNetMessage> origMessages = _context.messageRegistry().getOriginalMessages(msg);
+                        int sz = origMessages.size();
+                        if (sz > 0) {
+                            dsm.setReceivedAsReply();
+                        }
                         if (dsm.getEntry().isLeaseSet()) {
                             if (_log.shouldLog(Log.INFO))
                                 _log.info("[client: " + _clientNickname + "] Saving LS DSM from client tunnel.");
                             FloodfillDatabaseStoreMessageHandler _FDSMH = new FloodfillDatabaseStoreMessageHandler(_context, _context.netDb().getSubNetDB(dbid));
                             Job j = _FDSMH.createJob(msg, null, null);
                             j.runJob();
+                            if (sz > 0) {
+                                for (int i = 0; i < sz; i++) {
+                                    OutNetMessage omsg = origMessages.get(i);
+                                    ReplyJob job = omsg.getOnReplyJob();
+                                    if (job != null) {
+                                        if (_log.shouldLog(Log.DEBUG))
+                                            _log.debug("Setting ReplyJob ("
+                                                       + job + ") for original message:"
+                                                       + omsg + "; with reply message [id: "
+                                                       + msg.getUniqueId()
+                                                       + " Class: "
+                                                       + msg.getClass().getSimpleName()
+                                                       + "] full message: " + msg);
+                                        else if  (_log.shouldLog(Log.INFO))
+                                            _log.info("Setting a ReplyJob ("
+                                                      + job + ") for original message class "
+                                                      + omsg.getClass().getSimpleName()
+                                                      + " with reply message class "
+                                                      + msg.getClass().getSimpleName());
+                                         job.setMessage(msg);
+                                         _context.jobQueue().addJob(job);
+                                    }
+                                }
+                            }
                             return;
                         } else {
                             // drop it, since the data we receive shouldn't include router references.
@@ -358,12 +395,44 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                                     if (_client != null)
                                         dbid = _context.netDb().getDbidByHash(_client);
                                     if (dbid != null) {
+                                        // We need to replicate some of the handling that was previously
+                                        // performed when these types of messages were passed back to
+                                        // the inNetMessagePool.
+                                        // There's important inline handling made when fetching the original messages.
+                                        List<OutNetMessage> origMessages = _context.messageRegistry().getOriginalMessages(data);
+                                        int sz = origMessages.size();
+                                        if (sz > 0)
+                                            dsm.setReceivedAsReply();
                                         // ToDo: This should actually have a try and catch.
                                         if (_log.shouldLog(Log.INFO))
                                             _log.info("Store the LS in the correct dbid subDb: " + dbid);
                                         FloodfillDatabaseStoreMessageHandler _FDSMH = new FloodfillDatabaseStoreMessageHandler(_context, _context.netDb().getSubNetDB(dbid));
                                         Job j = _FDSMH.createJob(data, null, null);
                                         j.runJob();
+                                        if (sz > 0) {
+                                            for (int i = 0; i < sz; i++) {
+                                                OutNetMessage omsg = origMessages.get(i);
+                                                ReplyJob job = omsg.getOnReplyJob();
+                                                if (job != null) {
+                                                    if (_log.shouldLog(Log.DEBUG))
+                                                        _log.debug("Setting ReplyJob ("
+                                                                   + job + ") for original message:"
+                                                                   + omsg + "; with reply message [id: "
+                                                                   + data.getUniqueId()
+                                                                   + " Class: "
+                                                                   + data.getClass().getSimpleName()
+                                                                   + "] full message: " + data);
+                                                    else if  (_log.shouldLog(Log.INFO))
+                                                        _log.info("Setting a ReplyJob ("
+                                                                  + job + ") for original message class "
+                                                                  + omsg.getClass().getSimpleName()
+                                                                  + " with reply message class "
+                                                                  + data.getClass().getSimpleName());
+                                                    job.setMessage(data);
+                                                    _context.jobQueue().addJob(job);
+                                                }
+                                            }
+                                        }
                                     } else if (_client == null) {
                                         if (_log.shouldLog(Log.DEBUG))
                                             _log.info("Routing Exploratory Tunnel message back to the inNetMessagePool.");
