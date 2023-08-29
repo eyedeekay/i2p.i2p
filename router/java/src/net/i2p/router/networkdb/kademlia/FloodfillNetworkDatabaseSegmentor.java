@@ -120,8 +120,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     /**
      * Send our RI to the closest floodfill. This should always be called from the
-     * floodFillNetDB context
-     * 
+     * floodFillNetDB context.
+     * The caller context cannot be determined from here, so the caller will be
+     * relied on to insure this is only called in the floodfill context.
+     *
      * @throws IllegalArgumentException if the local router info is invalid
      */
     public void publish(RouterInfo localRouterInfo) throws IllegalArgumentException {
