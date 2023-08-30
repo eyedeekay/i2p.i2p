@@ -81,6 +81,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     protected final int _networkID;
     private final BlindCache _blindCache;
     protected final String _dbid;
+    private Hash _localKey;
 
     /** 
      * Map of Hash to RepublishLeaseSetJob for leases we'realready managing.
@@ -181,6 +182,7 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         _reseedChecker = new ReseedChecker(context);
         _blindCache = new BlindCache(context);
         _dbid = dbid;
+        _localKey = null;
         if (_log.shouldLog(Log.DEBUG))
             _log.debug("Created KademliaNetworkDatabaseFacade for id: " + dbid);
         context.statManager().createRateStat("netDb.lookupDeferred", "how many lookups are deferred?", "NetworkDatabase", new long[] { 60*60*1000 });
@@ -299,7 +301,11 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         }
         return _dbDir;
     }
-    
+
+    public boolean isClientDb() {
+        return _dbid.startsWith("clients_");
+    }
+
     public synchronized void startup() {
         _log.info("Starting up the kademlia network database");
         RouterInfo ri = _context.router().getRouterInfo();
@@ -756,6 +762,9 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      */
     public RouterInfo lookupRouterInfoLocally(Hash key) {
         if (!_initialized) return null;
+        // Client netDb shouldn't have RI, search for RI in the floodfill netDb.
+        if (isClientDb())
+            return _context.floodfillNetDb().lookupRouterInfoLocally(key);
         DatabaseEntry ds = _ds.get(key);
         if (ds != null) {
             if (ds.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO) {
@@ -799,6 +808,19 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         } catch (IllegalArgumentException iae) {
             _log.error("locally published leaseSet is not valid?", iae);
             throw iae;
+        }
+        if (_localKey != null) {
+            if (!_localKey.equals(localLeaseSet.getHash()))
+                if (_log.shouldLog(Log.ERROR))
+                    _log.error("Error, the local LS hash ("
+                               + _localKey + ") does not match the published hash ("
+                               + localLeaseSet.getHash() + ")! This shouldn't happen!",
+                               new Exception());
+        } else {
+            // This will only happen once when the local LS is first published
+            _localKey = localLeaseSet.getHash();
+            if (_log.shouldLog(Log.INFO))
+                _log.info("Local client LS key initialized to: " + _localKey);
         }
         if (!_context.clientManager().shouldPublishLeaseSet(h))
             return;
@@ -866,6 +888,13 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     @Override
     public long getLastRouterInfoPublishTime() {
         return _lastRIPublishTime;
+    }
+
+    public boolean matchClientKey(Hash key) {
+        if ((_localKey != null) && (_localKey.equals(key)))
+            return true;
+        else
+            return false;
     }
 
     /**
@@ -1072,7 +1101,9 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         String err = validate(key, leaseSet);
         if (err != null)
             throw new IllegalArgumentException("Invalid store attempt - " + err);
-        
+
+        if (_log.shouldDebug())
+            _log.debug("Storing LS to the persistent data store...");
         _ds.put(key, leaseSet);
         
         if (encls != null) {

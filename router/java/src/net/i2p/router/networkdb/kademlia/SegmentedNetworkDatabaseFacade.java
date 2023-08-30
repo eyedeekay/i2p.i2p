@@ -75,6 +75,8 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
     public abstract void lookupLeaseSet(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs,
             Hash fromLocalDest, String dbid);
 
+    public abstract LeaseSet lookupLeaseSetHashIsClient(Hash key);
+
     public abstract LeaseSet lookupLeaseSetLocally(Hash key, String dbid);
 
     public abstract LeaseSet lookupLeaseSetLocally(Hash key);
@@ -328,4 +330,6 @@ public abstract class SegmentedNetworkDatabaseFacade { // extends FloodfillNetwo
     public BlindData getBlindData(SigningPublicKey spk, String dbid) {
         return floodfillNetDB().getBlindData(spk);
     }
+
+    public abstract String getDbidByHash(Hash clientKey);
 }
