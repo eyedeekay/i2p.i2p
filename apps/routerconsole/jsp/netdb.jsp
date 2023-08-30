@@ -42,5 +42,4 @@
  <jsp:setProperty name="formhandler" property="intros" value="<%=request.getParameter(\"i\")%>" />
 <%@include file="formhandler.jsi" %>
  <jsp:getProperty name="formhandler" property="floodfillNetDbSummary" />
- <jsp:getProperty name="formhandler" property="clientNetDbSummaries" />
 </div></body></html>
