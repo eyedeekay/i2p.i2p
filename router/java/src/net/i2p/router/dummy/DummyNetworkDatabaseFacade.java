@@ -115,6 +115,11 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
     }
 
     @Override
+    public LeaseSet lookupLeaseSetHashIsClient(Hash key) {
+        throw new UnsupportedOperationException("Unimplemented method 'lookupLeaseSetHashIsClient'");
+    }
+
+    @Override
     public LeaseSet lookupLeaseSetLocally(Hash key, String dbid) {
         throw new UnsupportedOperationException("Unimplemented method 'lookupLeaseSetLocally'");
     }
@@ -203,5 +208,10 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
     @Override
     public FloodfillNetworkDatabaseFacade localNetDB() {
         return _fndb;
+    }
+
+    @Override
+    public String getDbidByHash(Hash clientKey) {
+        throw new UnsupportedOperationException("Unimplemented method 'lookupLeaseSetHashIsClient'");
     }
 }

@@ -45,7 +45,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     private LookupThrottler _lookupBanner;
     private LookupThrottler _lookupBannerBurst;
     private final Job _ffMonitor;
-    private final int BAN_LOOKUP_BASE = 50;
+    private final int BAN_LOOKUP_BASE = 75;
     private final int BAN_LOOKUP_BASE_INTERVAL = 5*60*1000;
     private final int BAN_LOOKUP_BURST = 10;
     private final int BAN_LOOKUP_BURST_INTERVAL = 15*1000;
@@ -87,19 +87,29 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         _context.statManager().createRateStat("netDb.republishQuantity", "How many peers do we need to send a found leaseSet to?", "NetworkDatabase", rate);
         // for ISJ
         _context.statManager().createRateStat("netDb.RILookupDirect", "Was an iterative RI lookup sent directly?", "NetworkDatabase", rate);
-        _ffMonitor = new FloodfillMonitorJob(_context, this);
+        // No need to start the FloodfillMonitorJob for client subDb.
+        if (super.isClientDb())
+            _ffMonitor = null;
+        else
+            _ffMonitor = new FloodfillMonitorJob(_context, this);
     }
 
     @Override
     public synchronized void startup() {
+        boolean isFF;
         super.startup();
-        _context.jobQueue().addJob(_ffMonitor);
+        if (_ffMonitor != null)
+            _context.jobQueue().addJob(_ffMonitor);
+        if (super.isClientDb())
+            isFF = false;
+        else
+            isFF = _context.getBooleanProperty(FloodfillMonitorJob.PROP_FLOODFILL_PARTICIPANT);
+
         _lookupThrottler = new LookupThrottler();
         _lookupBanner = new LookupThrottler(BAN_LOOKUP_BASE, BAN_LOOKUP_BASE_INTERVAL);
         _lookupThrottlerBurst = new LookupThrottler(DROP_LOOKUP_BURST, DROP_LOOKUP_BURST_INTERVAL);
         _lookupBannerBurst = new LookupThrottler(BAN_LOOKUP_BURST, BAN_LOOKUP_BURST_INTERVAL);
 
-        boolean isFF = _context.getBooleanProperty(FloodfillMonitorJob.PROP_FLOODFILL_PARTICIPANT);
         long down = _context.router().getEstimatedDowntime();
         if (!_context.commSystem().isDummy() &&
             (down == 0 || (!isFF && down > 30*60*1000) || (isFF && down > 24*60*60*1000))) {
@@ -112,8 +122,13 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
 
     @Override
     protected void createHandlers() {
-        _context.inNetMessagePool().registerHandlerJobBuilder(DatabaseLookupMessage.MESSAGE_TYPE, new FloodfillDatabaseLookupMessageHandler(_context, this));
-        _context.inNetMessagePool().registerHandlerJobBuilder(DatabaseStoreMessage.MESSAGE_TYPE, new FloodfillDatabaseStoreMessageHandler(_context, this));
+       // Only initialize the handlers for the flooodfill netDb.
+       if (super._dbid.equals("floodfill")) {
+            if (_log.shouldInfo())
+                _log.info("[dbid: " + super._dbid +  "] Initializing the message handlers");
+            _context.inNetMessagePool().registerHandlerJobBuilder(DatabaseLookupMessage.MESSAGE_TYPE, new FloodfillDatabaseLookupMessageHandler(_context, this));
+            _context.inNetMessagePool().registerHandlerJobBuilder(DatabaseStoreMessage.MESSAGE_TYPE, new FloodfillDatabaseStoreMessageHandler(_context, this));
+        }
     }
     
     /**
@@ -142,7 +157,8 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
                 } catch (InterruptedException ie) {}
             }
         }
-        _context.jobQueue().removeJob(_ffMonitor);
+        if (_ffMonitor != null)
+            _context.jobQueue().removeJob(_ffMonitor);
         super.shutdown();
     }
 
@@ -280,16 +296,19 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     }
 
     public int minFloodfillPeers() {
-        int mfp = _context.getProperty(MINIMUM_SUBDB_PEERS, 3);
+        int mfp = _context.getProperty(MINIMUM_SUBDB_PEERS, 0);
         return mfp;
     }
 
     public List<RouterInfo> pickRandomFloodfillPeers() {
         List<RouterInfo> list = new ArrayList<RouterInfo>();
+        // In normal operation, client subDb do not need RI.
+        // pickRandomFloodfillPeers() is provided for future use cases.
+
         // get the total number of known routers
         int count = getFloodfillPeers().size();
-        if (count == 0)
-            return list;
+        if ((count == 0) || (minFloodfillPeers() == 0))
+            return list;  // Return empty list.
         // pick a random number of routers between 4 and 4+1% of the total routers we know about.
         int max = minFloodfillPeers() + (count / 100);
         while (list.size() < max) {
@@ -465,7 +484,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
      *  and call setFloodfillEnabledFromMonitor which really sets it.
      */
     public synchronized void setFloodfillEnabled(boolean yes) {
-        if (yes != _floodfillEnabled) {
+        if ((yes != _floodfillEnabled) && (_ffMonitor != null)) {
             _context.jobQueue().removeJob(_ffMonitor);
             _ffMonitor.getTiming().setStartAfter(_context.clock().now() + 1000);
             _context.jobQueue().addJob(_ffMonitor);
@@ -536,6 +555,10 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
      * @return null always
      * @since 0.9.10
      */
+    // ToDo: With repect to segmented netDb clients, this framework needs
+    // refinement.  A client with a segmented netDb can not use exploratory
+    // tunnels.  The return messages will not have sufficient information
+    // to be directed back to the clientmaking the query.
     SearchJob search(Hash key, Job onFindJob, Job onFailedLookupJob, long timeoutMs, boolean isLease,
                      Hash fromLocalDest) {
         //if (true) return super.search(key, onFindJob, onFailedLookupJob, timeoutMs, isLease);
@@ -559,7 +582,10 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
         
         if (isNew) {
             if (_log.shouldDebug())
-                _log.debug("New ISJ for " + key.toBase64());
+                _log.debug("[dbid: " + super._dbid
+                           + "]: New ISJ ("
+                           + ((fromLocalDest != null) ? "through client tunnels" : "through exploratory tunnels")
+                           + ") for " + key.toBase64());
             _context.jobQueue().addJob(searchJob);
         } else {
             if (_log.shouldDebug())
