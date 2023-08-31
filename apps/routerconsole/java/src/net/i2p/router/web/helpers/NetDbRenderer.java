@@ -1062,14 +1062,19 @@ class NetDbRenderer {
      if (!showStats) {
 
         // the summary table
-        if (client != null) 
+        if (client != null) {
             buf.append("<table id=\"netdboverview\" border=\"0\" cellspacing=\"30\"><tr><th colspan=\"3\">")
                 .append(_t("Network Database Router Statistics for Client " + client))
                 .append("</th></tr><tr><td style=\"vertical-align: top;\">");
-        else
+        } else if (clientsOnly) {
+            buf.append("<table id=\"netdboverview\" border=\"0\" cellspacing=\"30\"><tr><th colspan=\"3\">")
+                .append(_t("Network Database Router Statistics for all Clients"))
+                .append("</th></tr><tr><td style=\"vertical-align: top;\">");
+        } else {
             buf.append("<table id=\"netdboverview\" border=\"0\" cellspacing=\"30\"><tr><th colspan=\"3\">")
                 .append(_t("Network Database Router Statistics for Floodfill Router"))
                 .append("</th></tr><tr><td style=\"vertical-align: top;\">");
+        }
         // versions table
         List<String> versionList = new ArrayList<String>(versions.objects());
         if (!versionList.isEmpty()) {

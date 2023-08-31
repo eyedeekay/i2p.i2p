@@ -30,6 +30,7 @@ public class NetDbHelper extends FormHandler {
     private long _date;
     private int _limit = DEFAULT_LIMIT;
     private boolean _lease;
+    private boolean _clientOnly;
     private boolean _debug;
     private boolean _graphical;
     private SigType _type;
@@ -70,7 +71,7 @@ public class NetDbHelper extends FormHandler {
                                            "",                                  // 9
                                            "?f=5",                              // 10
                                            "?f=6",                              // 11
-                                           "?l=3",                              // 12
+                                           "?l=7",                              // 12
                                           };
                                            
 
@@ -205,6 +206,7 @@ public class NetDbHelper extends FormHandler {
     }
 
     public void setLease(String l) {
+        _clientOnly = "7".equals(l);
         _debug = "2".equals(l);
         _lease = _debug || "1".equals(l);
     }
@@ -245,6 +247,14 @@ public class NetDbHelper extends FormHandler {
         try {
             _icount = Integer.parseInt(f);
         } catch (NumberFormatException nfe) {}
+    }
+
+    public void setClientPage(String f) {
+        try {
+
+        } catch(Exception e){
+            //if (_log.shouldLog)
+        }
     }
     
     /**
@@ -333,7 +343,7 @@ public class NetDbHelper extends FormHandler {
                                               _family, _caps, _ip, _sybil, _port, _highPort, _type, _etype,
                                               _mtu, _ipv6, _ssucaps, _transport, _cost, _icount, client, clientOnly);
             } else if (_lease) {
-                renderer.renderLeaseSetHTML(_out, _debug, client, clientOnly);
+                renderer.renderLeaseSetHTML(_out, _debug, client, _clientOnly);
             } else if (_hostname != null) {
                 renderer.renderLeaseSet(_out, _hostname, true);
             } else if (_full == 3) {
@@ -344,6 +354,14 @@ public class NetDbHelper extends FormHandler {
                 (new SybilRenderer(_context)).getNetDbSummary(_out, _newNonce, _mode, _date);
             } else if (_full == 4) {
                 renderLookupForm();
+            } else if (_full == 5) {
+                renderer.renderStatusHTML(_out, _limit, _page, _full, null, true);
+            } else if (_full == 6) {
+                renderer.renderStatusHTML(_out, _limit, _page, _full, null, true);
+            } else if (_clientOnly && client == null) {
+                for (String _client : _context.netDb().getClients()) {
+                    renderer.renderLeaseSetHTML(_out, _debug, _client, _clientOnly);
+                }
             } else {
                 if (_full == 0 && _sort != null)
                     _full = 3;
@@ -353,16 +371,6 @@ public class NetDbHelper extends FormHandler {
             ioe.printStackTrace();
         }
         return "";
-    }
-
-    public String getClientNetDbSummaries() {
-        String rv = "";
-        for (String client : _context.netDb().getClients()){
-            rv += "<div id=\"" + client + "\">\n";
-            rv += getClientNetDbSummary(client) + "\n";
-            rv += "</div>\n";
-        }
-        return rv;
     }
 
     public String getClientNetDbSummary(String client) {
@@ -394,6 +402,12 @@ public class NetDbHelper extends FormHandler {
             return 8;
         if (_hostname != null)
             return 9;
+        if (_full == 5)
+            return 10;
+        if (_full == 6)
+            return 11;
+        if (_clientOnly)
+            return 12;
         return 0;
     }
 
@@ -425,9 +439,9 @@ public class NetDbHelper extends FormHandler {
                     buf.append("<span class=\"tab\">");
                 buf.append("<a href=\"netdb").append(links[i]).append("\">").append(_t(titles[i])).append("</a>");
             }
-            if (span)
+            if (span) {
                 buf.append("</span>\n");
-            else if (i != titles.length - 1)
+            } else if (i != titles.length - 1)
                 buf.append("&nbsp;&nbsp;\n");
         }
         if (!span)
