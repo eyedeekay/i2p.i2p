@@ -19,6 +19,7 @@ import net.i2p.data.TunnelId;
 import net.i2p.data.router.RouterInfo;
 import net.i2p.router.Job;
 import net.i2p.router.RouterContext;
+import net.i2p.router.networkdb.CleanupNetDbJob;
 import net.i2p.router.networkdb.reseed.ReseedChecker;
 import net.i2p.util.Log;
 
@@ -36,6 +37,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             _context = context;
         FloodfillNetworkDatabaseFacade subdb = new FloodfillNetworkDatabaseFacade(_context, MAIN_DBID);
         _subDBs.put(MAIN_DBID, subdb);
+        _context.jobQueue().addJob(new CleanupNetDbJob(_context));
     }
 
     /*
@@ -112,7 +114,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         }
     }
 
-    public synchronized void remove(String dbid){
+    private synchronized void remove(String dbid) {
         if (dbid != null)
             if (dbid.endsWith(".i2p"))
                 dbid = "clients_" + dbid;
