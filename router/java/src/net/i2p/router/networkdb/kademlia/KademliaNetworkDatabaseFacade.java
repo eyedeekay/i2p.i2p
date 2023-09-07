@@ -313,7 +313,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                                    BUCKET_SIZE, KAD_B, new RejectTrimmer<Hash>());
         _dbDir = getDbDir();
         try {
-            _ds = new PersistentDataStore(_context, _dbDir, this);
+            if (_dbid == null || _dbid.equals(FloodfillNetworkDatabaseSegmentor.MAIN_DBID) || _dbid.isEmpty())
+                _ds = new PersistentDataStore(_context, "", this);
         } catch (IOException ioe) {
             throw new RuntimeException("Unable to initialize netdb storage", ioe);
         }
