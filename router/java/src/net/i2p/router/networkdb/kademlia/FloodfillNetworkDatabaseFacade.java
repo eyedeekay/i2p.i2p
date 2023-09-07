@@ -29,6 +29,7 @@ import net.i2p.util.ConcurrentHashSet;
 import net.i2p.util.Log;
 import net.i2p.util.RandomSource;
 import net.i2p.util.SystemVersion;
+//import net.i2p.router.networkdb.kademlia.FloodfillNetworkDatabaseSegmentor;
 
 /**
  *  The network database

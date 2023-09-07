@@ -112,6 +112,25 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         }
     }
 
+    public synchronized void remove(String dbid){
+        if (dbid != null)
+            if (dbid.endsWith(".i2p"))
+                dbid = "clients_" + dbid;
+            else if (dbid.equals(""))
+                dbid = MAIN_DBID;
+        GetSubNetDB(dbid).shutdown();
+        _subDBs.remove(dbid);
+    }
+
+    public synchronized void removeDeadSubDbs(Set<Destination> clientDests) {
+        for (String dbid : _subDBs.keySet()) {
+            for (Destination db : clientDests) {
+                if (!db.toBase32().equals(dbid))
+                    remove(dbid);
+            }
+        }
+    }
+
     /**
      * This maybe could be shorter than
      * RepublishLeaseSetJob.REPUBLISH_LEASESET_TIMEOUT,
