@@ -40,9 +40,6 @@ import net.i2p.util.Log;
  *  - Multihome NetDB: This is used to stash leaseSets for our own sites when they are
  *  sent to us by a floodfill, so that we can reply when they are requested back from us
  *  regardless of our closeness to them in the routing table.
- *  - Exploratory NetDB: This is used when we want to stash a DatabaseEntry for a key
- *  during exploration but don't want it to go into the Main NetDB until we do something
- *  else with it.
  * 
  * And there are an unlimited number of "Client" netDbs. These sub-netDbs are
  * intended to contain only the information required to operate them, and as such
@@ -101,10 +98,10 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
         id = clientDbidString(id);
 
-        FloodfillNetworkDatabaseFacade subdb = _subDBs.get(id);
+        FloodfillNetworkDatabaseFacade subdb = get(id);
         if (subdb == null) {
             subdb = new FloodfillNetworkDatabaseFacade(_context, id);
-            _subDBs.put(id, subdb);
+            put(id, subdb);
             subdb.startup();
             subdb.createHandlers();
             if (subdb.getFloodfillPeers().size() == 0) {
@@ -148,7 +145,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             return mainNetDB();
 
         id = clientDbidString(id);
-        return _subDBs.get(id);
+        return get(id);
     }
 
     /**
@@ -273,7 +270,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     public List<String> getClients() {
         List<String> rv = new ArrayList<String>();
-        for (String key : _subDBs.keySet()) {
+        for (String key : keySet()) {
             if (key != null && !key.isEmpty()) {
                 if (key.startsWith("client"))
                     rv.add(key);
@@ -319,7 +316,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             // to look up a client by SPK. We mostly need this for managing blinded
             // and encrypted keys in the Keyring Config UI page. See also
             // ConfigKeyringHelper
-            BlindData bd = _subDBs.get(subdb).getBlindData(spk);
+            BlindData bd = get(subdb).getBlindData(spk);
             if (bd != null) {
                 rv.add(subdb);
             }
@@ -358,7 +355,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         Set<FloodfillNetworkDatabaseFacade> rv = new HashSet<>();
         rv.add(mainNetDB());
         rv.add(multiHomeNetDB());
-        rv.addAll(_subDBs.values());
+        rv.addAll(values());
         return rv;
     }
 
@@ -369,5 +366,29 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             rv.addAll(subdb.getBlindData());
         }
         return rv;
+    }
+
+    private FloodfillNetworkDatabaseFacade get(String id) {
+        synchronized(_subDBs) {
+            return _subDBs.get(id);
+        }
+    }
+
+    private void put(String id, FloodfillNetworkDatabaseFacade subdb) {
+        synchronized(_subDBs) {
+            _subDBs.put(id, subdb);
+        }
+    }
+
+    private List<String> keySet() {
+        synchronized(_subDBs) {
+            return new ArrayList<String>(_subDBs.keySet());
+        }
+    }
+
+    private List<FloodfillNetworkDatabaseFacade> values() {
+        synchronized(_subDBs) {
+            return new ArrayList<FloodfillNetworkDatabaseFacade>(_subDBs.values());
+        }
     }
 }
