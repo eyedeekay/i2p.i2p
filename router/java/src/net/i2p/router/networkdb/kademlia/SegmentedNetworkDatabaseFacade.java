@@ -60,13 +60,17 @@ public abstract class SegmentedNetworkDatabaseFacade {
         // super(context, null);
     }
 
-    protected abstract FloodfillNetworkDatabaseFacade getSubNetDB(String dbid);
+    protected abstract FloodfillNetworkDatabaseFacade createSubNetDB(String dbid);
+    public abstract FloodfillNetworkDatabaseFacade createSubNetDB(Hash dbid);
+    public abstract FloodfillNetworkDatabaseFacade getSubNetDB(String dbid);
     public abstract FloodfillNetworkDatabaseFacade getSubNetDB(Hash dbid);
     public abstract FloodfillNetworkDatabaseFacade mainNetDB();
     public abstract FloodfillNetworkDatabaseFacade multiHomeNetDB();
     public abstract FloodfillNetworkDatabaseFacade clientNetDB(String dbid);
     public abstract FloodfillNetworkDatabaseFacade clientNetDB(Hash dbid);
-    public abstract FloodfillNetworkDatabaseFacade exploratoryNetDB();
+    // Is there a good reason to have a paralell netDb somewhere where we like, query the netDb from
+    // multiple places?
+    // public abstract FloodfillNetworkDatabaseFacade exploratoryNetDB();
     public abstract void shutdown();
     public abstract LeaseSet lookupLeaseSetHashIsClient(Hash key);
     protected abstract LeaseSet lookupLeaseSetLocally(Hash key, String dbid);

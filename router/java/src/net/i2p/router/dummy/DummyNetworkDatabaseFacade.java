@@ -39,6 +39,14 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
         _context = ctx;
     }
 
+    public FloodfillNetworkDatabaseFacade createSubNetDB(String dbid) {
+        return null;
+    }
+
+    public FloodfillNetworkDatabaseFacade createSubNetDB(Hash dbid){
+        return null;
+    }
+
     public FloodfillNetworkDatabaseFacade getSubNetDB(String dbid){
         return null;
     }
@@ -120,11 +128,6 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
 
     @Override
     public FloodfillNetworkDatabaseFacade clientNetDB(Hash id) {
-        return _fndb;
-    }
-
-    @Override
-    public FloodfillNetworkDatabaseFacade exploratoryNetDB() {
         return _fndb;
     }
 

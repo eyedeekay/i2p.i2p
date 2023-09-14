@@ -54,6 +54,8 @@ import net.i2p.util.Log;
  * Users of this class should strive to always access their sub-netDbs via the
  * explicit DBID of the destination recipient, or using the DBID of the special
  * netDb when it's appropriate to route the netDb entry to one of the special tables.
+ * Any usage of the getter functions in this class(FNDF) should be limited to
+ * displaying information in the local user interface, router console, etc.
  * 
  * @author idk
  * @since 0.9.60
@@ -67,7 +69,6 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     private static final String EXPLORATORY_DBID = "exploratory";
     private final FloodfillNetworkDatabaseFacade _mainDbid;
     private final FloodfillNetworkDatabaseFacade _multihomeDbid;
-    private final FloodfillNetworkDatabaseFacade _exploratoryDbid;
 
     public FloodfillNetworkDatabaseSegmentor(RouterContext context) {
         super(context);
@@ -76,29 +77,29 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             _context = context;
         _mainDbid = new FloodfillNetworkDatabaseFacade(_context, MAIN_DBID);
         _multihomeDbid = new FloodfillNetworkDatabaseFacade(_context, MULTIHOME_DBID);
-        _exploratoryDbid = new FloodfillNetworkDatabaseFacade(_context, EXPLORATORY_DBID);
     }
 
     @Override
-    public FloodfillNetworkDatabaseFacade getSubNetDB(Hash id) {
+    public FloodfillNetworkDatabaseFacade createSubNetDB(Hash id) {
         if (id == null)
-            return getSubNetDB(MAIN_DBID);
-        return getSubNetDB(id.toBase32());
+            return createSubNetDB(MAIN_DBID);
+        return createSubNetDB(id.toBase32());
     }
 
     @Override
-    protected FloodfillNetworkDatabaseFacade getSubNetDB(String id) {
+    protected FloodfillNetworkDatabaseFacade createSubNetDB(String id) {
         if (id == null || id.isEmpty() || id.equals(MAIN_DBID))
             return mainNetDB();
         if (id.equals(MULTIHOME_DBID))
             return multiHomeNetDB();
         if (id.equals(EXPLORATORY_DBID))
-            return exploratoryNetDB();
+            return clientNetDB();
+        Hash myHash = _context.routerHash();
+        if (id.equals(myHash.toBase32()))
+            return mainNetDB();
 
-        if (id.endsWith(".i2p")) {
-            if (!id.startsWith("clients_"))
-                id = "clients_" + id;
-        }
+
+        id = clientDbidString(id);
 
         FloodfillNetworkDatabaseFacade subdb = _subDBs.get(id);
         if (subdb == null) {
@@ -116,6 +117,38 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             }
         }
         return subdb;
+    }
+
+    private String clientDbidString(String id) {
+        if (id.endsWith(".i2p")) {
+            if (!id.startsWith("clients_"))
+                id = "clients_" + id;
+        }
+        return id;
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade getSubNetDB(Hash dbid) {
+        if (dbid == null)
+            return null;
+        String id = dbid.toBase32();
+        return getSubNetDB(id);
+    }
+
+    @Override
+    public FloodfillNetworkDatabaseFacade getSubNetDB(String id) {
+        if (id == null || id.isEmpty() || id.equals(MAIN_DBID))
+            return mainNetDB();
+        if (id.equals(MULTIHOME_DBID))
+            return multiHomeNetDB();
+        if (id.equals(EXPLORATORY_DBID))
+            return clientNetDB();
+        Hash myHash = _context.routerHash();
+        if (id.equals(myHash.toBase32()))
+            return mainNetDB();
+
+        id = clientDbidString(id);
+        return _subDBs.get(id);
     }
 
     /**
@@ -262,7 +295,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     @Override
     public FloodfillNetworkDatabaseFacade clientNetDB(String id) {
         if (id == null || id.isEmpty())
-            return exploratoryNetDB();
+            return null;
         return this.getSubNetDB(id);
     }
 
@@ -270,16 +303,11 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     public FloodfillNetworkDatabaseFacade clientNetDB(Hash id) {
         if (id != null)
             return getSubNetDB(id.toBase32());
-        return exploratoryNetDB();
+        return null;
     }
 
     public FloodfillNetworkDatabaseFacade clientNetDB() {
-        return exploratoryNetDB();
-    }
-
-    @Override
-    public FloodfillNetworkDatabaseFacade exploratoryNetDB() {
-        return _exploratoryDbid;
+        return null;
     }
 
     @Override
@@ -330,7 +358,6 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         Set<FloodfillNetworkDatabaseFacade> rv = new HashSet<>();
         rv.add(mainNetDB());
         rv.add(multiHomeNetDB());
-        rv.add(exploratoryNetDB());
         rv.addAll(_subDBs.values());
         return rv;
     }
