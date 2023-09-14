@@ -64,6 +64,8 @@ public abstract class SegmentedNetworkDatabaseFacade {
     public abstract FloodfillNetworkDatabaseFacade createSubNetDB(Hash dbid);
     public abstract FloodfillNetworkDatabaseFacade getSubNetDB(String dbid);
     public abstract FloodfillNetworkDatabaseFacade getSubNetDB(Hash dbid);
+    public abstract void removeSubNetDB(String dbid);
+    public abstract void removeSubNetDB(Hash dbid);
     public abstract FloodfillNetworkDatabaseFacade mainNetDB();
     public abstract FloodfillNetworkDatabaseFacade multiHomeNetDB();
     public abstract FloodfillNetworkDatabaseFacade clientNetDB(String dbid);

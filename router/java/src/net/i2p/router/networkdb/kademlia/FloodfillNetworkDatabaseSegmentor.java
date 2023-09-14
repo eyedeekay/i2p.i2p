@@ -95,7 +95,6 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         if (id.equals(myHash.toBase32()))
             return mainNetDB();
 
-
         id = clientDbidString(id);
 
         FloodfillNetworkDatabaseFacade subdb = get(id);
@@ -114,14 +113,6 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
             }
         }
         return subdb;
-    }
-
-    private String clientDbidString(String id) {
-        if (id.endsWith(".i2p")) {
-            if (!id.startsWith("clients_"))
-                id = "clients_" + id;
-        }
-        return id;
     }
 
     @Override
@@ -146,6 +137,35 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
         id = clientDbidString(id);
         return get(id);
+    }
+
+    @Override
+    public void removeSubNetDB(Hash id) {
+        if (id == null)
+            return;
+        Hash myHash = _context.routerHash();
+        if (id.equals(myHash.toBase32()))
+            return;
+        
+        String dbid = id.toBase32();
+        dbid = clientDbidString(dbid);
+        remove(dbid);
+    }
+
+    @Override
+    public void removeSubNetDB(String id) {
+        if (id == null || id.isEmpty() || id.equals(MAIN_DBID))
+            return;
+        if (id.equals(MULTIHOME_DBID))
+            return;
+        if (id.equals(EXPLORATORY_DBID))
+            return;
+        Hash myHash = _context.routerHash();
+        if (id.equals(myHash.toBase32()))
+            return;
+        
+        String dbid = clientDbidString(id);
+        remove(dbid);        
     }
 
     /**
@@ -380,6 +400,12 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         }
     }
 
+    private void remove(String id) {
+        synchronized(_subDBs) {
+            _subDBs.remove(id);
+        }
+    }
+
     private List<String> keySet() {
         synchronized(_subDBs) {
             return new ArrayList<String>(_subDBs.keySet());
@@ -390,5 +416,13 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         synchronized(_subDBs) {
             return new ArrayList<FloodfillNetworkDatabaseFacade>(_subDBs.values());
         }
+    }
+
+    private String clientDbidString(String id) {
+        if (id.endsWith(".i2p")) {
+            if (!id.startsWith("clients_"))
+                id = "clients_" + id;
+        }
+        return id;
     }
 }

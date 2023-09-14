@@ -55,6 +55,14 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
         return null;
     }
 
+    public void removeSubNetDB(String dbid) {
+        return;
+    }
+
+    public void removeSubNetDB(Hash dbid) {
+        return;
+    }
+
     public void restart() {}
     public void shutdown() {}
     public void startup() {
