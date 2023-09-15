@@ -211,19 +211,18 @@ class ClientConnectionRunner {
             _manager.unregisterEncryptedDestination(this, _encryptedLSHash);
         _manager.unregisterConnection(this);
         // netdb may be null in unit tests
-        Hash dbid = getDestHash();
-        if (_context.netDbSegmentor() != null) {
+        if (_context.clientNetDb(getDestHash()) != null) {
             // Note that if the client sent us a destroy message,
             // removeSession() was called just before this, and
             // _sessions will be empty.
             for (SessionParams sp : _sessions.values()) {
                 LeaseSet ls = sp.currentLeaseSet;
                 if (ls != null)
-                    _context.netDbSegmentor().getSubNetDB(dbid).unpublish(ls);
+                    _context.clientNetDb(getDestHash()).unpublish(ls);
                 // unpublish encrypted LS also
                 ls = sp.currentEncryptedLeaseSet;
                 if (ls != null)
-                    _context.netDbSegmentor().getSubNetDB(dbid).unpublish(ls);
+                    _context.clientNetDb(getDestHash()).unpublish(ls);
                 if (!sp.isPrimary)
                     _context.tunnelManager().removeAlias(sp.dest);
             }
@@ -449,7 +448,6 @@ class ClientConnectionRunner {
         if (id == null)
             return;
         boolean isPrimary = false;
-        Hash dbid = getDestHash();
         for (Iterator<SessionParams> iter = _sessions.values().iterator(); iter.hasNext(); ) {
             SessionParams sp = iter.next();
             if (id.equals(sp.sessionId)) {
@@ -460,11 +458,11 @@ class ClientConnectionRunner {
                 _manager.unregisterSession(id, sp.dest);
                 LeaseSet ls = sp.currentLeaseSet;
                 if (ls != null)
-                    _context.netDbSegmentor().getSubNetDB(dbid).unpublish(ls);
+                    _context.clientNetDb(getDestHash()).unpublish(ls);
                 // unpublish encrypted LS also
                 ls = sp.currentEncryptedLeaseSet;
                 if (ls != null)
-                    _context.netDbSegmentor().getSubNetDB(dbid).unpublish(ls);
+                    _context.clientNetDb(getDestHash()).unpublish(ls);
                 isPrimary = sp.isPrimary;
                 if (isPrimary)
                     _context.tunnelManager().removeTunnels(sp.dest);
@@ -485,11 +483,11 @@ class ClientConnectionRunner {
                 _manager.unregisterSession(sp.sessionId, sp.dest);
                 LeaseSet ls = sp.currentLeaseSet;
                 if (ls != null)
-                    _context.netDbSegmentor().getSubNetDB(dbid).unpublish(ls);
+                    _context.clientNetDb(getDestHash()).unpublish(ls);
                 // unpublish encrypted LS also
                 ls = sp.currentEncryptedLeaseSet;
                 if (ls != null)
-                    _context.netDbSegmentor().getSubNetDB(dbid).unpublish(ls);
+                    _context.clientNetDb(getDestHash()).unpublish(ls);
                 _context.tunnelManager().removeAlias(sp.dest);
                 synchronized(this) {
                     if (sp.rerequestTimer != null)
