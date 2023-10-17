@@ -386,9 +386,10 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         } catch (IOException ioe) {
             throw new RuntimeException("Unable to initialize netdb storage", ioe);
         }
-        _negativeCache = new NegativeLookupCache(_context);
-        if (isMainDb())
+        if (isMainDb()) {
+            _negativeCache = new NegativeLookupCache(_context);
             blindCache().startup();
+        }
         
         createHandlers();
         
@@ -802,7 +803,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                 return ls.getDestination();
             }
         } else {
-            return _negativeCache.getBadDest(key);
+            if (_negativeCache != null)
+                return _negativeCache.getBadDest(key);
         }
         return null;
     }
@@ -1514,7 +1516,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      */
     void dropAfterLookupFailed(Hash peer) {
         _context.peerManager().removeCapabilities(peer);
-        _negativeCache.cache(peer);
+        if (_negativeCache != null)
+            _negativeCache.cache(peer);
         _kb.remove(peer);
         //if (removed) {
         //    if (_log.shouldLog(Log.INFO))
@@ -1656,7 +1659,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      *  @since 0.9.4 moved from FNDF to KNDF in 0.9.16
      */
     void lookupFailed(Hash key) {
-        _negativeCache.lookupFailed(key);
+        if (_negativeCache != null)
+            _negativeCache.lookupFailed(key);
     }
 
     /**
@@ -1666,6 +1670,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      *  @since 0.9.4 moved from FNDF to KNDF in 0.9.16
      */
     boolean isNegativeCached(Hash key) {
+        if (_negativeCache == null)
+            return false;
         boolean rv = _negativeCache.isCached(key);
         if (rv)
             _context.statManager().addRateData("netDb.negativeCache", 1);
@@ -1677,6 +1683,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      *  @since 0.9.16
      */
     void failPermanently(Destination dest) {
+        if (_negativeCache != null)
+            return;
         _negativeCache.failPermanently(dest);
     }
 
@@ -1687,6 +1695,8 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
      *  @since 0.9.16
      */
     public boolean isNegativeCachedForever(Hash key) {
+        if (_negativeCache != null)
+            return false;
         return _negativeCache.getBadDest(key) != null;
     }
 
