@@ -143,8 +143,9 @@ public class LookupDest {
      *  TODO: does not support I2CP options.
      */
     public static void main(String args[]) {
-        if (args.length != 1) {
+        if (args.length < 1) {
             System.err.println("Usage: LookupDest hostname|b32");
+            System.err.println("Usage: LookupDest -d hostname");
             System.exit(1);
         }
         if (args[0].length() == 1) {
