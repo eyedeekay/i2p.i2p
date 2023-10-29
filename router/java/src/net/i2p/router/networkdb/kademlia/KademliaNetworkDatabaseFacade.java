@@ -934,13 +934,6 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
         return _lastRIPublishTime;
     }
 
-    public boolean matchClientKey(Hash key) {
-        if ((_localKey != null) && (_localKey.equals(key)))
-            return true;
-        else
-            return false;
-    }
-
     /**
      * Persist the local router's info (as updated) into netDb/my.info, since
      * ./router.info isn't always updated.  This also allows external applications
