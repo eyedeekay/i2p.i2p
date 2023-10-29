@@ -56,7 +56,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     /**
      * Construct a new FloodfillNetworkDatabaseSegmentor with the given
-     * RouterContext, containing a default, main netDb and a multihome netDb
+     * RouterContext, containing a default, main netDb
      * and which is prepared to add client netDbs.
      * 
      * @since 0.9.60
@@ -87,8 +87,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     /**
-     * If we are floodfill, turn it off and tell everybody for the _mainDbid and the
-     * _multihomeDbid
+     * If we are floodfill, turn it off and tell everybody for the _mainDbid
      * 
      * @since 0.9.60
      * 
@@ -100,7 +99,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
     }
 
     /**
-     * Start up the floodfill for the _mainDbid and the _multihomeDbid
+     * Start up the _mainDbid
      * 
      * @since 0.9.60
      * 
@@ -109,38 +108,6 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
         if (_log.shouldLog(Log.DEBUG))
             _log.debug("startup called from FNDS, starting up main and multihome db");
         _mainDbid.startup();
-    }
-
-    /**
-     * list of the RouterInfo objects for all known peers known to clients(in subDbs) only
-     * 
-     * @since 0.9.60
-     * @return non-null
-     */
-    public Set<RouterInfo> getRoutersKnownToClients() {
-        Set<RouterInfo> rv = new HashSet<>();
-        for (FloodfillNetworkDatabaseFacade subdb : getClientSubNetDBs()) {
-            Set<RouterInfo> rv2 = subdb.getRouters();
-            if (rv2 != null)
-                rv.addAll(rv2);
-        }
-        return rv;
-    }
-
-    /**
-     * list of the LeaseSet objects for all known peers known to clients(in subDbs) only
-     * 
-     * @since 0.9.60
-     * @return non-null
-     */
-    public Set<LeaseSet> getLeasesKnownToClients() {
-        Set<LeaseSet> rv = new HashSet<>();
-        for (FloodfillNetworkDatabaseFacade fndf : getClientSubNetDBs()) {
-            Set<LeaseSet> rv2 = fndf.getLeases();
-            if (rv2 != null)
-                rv.addAll(rv2);
-        }
-        return rv;
     }
 
     /**
@@ -156,7 +123,7 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
 
     /**
      * get the client netDb for the given id
-     * Will return the "exploratory(default client)" netDb if
+     * Will return the "main" netDb if
      * the dbid is null.
      * 
      * @since 0.9.60
@@ -172,52 +139,5 @@ public class FloodfillNetworkDatabaseSegmentor extends SegmentedNetworkDatabaseF
                 return fndf;
         }
         return mainNetDB();
-    }
-
-    /**
-     * get all the subDbs and return them in a Set. This includes the main netDb
-     * and the possible-multihomes netDb
-     * 
-     * @since 0.9.60
-     * @return non-null
-     */
-    @Override
-    public Set<FloodfillNetworkDatabaseFacade> getSubNetDBs() {
-        if (!_mainDbid.isInitialized())
-            return Collections.emptySet();
-        Set<FloodfillNetworkDatabaseFacade> rv = new HashSet<>();
-        rv.add(_mainDbid);
-        rv.addAll(_context.clientManager().getClientFloodfillNetworkDatabaseFacades());
-        return rv;
-    }
-
-    /**
-     * get all the subDbs and return them in a Set. This only includes subDbs associated
-     * with specific clients, unless subDbs are disabled in which case it only contains the
-     * main netDB
-     * 
-     * @since 0.9.60
-     * @return non-null
-     */
-    private Set<FloodfillNetworkDatabaseFacade> getClientSubNetDBs() {
-        if (!_mainDbid.isInitialized())
-            return Collections.emptySet();
-        Set<FloodfillNetworkDatabaseFacade> rv = new HashSet<>();
-        rv.addAll(_context.clientManager().getClientFloodfillNetworkDatabaseFacades());
-        return rv;
-    }
-
-    /**
-     * list of the BlindData objects for all known clients
-     * 
-     * @since 0.9.60
-     * @return non-null
-     */
-    @Override
-    public List<BlindData> getLocalClientsBlindData() {
-        List<BlindData> rv = new ArrayList<>();
-        for (FloodfillNetworkDatabaseFacade subdb : getClientSubNetDBs()) {
-        }
-        return rv;
     }
 }

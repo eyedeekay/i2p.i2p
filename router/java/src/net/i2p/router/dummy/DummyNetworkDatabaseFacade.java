@@ -99,9 +99,4 @@ public class DummyNetworkDatabaseFacade extends SegmentedNetworkDatabaseFacade {
     public FloodfillNetworkDatabaseFacade clientNetDB(Hash id) {
         return _fndb;
     }
-
-    @Override
-    public Set<FloodfillNetworkDatabaseFacade> getSubNetDBs(){
-        throw new UnsupportedOperationException("Unimplemented method 'getSubNetDBs'");
-    }
 }
