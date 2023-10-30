@@ -81,7 +81,6 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
     protected final int _networkID;
     private final BlindCache _blindCache;
     protected final Hash _dbid;
-    private Hash _localKey;
     private final Job _elj, _erj;
 
     /** 
