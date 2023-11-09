@@ -54,7 +54,8 @@ public class NetDbHelper extends FormHandler {
                                            "Sybil",                             // 7
                                            "Advanced Lookup",                   // 8
                                            "LeaseSet Lookup",                   // 9
-                                           "LeaseSets (Client DBs)"             // 10
+                                           "LeaseSets (Client DBs)",             // 10
+                                           "Manual Interactions",               // 11
                                           };
 
     private static final String links[] =
@@ -69,6 +70,7 @@ public class NetDbHelper extends FormHandler {
                                            "?f=4",                              // 8
                                            "",                                  // 9
                                            "?l=7",                              // 10
+                                           "?f=5",                              // 11
                                           };
                                            
 
@@ -379,6 +381,8 @@ public class NetDbHelper extends FormHandler {
             return 9;
         if (_clientOnly)
             return 10;
+        if (_full == 5)
+            return 11;
         return 0;
     }
 
