@@ -4,15 +4,31 @@ import java.io.IOException;
 import java.text.Collator;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 
+import net.i2p.I2PAppContext;
+import net.i2p.client.I2PClient;
+import net.i2p.client.I2PSession;
+import net.i2p.client.I2PSessionException;
+import net.i2p.client.I2PSimpleClient;
+import net.i2p.client.naming.LookupDest;
 import net.i2p.crypto.EncType;
 import net.i2p.crypto.SigType;
 import net.i2p.data.DataHelper;
+import net.i2p.data.Destination;
 import net.i2p.data.Hash;
+import net.i2p.data.LeaseSet;
+import net.i2p.data.i2np.DatabaseStoreMessage;
+import net.i2p.data.i2np.DeliveryInstructions;
+import net.i2p.data.router.RouterInfo;
+import net.i2p.util.ConvertToHash;
 import net.i2p.util.SystemVersion;
+import net.i2p.router.JobImpl;
+import net.i2p.router.networkdb.kademlia.FloodfillNetworkDatabaseFacade;
 import net.i2p.router.sybil.Analysis;
 import net.i2p.router.web.FormHandler;
 import net.i2p.router.web.Messages;
@@ -38,6 +54,8 @@ public class NetDbHelper extends FormHandler {
     private EncType _etype;
     private String _newNonce;
     private boolean _postOK;
+
+    private String _sendhash, _recvhash, _sraction;
 
     private static final int DEFAULT_LIMIT = SystemVersion.isARM() ? 250 : 500;
     private static final int DEFAULT_PAGE = 0;
@@ -247,6 +265,18 @@ public class NetDbHelper extends FormHandler {
             _icount = Integer.parseInt(f);
         } catch (NumberFormatException nfe) {}
     }
+
+    public void setSendhash(String f) {
+        _sendhash = f;
+    }
+
+    public void setRecvhash(String f) {
+        _recvhash = f;
+    }
+
+    public void setSraction(String f) {
+        _sraction = f;
+    }
     
     /**
      *  call for non-text-mode browsers
@@ -318,7 +348,12 @@ public class NetDbHelper extends FormHandler {
         NetDbRenderer renderer = new NetDbRenderer(_context);
         try {
             renderNavBar();
-            if (_routerPrefix != null || _version != null || _country != null ||
+            if ((_sendhash != null && _recvhash != null && _sraction != null) && 
+                (!_sendhash.equals("") && !_recvhash.equals("") && !_sraction.equals(""))) {
+                _log.error("'" + _sendhash + "' '" + _recvhash + "' '" + _sraction, new Exception());
+                renderManipulationForm();
+                renderManipulationResult();
+            } else if (_routerPrefix != null || _version != null || _country != null ||
                 _family != null || _caps != null || _ip != null || _sybil != null ||
                 _port != 0 || _type != null || _mtu != null || _ipv6 != null ||
                 _ssucaps != null || _transport != null || _cost != 0 || _etype != null ||
@@ -339,6 +374,8 @@ public class NetDbHelper extends FormHandler {
                 (new SybilRenderer(_context)).getNetDbSummary(_out, _newNonce, _mode, _date);
             } else if (_full == 4) {
                 renderLookupForm();
+            } else if (_full == 5) {
+                renderManipulationForm();
             } else if (_clientOnly) {
                 for (Hash client : _context.clientManager().getPrimaryHashes()) {
                     renderer.renderLeaseSetHTML(_out, false, client);
@@ -487,5 +524,115 @@ public class NetDbHelper extends FormHandler {
                    "<button type=\"reset\" class=\"cancel\" value=\"Cancel\">" + _t("Cancel") + "</button> " +
                    "<button type=\"submit\" class=\"search\" value=\"Lookup\">Lookup</button></td></tr>\n" +
                    "</table>\n</form>\n");
+    }
+
+    private void renderManipulationForm() throws IOException {
+        _out.write("<form action=\"/netdb\" method=\"POST\">\n" + 
+                   "<input type=\"hidden\" name=\"nonce\" value=\"" + _newNonce + "\" >\n" +
+                   "<table id=\"netdblookup\"><tr><th colspan=\"3\">Network Database Interaction</th></tr>\n");
+        _out.write("<tr><td>Hash(LeaseSet) to send:</td>" +
+                   "<td><input type=\"text\" name=\"sendhash\"></td><td></td></tr>\n" +
+                   "<tr><td>Hash(LeaseSet or RouterInfo) to target:</td>" +
+                   "<td><input type=\"text\" name=\"recvhash\"></td><td></td></tr>\n" +
+                   "<tr><td><button type=\"reset\" class=\"cancel\" value=\"Cancel\">" + _t("Cancel") + "</button> " +
+                   "<button type=\"submit\" class=\"search\" name=\"sraction\" value=\"Search\">" + _t("Search") + "</button>\n" +
+                   "<button type=\"submit\" class=\"store\" name=\"sraction\" value=\"Store\">" + _t("Store") + "</button>\n" +
+                   "<button type=\"submit\" class=\"storesearch\" name=\"sraction\" value=\"StoreThenSearch\">"+ _t("Store then Search") +"</button></td></tr>\n" +
+                   "</table>\n</form>\n");
+    }
+    private void renderManipulationResult() throws IOException {
+        String _searchResult = "search for" + _sendhash + " on " + _recvhash;
+        String _storeResult = "store for" + _sendhash + " on " + _recvhash;
+
+        Destination recvhash = null;
+        try {
+            recvhash = lookupDest(_recvhash);
+            if (recvhash == null) {
+                _searchResult = "Search Target Hash not found for: " + _recvhash;
+                _storeResult = "Store Target Hash not found for: " + _recvhash;
+            }
+        } catch (Exception e) {
+            _searchResult = "Search Exception: Target Hash not found for: " + _recvhash + e.toString();
+            _storeResult = "Store Exception: Target Hash not found for: " + _recvhash + e.toString();
+        }
+
+        Destination sendhash = null;
+        try {
+            sendhash = lookupDest(_sendhash);
+            if (sendhash == null) {
+                _searchResult = "Search Hash not found for: " + _sendhash;
+                _storeResult = "Store Hash not found for: " + _sendhash;
+            }
+        } catch (Exception e) {
+            _searchResult = "Search Exception: Search Hash not found for: " + _sendhash + e.toString();
+            _storeResult = "Store Exception: Store Hash not found for: " + _sendhash + e.toString();
+        }
+
+        if (recvhash != null && sendhash != null) {
+            RouterInfo ri = _context.netDb().lookupRouterInfoLocally(recvhash.getHash());
+            LeaseSet ls = _context.netDb().lookupLeaseSetLocally(recvhash.getHash());
+            LeaseSet sendls = _context.netDb().lookupLeaseSetLocally(sendhash.getHash());
+
+            ((FloodfillNetworkDatabaseFacade)_context.netDb())
+            if (ri != null && ls == null && sendls != null) {
+                _searchResult = "Search for LeaseSet: " + sendls.getHash() + " on Router: " + ri.getIdentity().getHash();
+                _storeResult = "Store for LeaseSet: " + sendls.getHash() + " on Router: " + ri.getIdentity().getHash();
+            } else if (ri == null && ls != null && sendls != null) {
+                _searchResult = "Search for LeaseSet: " + sendls.getHash() + " on client: " + ls.getHash();
+                _storeResult = "Store for LeaseSet: " + sendls.getHash() + " on client: " + ls.getHash();
+            }
+        }
+        String _searchThenStoreResult = _searchResult + ", then "+ _storeResult;
+        
+        _out.write("<div id=\"netdbresult\">"+
+                   "<table id=\"netdbresult\"><tr><th colspan=\"3\">Network Database Interaction Results</th></tr>\n");
+        switch (_sraction) {
+            case "Search":
+                // searching for sendHash on recvHash
+                _out.write("<tr><td>Search result:</td><td colspan=\"2\"><pre>" + _searchResult + "</pre></td></tr>\n");
+                break;
+            case "Store":
+                // storing sendHash on recvHash
+                _out.write("<tr><td>Store result:</td><td colspan=\"2\"><pre>" + _storeResult + "</pre></td></tr>\n");
+                break;
+            case "StoreThenSearch":
+                // storing sendHash on recvHash, then searching for sendHash on recvHash
+                _out.write("<tr><td>Store result:</td><td colspan=\"2\"><pre>" + _searchThenStoreResult + "</pre></td></tr>\n");
+        }
+        _out.write("</table></div>\n");
+    }
+
+    private boolean sendStoreToTarget(Hash sendhash, RouterInfo target) {
+        return false;
+    }
+
+    private boolean searchFromTarget(Hash sendhash, RouterInfo target) {
+        return false;
+    }
+
+    private boolean searchThenStoreFromTarget(Hash sendhash, RouterInfo target) {
+        return false;
+    }
+
+    private Destination lookupDest(String hostname) throws I2PSessionException {
+        if (hostname == null) return null;
+        Hash hash = ConvertToHash.getHash(hostname);
+        _context.netDb().lookupDestination(hash, null, DEFAULT_LIMIT, null);
+        LookupWaiter lw = new LookupWaiter();
+        synchronized(lw) {
+            try { lw.wait(9*1000); } catch (InterruptedException ie) {}
+        }
+        Destination rv = _context.netDb().lookupDestinationLocally(hash);
+        return rv;
+    }
+
+    private class LookupWaiter extends JobImpl {
+        public LookupWaiter() { super(_context); }
+        public void runJob() {
+            synchronized(this) {
+                notifyAll();
+            }
+        }
+        public String getName() { return "Console netdb lookup"; }
     }
 }

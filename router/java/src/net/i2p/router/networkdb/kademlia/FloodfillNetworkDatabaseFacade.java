@@ -258,6 +258,48 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     }
 
     /**
+     * Send to a specific peer, specified by hash
+     * 
+     * @param ds
+     */
+    public void flood(DatabaseEntry ds, Hash h) {
+        Hash key = ds.getHash();
+        Hash peer = h;
+
+        DatabaseStoreMessage msg = new DatabaseStoreMessage(_context);
+        msg.setEntry(ds);
+        RouterInfo ritarget = _context.netDb().lookupRouterInfoLocally(key);
+        if (ritarget != null) {
+            flood(ds, ritarget, msg, peer);
+        }
+        LeaseSet lstarget = _context.netDb().lookupLeaseSetLocally(key);
+        if (lstarget != null) {
+            flood(ds, lstarget, msg, peer);
+        }
+
+    }
+    public void flood(DatabaseEntry ds, LeaseSet target, DatabaseStoreMessage msg, Hash peer) {
+        //OutNetMessage m = new OutNetMessage(_context, msg, _context.clock().now()+FLOOD_TIMEOUT, FLOOD_PRIORITY, target);
+
+    }
+
+    public void flood(DatabaseEntry ds, RouterInfo target, DatabaseStoreMessage msg, Hash peer) {
+        OutNetMessage m = new OutNetMessage(_context, msg, _context.clock().now()+FLOOD_TIMEOUT, FLOOD_PRIORITY, target);
+        Job floodFail = new FloodFailedJob(_context, peer);
+        m.setOnFailedSendJob(floodFail);
+        // we want to give credit on success, even if we aren't sure,
+        // because otherwise no use noting failure
+        Job floodGood = new FloodSuccessJob(_context, peer);
+        m.setOnSendJob(floodGood);
+        _context.commSystem().processMessage(m);
+        //flooded++;
+        if (_log.shouldLog(Log.INFO))
+            _log.info("Flooding the entry for " + ds.getHash() + " to " + peer.toBase64());
+        if (_log.shouldLog(Log.INFO))
+            _log.info("Flooded the data to " + peer);
+    }
+
+    /**
      *  Send to a subset of all floodfill peers.
      *  We do this to implement Kademlia within the floodfills, i.e.
      *  we flood to those closest to the key.

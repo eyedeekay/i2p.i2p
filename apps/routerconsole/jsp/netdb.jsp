@@ -40,6 +40,11 @@
  <jsp:setProperty name="formhandler" property="leaseset" value="<%=request.getParameter(\"ls\")%>" />
  <jsp:setProperty name="formhandler" property="sort" value="<%=request.getParameter(\"s\")%>" />
  <jsp:setProperty name="formhandler" property="intros" value="<%=request.getParameter(\"i\")%>" />
+
+ <jsp:setProperty name="formhandler" property="sendhash" value="<%=request.getParameter(\"sendhash\")%>" />
+ <jsp:setProperty name="formhandler" property="recvhash" value="<%=request.getParameter(\"recvhash\")%>" />
+ <jsp:setProperty name="formhandler" property="sraction" value="<%=request.getParameter(\"sraction\")%>" />
+
 <%@include file="formhandler.jsi" %>
  <jsp:getProperty name="formhandler" property="netDbSummary" />
 </div></body></html>
