@@ -573,7 +573,6 @@ public class NetDbHelper extends FormHandler {
             LeaseSet ls = _context.netDb().lookupLeaseSetLocally(recvhash.getHash());
             LeaseSet sendls = _context.netDb().lookupLeaseSetLocally(sendhash.getHash());
 
-            ((FloodfillNetworkDatabaseFacade)_context.netDb())
             if (ri != null && ls == null && sendls != null) {
                 _searchResult = "Search for LeaseSet: " + sendls.getHash() + " on Router: " + ri.getIdentity().getHash();
                 _storeResult = "Store for LeaseSet: " + sendls.getHash() + " on Router: " + ri.getIdentity().getHash();
@@ -635,4 +634,6 @@ public class NetDbHelper extends FormHandler {
         }
         public String getName() { return "Console netdb lookup"; }
     }
+
+    
 }
