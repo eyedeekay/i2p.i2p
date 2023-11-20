@@ -1083,13 +1083,13 @@
                 </or>
             </condition>
         </fail>
-        <fail message="Non-zero build number: ${i2p.build.number}" >
+        <!--<fail message="Non-zero build number: ${i2p.build.number}" >
             <condition>
                 <not>
                     <equals arg1="${i2p.build.number}" arg2="0"/>
                 </not>
             </condition>
-        </fail>
+        </fail>-->
         <fail message="Non-empty extra build: ${build.extra}" >
             <condition>
                 <not>

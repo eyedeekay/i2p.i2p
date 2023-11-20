@@ -47,7 +47,7 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
         // all createRateStat in TunnelDispatcher
 
         if (_client != null) {
-            TunnelPoolSettings clienttps = _context.tunnelManager().getInboundSettings(_client);
+            TunnelPoolSettings clienttps = getTunnelPoolSettings(_client);
             if (_log.shouldLog(Log.DEBUG))
                 _log.debug("Initializing client (nickname: "
                            + clienttps.getDestinationNickname()
@@ -62,6 +62,21 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                 _log.debug("Initializing null or exploratory InboundMessageDistributor");
         }
 
+    }
+
+    public TunnelPoolSettings getTunnelPoolSettings(Hash _client) {
+        TunnelPoolSettings clienttps = _context.tunnelManager().getInboundSettings(_client);
+        int i = 0;
+        while (clienttps == null) {
+            i++;
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {}
+            if (_log.shouldLog(Log.DEBUG))
+                _log.debug("Waiting for tunnel settings for " + _client.toBase32() + " (" + i*100 + " milliseconds)");
+            clienttps = _context.tunnelManager().getInboundSettings(_client);
+        }
+        return clienttps;
     }
     
     public void distribute(I2NPMessage msg, Hash target) {
