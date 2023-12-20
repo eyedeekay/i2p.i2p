@@ -35,7 +35,7 @@ import net.i2p.util.SystemVersion;
  */
 public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacade {
     public static final char CAPABILITY_FLOODFILL = 'f';
-    private static final String MINIMUM_SUBDB_PEERS = "router.subDbMinimumPeers";
+    private static final String ALWAYS_CONSIDER_PEER_FLOODFILL = "router.ignoreFloodfillCapability";
     private final Map<Hash, FloodSearchJob> _activeFloodQueries;
     private boolean _floodfillEnabled;
     private final Set<Hash> _verifiesInProgress;
@@ -96,6 +96,10 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
             _ffMonitor = null;
         else
             _ffMonitor = new FloodfillMonitorJob(_context, this);
+    }
+
+    private boolean ignoreFloodfillCapability() {
+        return _context.getBooleanProperty(ALWAYS_CONSIDER_PEER_FLOODFILL);
     }
 
     @Override
@@ -435,11 +439,20 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
     
     /**
      *  @param peer may be null, returns false if null
+     * always returns true if ignoreFloodfillCapability()
      */
-    public static boolean isFloodfill(RouterInfo peer) {
-        if (peer == null) return false;
-        String caps = peer.getCapabilities();
-        return caps.indexOf(CAPABILITY_FLOODFILL) >= 0;
+    public boolean isFloodfill(RouterInfo peer) {
+        if (ignoreFloodfillCapability()) return true;
+        return peer.isFloodfill();
+    }
+
+    /**
+     *  @param peer may be null, returns false if null
+     * always returns false if ignoreFloodfillCapability()
+     */
+    public boolean isNotFloodfill(RouterInfo peer) {
+        if (ignoreFloodfillCapability()) return false;
+        return !peer.isFloodfill();
     }
 
     public List<RouterInfo> getKnownRouterData() {

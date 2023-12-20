@@ -39,7 +39,7 @@ public class HandleFloodfillDatabaseLookupMessageJob extends HandleDatabaseLooku
     @Override
     protected boolean answerAllQueries() {
         if (!getContext().netDb().floodfillEnabled()) return false;
-        return FloodfillNetworkDatabaseFacade.isFloodfill(getContext().router().getRouterInfo());
+        return ((FloodfillNetworkDatabaseFacade)getContext().netDb()).isFloodfill(getContext().router().getRouterInfo());
     }
 
     /**

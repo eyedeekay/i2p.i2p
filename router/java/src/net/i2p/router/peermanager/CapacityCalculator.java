@@ -121,7 +121,7 @@ class CapacityCalculator {
         if (ndb != null) {
             RouterInfo ri = (RouterInfo) ndb.lookupLocallyWithoutValidation(profile.getPeer());
             if (ri != null) {
-                if (!FloodfillNetworkDatabaseFacade.isFloodfill(ri))
+                if (((FloodfillNetworkDatabaseFacade) ndb).isNotFloodfill(ri))
                     capacity += BONUS_NON_FLOODFILL;
                 String caps = ri.getCapabilities();
                 if (caps.indexOf(Router.CAPABILITY_REACHABLE) < 0)

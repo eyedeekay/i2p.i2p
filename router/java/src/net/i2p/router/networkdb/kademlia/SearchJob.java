@@ -324,7 +324,7 @@ class SearchJob extends JobImpl {
                         _state.replyTimeout(peer);
                     } else {
                         RouterInfo ri = (RouterInfo)ds;
-                        if (!FloodfillNetworkDatabaseFacade.isFloodfill(ri)) {
+                        if (((FloodfillNetworkDatabaseFacade) _facade).isNotFloodfill(ri)) {
                             _floodfillPeersExhausted = true;
                             if (onlyFloodfill)
                                 continue;
@@ -481,7 +481,7 @@ class SearchJob extends JobImpl {
         SearchUpdateReplyFoundJob reply = new SearchUpdateReplyFoundJob(getContext(), router, _state, _facade, 
                                                                         this, outTunnel, inTunnel);
         
-        if (FloodfillNetworkDatabaseFacade.isFloodfill(router))
+        if (((FloodfillNetworkDatabaseFacade) _facade).isFloodfill(router))
             _floodfillSearchesOutstanding++;
         getContext().messageRegistry().registerPending(sel, reply, new FailedJob(getContext(), router));
         // TODO pass a priority to the dispatcher
@@ -517,7 +517,7 @@ class SearchJob extends JobImpl {
         SendMessageDirectJob j = new SendMessageDirectJob(getContext(), msg, to,
                                                           reply, new FailedJob(getContext(), router), sel, timeout,
                                                           OutNetMessage.PRIORITY_EXPLORATORY, _msgIDBloomXor);
-        if (FloodfillNetworkDatabaseFacade.isFloodfill(router))
+        if (((FloodfillNetworkDatabaseFacade) _facade).isFloodfill(router))
             _floodfillSearchesOutstanding++;
         j.runJob();
         //getContext().jobQueue().addJob(j);
@@ -608,7 +608,7 @@ class SearchJob extends JobImpl {
             _penalizePeer = penalizePeer;
             _peer = peer.getIdentity().getHash();
             _sentOn = enclosingContext.clock().now();
-            _isFloodfill = FloodfillNetworkDatabaseFacade.isFloodfill(peer);
+            _isFloodfill = ((FloodfillNetworkDatabaseFacade) _facade).isFloodfill(peer);
         }
         public void runJob() {
             if (_isFloodfill)

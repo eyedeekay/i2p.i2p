@@ -39,6 +39,7 @@ import net.i2p.data.KeysAndCert;
 import net.i2p.data.Signature;
 import net.i2p.data.SimpleDataStructure;
 import net.i2p.router.Router;
+import net.i2p.router.networkdb.kademlia.FloodfillNetworkDatabaseFacade;
 import net.i2p.util.Clock;
 import net.i2p.util.Log;
 import net.i2p.util.OrderedProperties;
@@ -722,5 +723,10 @@ public class RouterInfo extends DatabaseEntry {
         }
         if (fail)
             System.exit(1);
+    }
+    
+    public boolean isFloodfill() {
+        String caps = this.getCapabilities();
+        return caps.indexOf(FloodfillNetworkDatabaseFacade.CAPABILITY_FLOODFILL) >= 0;
     }
 }

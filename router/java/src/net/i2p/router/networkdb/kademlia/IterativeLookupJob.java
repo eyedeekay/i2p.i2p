@@ -82,7 +82,7 @@ class IterativeLookupJob extends JobImpl {
                         }
                         newPeers++;
                     } else if (ri.getPublished() < getContext().clock().now() - 60*60*1000 ||
-                             !FloodfillNetworkDatabaseFacade.isFloodfill(ri)) {
+                             ((FloodfillNetworkDatabaseFacade) getContext().netDb()).isNotFloodfill(ri)) {
                         // get an updated RI from the (now ff?) peer
                         // Only if original search used expl. tunnels
                         if (_search.getFromHash() == null) {

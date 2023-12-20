@@ -377,7 +377,7 @@ class FloodfillPeerSelector extends PeerSelector {
             //if (info == null)
             //    return;
             
-            if (info != null && FloodfillNetworkDatabaseFacade.isFloodfill(info)) {
+            if (info != null && ((FloodfillNetworkDatabaseFacade) _context.netDb()).isFloodfill(info)) {
                 _floodfillMatches.add(entry);
             } else {
                 // This didn't really work because we stopped filling up when _wanted == _matches,

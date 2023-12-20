@@ -44,7 +44,7 @@ class SearchUpdateReplyFoundJob extends JobImpl implements ReplyJob {
         super(context);
         _log = context.logManager().getLog(SearchUpdateReplyFoundJob.class);
         _peer = peer.getIdentity().getHash();
-        _isFloodfillPeer = FloodfillNetworkDatabaseFacade.isFloodfill(peer);
+        _isFloodfillPeer = ((FloodfillNetworkDatabaseFacade) facade).isFloodfill(peer);
         _state = state;
         _facade = facade;
         _job = job;

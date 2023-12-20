@@ -48,7 +48,7 @@ class SingleLookupJob extends JobImpl {
             if (ri == null)
                 getContext().jobQueue().addJob(new SingleSearchJob(getContext(), peer, from));
             else if (ri.getPublished() < getContext().clock().now() - 60*60*1000 ||
-                     !FloodfillNetworkDatabaseFacade.isFloodfill(ri))
+                     ((FloodfillNetworkDatabaseFacade) getContext().netDb()).isNotFloodfill(ri))
                 getContext().jobQueue().addJob(new SingleSearchJob(getContext(), peer, peer));
         }
     }
