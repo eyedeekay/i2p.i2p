@@ -130,15 +130,9 @@ class InboundMessageDistributor implements GarlicMessageReceiver.CloveReceiver {
                             return;
                         if (!ri.isValid())
                             return;
-                        RouterInfo oldri = _context.netDb().lookupRouterInfoLocally(key);
-                        // only update if RI is newer and non-ff
-                        if (oldri != null && oldri.getPublished() < ri.getPublished() &&
-                            ((FloodfillNetworkDatabaseFacade)_context.netDb()).isNotFloodfill(ri)) {
-                            if (_log.shouldLog(Log.WARN))
-                                _log.warn("Updating caps for RI " + key + " from \"" +
-                                          oldri.getCapabilities() + "\" to \"" + ri.getCapabilities() + '"');
-                            _context.peerManager().setCapabilities(key, ri.getCapabilities());
-                        }
+                        // RouterInfo oldri = _context.netDb().lookupRouterInfoLocally(key);
+                        // don't update caps if the RouterInfo came down a client tunnel, as it may be(Almost certainly is) malicious
+                        // and we deny RI storage in client DB's anyway
                         return;
                     } else if (dsm.getReplyToken() != 0) {
                         _context.statManager().addRateData("tunnel.dropDangerousClientTunnelMessage", 1, type);

@@ -98,7 +98,7 @@ public class FloodfillNetworkDatabaseFacade extends KademliaNetworkDatabaseFacad
             _ffMonitor = new FloodfillMonitorJob(_context, this);
     }
 
-    private boolean ignoreFloodfillCapability() {
+    public boolean ignoreFloodfillCapability() {
         return _context.getBooleanProperty(ALWAYS_CONSIDER_PEER_FLOODFILL);
     }
 

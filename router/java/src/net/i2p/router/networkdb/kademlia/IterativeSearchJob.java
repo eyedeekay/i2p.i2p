@@ -601,7 +601,8 @@ public class IterativeSearchJob extends FloodSearchJob {
         }
         RouterInfo ri = getContext().netDb().lookupRouterInfoLocally(peer);
         if (ri != null && ((FloodfillNetworkDatabaseFacade) getContext().netDb()).isNotFloodfill(ri)) {
-            if (_log.shouldLog(Log.INFO))
+            if ((FloodfillNetworkDatabaseFacade) getContext().netDb()).ignoreFloodfillCapability())
+            if (_log.shouldLog(Log.INFO)))
                 _log.info(getJobId() + ": non-ff peer from DSRM " + peer);
             return;
         }
