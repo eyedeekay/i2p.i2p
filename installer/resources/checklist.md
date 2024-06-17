@@ -63,6 +63,8 @@
 4. Tickets: Check if any blocker or critical tickets for this release remain open;
    get them fixed and closed, or reclassified.
 
+5. Update and check in blocklist-tor.txt with `maketorblocklist.sh`
+
 
 ## On release day
 
@@ -181,8 +183,9 @@
 3. If all goes well, tag and push the release:
 
     ```
-    git tag -s i2p-0.x.xx
+    git tag -s i2p-2.x.x
     git push
+    git push origin tag i2p-2.x.x
     ```
 
 ### Distribute updates
@@ -196,7 +199,7 @@
 2. Add i2pupdate-1.xx.0.su3 torrent to tracker2.postman.i2p and start seeding
 
 3. Notify the following people:
-  - All in-network update hosts
+  - All in-network update hosts(zzz(stats.i2p) and idk(mgp**.b32.i2p)), they will need the i2pupdate.su3 file
   - PPA maintainer
   - news.xml maintainer
   - backup news.xml maintainer

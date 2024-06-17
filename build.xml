@@ -391,7 +391,7 @@
     <target name="buildJetty" depends="buildCore" >
         <ant dir="apps/jetty" target="build" />
         <copy todir="build/" >
-            <fileset dir="apps/jetty/jettylib" excludes="ant.jar" />
+            <fileset dir="apps/jetty/jettylib" excludes="jspc.jar" />
         </copy>
     </target>
 
@@ -442,6 +442,7 @@
         <!-- default if not set by disableManifestClasspath -->
         <property name="manifest.classpath.name" value="Class-Path" />
         <property name="full.version" value="${release.number}-${i2p.build.number}${build.qualifier}${build.extra}" />
+        <echo message="Ant: ${ant.version}" />
         <echo message="JDK: ${java.vendor} ${java.version} (${java.runtime.name} ${java.runtime.version})" />
         <echo message="Building version ${full.version} (revision ${workspace.version})" />
     </target>
@@ -1435,6 +1436,7 @@
         <copy file="build/i2psnark.war" todir="pkg-temp/webapps/" />
         <copy file="apps/i2psnark/i2psnark.config" todir="pkg-temp/" />
         <copy file="installer/resources/blocklist.txt" todir="pkg-temp/" />
+        <copy file="installer/resources/blocklist-tor.txt" todir="pkg-temp/" />
         <copy file="installer/resources/clients.config" todir="pkg-temp/" />
         <copy file="installer/resources/i2ptunnel.config" todir="pkg-temp/" />
         <copy file="installer/resources/wrapper.config" todir="pkg-temp/" />
@@ -1762,6 +1764,7 @@
         <copy file="build/i2psnark.war" todir="pkg-temp/webapps/" />
         <copy file="installer/resources/deletelist.txt" todir="pkg-temp/" />
         <copy file="installer/resources/blocklist.txt" todir="pkg-temp/" />
+        <copy file="installer/resources/blocklist-tor.txt" todir="pkg-temp/" />
         <copy todir="pkg-temp/man/">
             <fileset dir="installer/resources/man/" />
         </copy>
@@ -2052,7 +2055,7 @@
     <target name="buildRouterTest" depends="buildCoreTest">
         <ant dir="router/java/" target="jarTest" />
     </target>
-    <target name="buildTest" depends="buildRouterTest">
+    <target name="buildTest" depends="buildRouterTest, buildMinistreaming">
         <copy file="core/java/build/i2ptest.jar" todir="build" />
         <copy file="router/java/build/routertest.jar" todir="build" />
         <!-- broken -->
@@ -2363,7 +2366,7 @@
         <echo message="    ${gpg} -u ${release.gpg.keyid} -b i2pinstall_${release.number}_windows.exe" />
         <echo message="    sha256sum i2pinstall_${release.number}_windows.exe" />
         <echo message="Don't forget to git tag -s i2p-${release.number}" />
-        <echo message="         ...and git push origin i2p-${release.number}" />
+        <echo message="         ...and git push origin tag i2p-${release.number}" />
     </target>
 
     <target name="forceJava7">

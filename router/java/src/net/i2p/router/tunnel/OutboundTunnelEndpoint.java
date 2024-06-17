@@ -1,9 +1,13 @@
 package net.i2p.router.tunnel;
 
+import net.i2p.data.DatabaseEntry;
 import net.i2p.data.Hash;
 import net.i2p.data.TunnelId;
+import net.i2p.data.i2np.DatabaseStoreMessage;
 import net.i2p.data.i2np.I2NPMessage;
+import net.i2p.data.i2np.I2NPMessageException;
 import net.i2p.data.i2np.TunnelDataMessage;
+import net.i2p.data.i2np.UnknownI2NPMessage;
 import net.i2p.router.OutNetMessage;
 import net.i2p.router.RouterContext;
 import net.i2p.util.Log;
@@ -26,7 +30,7 @@ class OutboundTunnelEndpoint {
         _log = ctx.logManager().getLog(OutboundTunnelEndpoint.class);
         _config = config;
         _processor = processor;
-        _handler = new RouterFragmentHandler(ctx, new DefragmentedHandler());
+        _handler = new FragmentHandler(ctx, new DefragmentedHandler(), false);
         _outDistributor = new OutboundMessageDistributor(ctx, OutNetMessage.PRIORITY_PARTICIPATING);
     }
 
@@ -55,6 +59,11 @@ class OutboundTunnelEndpoint {
     }
     
     private class DefragmentedHandler implements FragmentHandler.DefragmentedReceiver {
+
+        /**
+         *  Warning - as of 0.9.63, msg will be an UnknownI2NPMessage,
+         *  and must be converted before handling locally.
+         */
         public void receiveComplete(I2NPMessage msg, Hash toRouter, TunnelId toTunnel) {
             if (toRouter == null) {
                 // Delivery type LOCAL is not supported at the OBEP
@@ -64,6 +73,38 @@ class OutboundTunnelEndpoint {
                     _log.warn("Dropping msg at OBEP with unsupported delivery instruction type LOCAL");
                 return;
             }
+
+            int type = msg.getType();
+            if (type == DatabaseStoreMessage.MESSAGE_TYPE) {
+                // If UnknownI2NPMessage, convert it.
+                // See FragmentHandler.receiveComplete()
+                if (msg instanceof UnknownI2NPMessage) {
+                    try {
+                        UnknownI2NPMessage umsg = (UnknownI2NPMessage) msg;
+                        msg = umsg.convert();
+                    } catch (I2NPMessageException ime) {
+                        if (_log.shouldLog(Log.WARN))
+                            _log.warn("Unable to convert to std. msg. class at zero-hop IBGW", ime);
+                        return;
+                    }
+                }
+                DatabaseStoreMessage dsm = (DatabaseStoreMessage) msg;
+                DatabaseEntry entry = dsm.getEntry();
+                if (entry.getType() == DatabaseEntry.KEY_TYPE_ROUTERINFO) {
+                    long now = _context.clock().now();
+                    long date = entry.getDate();
+                    if (date < now - 60*60*1000L) {
+                        if (_log.shouldWarn())
+                            _log.warn("Dropping DSM of old RI at OBEP, direct? " + (toTunnel == null) + " to router: " + toRouter.toBase64() + " key: " + dsm.getKey().toBase64());
+                        return;
+                    } else if (date > now + 2*60*1000L) {
+                        if (_log.shouldWarn())
+                            _log.warn("Dropping DSM of future RI at OBEP, direct? " + (toTunnel == null) + " to router: " + toRouter.toBase64() + " key: " + dsm.getKey().toBase64());
+                        return;
+                    }
+                }
+            }
+
             if (_log.shouldLog(Log.DEBUG))
                 _log.debug("outbound tunnel " + _config + " received a full message: " + msg
                            + " to be forwarded on to "
@@ -73,7 +114,7 @@ class OutboundTunnelEndpoint {
             // don't drop it if we are the target
             boolean toUs = _context.routerHash().equals(toRouter);
             if ((!toUs) &&
-                _context.tunnelDispatcher().shouldDropParticipatingMessage(TunnelDispatcher.Location.OBEP, msg.getType(), size))
+                _context.tunnelDispatcher().shouldDropParticipatingMessage(TunnelDispatcher.Location.OBEP, type, size))
                 return;
             // this overstates the stat somewhat, but ok for now
             //int kb = (size + 1023) / 1024;

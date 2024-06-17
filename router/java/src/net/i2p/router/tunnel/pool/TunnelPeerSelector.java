@@ -229,7 +229,10 @@ public abstract class TunnelPeerSelector extends ConnectChecker {
         if (ctx.commSystem().wasUnreachable(h))
             return true;
 
-        RouterInfo info = (RouterInfo) ctx.netDb().lookupLocallyWithoutValidation(h);
+        // Here, we use validation, because BuildRequestor does,
+        // so if we don't skip old routers here, it gets all the way to BuildRequestor
+        // before failing.
+        RouterInfo info = (RouterInfo) ctx.netDb().lookupLocally(h);
         if (info == null)
             return true;
 
@@ -349,7 +352,7 @@ public abstract class TunnelPeerSelector extends ConnectChecker {
     }
 
     /** SSU2 fixes (2.1.0), Congestion fixes (2.2.0) */
-    private static final String MIN_VERSION = "0.9.58";
+    private static final String MIN_VERSION = "0.9.59";
 
     /**
      *  Should the peer be excluded based on its published caps?

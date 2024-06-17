@@ -372,6 +372,7 @@
                 <pathelement location="../../../core/java/build/i2p.jar" />
                 <!-- required for multipart form handling in register.jsp -->
                 <pathelement location="../../jetty/jettylib/jetty-i2p.jar" />
+                <pathelement location="../../jetty/jettylib/jspc.jar" />
             </classpath>
             <arg value="-d" />
             <arg value="../jsp/WEB-INF/classes" />
@@ -459,6 +460,7 @@
             <compilerarg line="${javac.compilerargs}" />
             <classpath>
                 <pathelement location="../../../core/java/build/i2p.jar" />
+                <pathelement location="../../../core/java/build/i2ptest.jar" />
                 <pathelement location="../../ministreaming/java/build/mstreaming.jar" />
                 <pathelement location="${junit.home}/junit4.jar" />
             </classpath>
@@ -471,6 +473,7 @@
                 <pathelement path="${classpath}" />
                 <pathelement location="./build/obj" />
                 <pathelement location="../../../core/java/build/i2p.jar" />
+                <pathelement location="../../../core/java/build/i2ptest.jar" />
                 <pathelement location="../../ministreaming/java/build/mstreaming.jar" />
                 <pathelement location="../../streaming/java/build/streaming.jar" />
                 <pathelement location="${junit.home}/junit4.jar" />

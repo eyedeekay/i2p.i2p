@@ -554,6 +554,15 @@ public abstract class I2PSessionImpl implements I2PSession, I2CPMessageReader.I2
             synchronized (_leaseSetWait) {
                 _leaseSetWait.notifyAll();
             }
+            // Because of netdb isolation, a b32 lookup for a local dest ("loopback")
+            // would force the router to fetch the LS from a floodfill.
+            // Putting our dest in the lookup cache where other clients can
+            // get it allows immediate resolution.
+            Destination d = ls.getDestination();
+            Hash h = d.calculateHash();
+            synchronized (_lookupCache) {
+                _lookupCache.put(h, d);
+            }
         }
     }
 
@@ -758,9 +767,9 @@ public abstract class I2PSessionImpl implements I2PSession, I2CPMessageReader.I2
                     InputStream in = new BufferedInputStream(_socket.getInputStream(), BUF_SIZE);
                     _reader = new I2CPMessageReader(in, this);
                 }
+                if (_log.shouldLog(Log.DEBUG)) _log.debug(getPrefix() + "before startReading");
+                _reader.startReading();
             }
-            if (_log.shouldLog(Log.DEBUG)) _log.debug(getPrefix() + "before startReading");
-            _reader.startReading();
             if (_log.shouldLog(Log.DEBUG)) _log.debug(getPrefix() + "Before getDate");
             Properties auth = null;
             if ((!_context.isRouterContext()) && _options.containsKey(I2PClient.PROP_USER) && _options.containsKey(I2PClient.PROP_PW)) {

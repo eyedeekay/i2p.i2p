@@ -11,6 +11,7 @@ import net.i2p.data.DataHelper;
 import net.i2p.data.Hash;
 import net.i2p.data.TunnelId;
 import net.i2p.data.i2np.I2NPMessage;
+import net.i2p.data.i2np.DatabaseLookupMessage;
 import net.i2p.data.i2np.OutboundTunnelBuildReplyMessage;
 import net.i2p.data.i2np.ShortTunnelBuildMessage;
 import net.i2p.data.i2np.TunnelBuildMessage;
@@ -597,7 +598,7 @@ public class TunnelDispatcher implements Service {
                                + " as the wrapper's expiration is in " + DataHelper.formatDuration(exp - before)
                                + " and/or the content's expiration is in " + DataHelper.formatDuration(subexp - before)
                                + " with messageId " + id + "/" + submsg.getUniqueId()
-                               + " messageType: " + submsg.getClass().getSimpleName());
+                               + " messageType: " + submsg.getType());
                 return;
             }
             //_context.messageHistory().tunnelDispatched("message " + msg.getRawUniqueId() + "/" + msg.getMessage().getRawUniqueId() + " on tunnel " 
@@ -618,7 +619,7 @@ public class TunnelDispatcher implements Service {
                            + DataHelper.formatDuration(submsg.getMessageExpiration() - before)
                            + " messageId " + id
                            + "/" + msg.getMessage().getUniqueId()
-                           + " messageType: " + submsg.getClass().getSimpleName()
+                           + " messageType: " + submsg.getType()
                            + " existing = " + _inboundGateways.size());
         }
         
@@ -792,6 +793,8 @@ public class TunnelDispatcher implements Service {
             if (type == VariableTunnelBuildMessage.MESSAGE_TYPE || type == TunnelBuildMessage.MESSAGE_TYPE ||
                 type == ShortTunnelBuildMessage.MESSAGE_TYPE)
                 factor = 1 / 1.5f;
+            else if (type == DatabaseLookupMessage.MESSAGE_TYPE && length < 1024)
+                factor = 8f;
             else
                 factor = 1.5f;
         } else if (loc == Location.IBGW) {

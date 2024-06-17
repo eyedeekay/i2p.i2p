@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
@@ -83,6 +84,8 @@ class SummaryRenderer {
     private static final long[] RATES = new long[] { 60*60*1000 };
     // dotted line
     private static final Stroke GRID_STROKE = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1, new float[] {1, 1}, 0);
+    // hide ticks
+    private static final Stroke TICK_STROKE = new BasicStroke(0);
 
     public SummaryRenderer(I2PAppContext ctx, SummaryListener lsnr) { 
         _log = ctx.logManager().getLog(SummaryRenderer.class);
@@ -222,6 +225,7 @@ class SummaryRenderer {
             String dsNames[] = _listener.getData().getDsNames();
             String plotName;
             String descr;
+            boolean bps = false;
             if (showEvents) {
                 // include the average event count on the plot
                 plotName = dsNames[1];
@@ -233,7 +237,9 @@ class SummaryRenderer {
                 // (there are over 500 of them)
                 // but the descriptions for the default graphs are tagged in
                 // Strings.java
-                descr = _t(_listener.getRate().getRateStat().getDescription());
+                descr = _listener.getRate().getRateStat().getDescription();
+                bps = descr.toLowerCase(Locale.US).contains("bytes/sec");
+                descr = _t(descr);
             }
 
             //long started = ((RouterContext)_context).router().getWhenStarted();
@@ -250,33 +256,53 @@ class SummaryRenderer {
             if (!hideLegend) {
                 Variable var = new Variable.AVERAGE();
                 def.datasource("avg", plotName, var);
-                def.gprint("avg", "   " + _t("Avg") + ": %.2f%s");
+                if (bps)
+                    def.gprint("avg", "   " + _t("Avg") + ": %.2f %sBps");
+                else
+                    def.gprint("avg", "   " + _t("Avg") + ": %.2f %s");
                 var = new Variable.MAX();
                 def.datasource("max", plotName, var);
-                def.gprint("max", ' ' + _t("Max") + ": %.2f%S");
+                if (bps)
+                    def.gprint("max", ' ' + _t("Max") + ": %.2f %SBps");
+                else
+                    def.gprint("max", ' ' + _t("Max") + ": %.2f %S");
                 var = new Variable.LAST();
                 def.datasource("last", plotName, var);
-                def.gprint("last", ' ' + _t("Now") + ": %.2f%S\\l");
+                if (bps)
+                    def.gprint("last", ' ' + _t("Now") + ": %.2f %SBps\\l");
+                else
+                    def.gprint("last", ' ' + _t("Now") + ": %.2f %S\\l");
             }
             String plotName2 = null;
             if (lsnr2 != null) {
                 String dsNames2[] = lsnr2.getData().getDsNames();
                 plotName2 = dsNames2[0];
                 String path2 = lsnr2.getData().getPath();
-                String descr2 = _t(lsnr2.getRate().getRateStat().getDescription());
+                String descr2 = lsnr2.getRate().getRateStat().getDescription();
+                bps = descr2.toLowerCase(Locale.US).contains("bytes/sec");
+                descr2 = _t(descr2);
                 def.datasource(plotName2, path2, plotName2, SummaryListener.CF, lsnr2.getBackendFactory());
                 Color lineColor = isDark ? LINE_COLOR_DARK : LINE_COLOR;
                 def.line(plotName2, lineColor, descr2 + "\\l", 2);
                 if (!hideLegend) {
                     Variable var = new Variable.AVERAGE();
                     def.datasource("avg2", plotName2, var);
-                    def.gprint("avg2", "   " + _t("Avg") + ": %.2f%s");
+                    if (bps)
+                        def.gprint("avg2", "   " + _t("Avg") + ": %.2f %sBps");
+                    else
+                        def.gprint("avg2", "   " + _t("Avg") + ": %.2f %s");
                     var = new Variable.MAX();
                     def.datasource("max2", plotName2, var);
-                    def.gprint("max2", ' ' + _t("Max") + ": %.2f%S");
+                    if (bps)
+                        def.gprint("max2", ' ' + _t("Max") + ": %.2f %SBps");
+                    else
+                        def.gprint("max2", ' ' + _t("Max") + ": %.2f %S");
                     var = new Variable.LAST();
                     def.datasource("last2", plotName2, var);
-                    def.gprint("last2", ' ' + _t("Now") + ": %.2f%S\\l");
+                    if (bps)
+                        def.gprint("last2", ' ' + _t("Now") + ": %.2f %SBps\\l");
+                    else
+                        def.gprint("last2", ' ' + _t("Now") + ": %.2f %S\\l");
                 }
             }
             if (!hideLegend) {
@@ -287,32 +313,32 @@ class SummaryRenderer {
                 if (localTime) {
                     for (Map.Entry<Long, String> event : events.entrySet()) {
                         long started = event.getKey().longValue();
-                        if (started > start && started < end) {
-                            String legend;
-                            if (Messages.isRTL(lang)) {
-                                // RTL languages
-                                legend = _t("Restart") + ' ' + DataHelper.formatTime(started) + " - " + event.getValue() + "\\l";
-                            } else {
-                                legend = _t("Restart") + ' ' + DataHelper.formatTime(started) + " [" + event.getValue() + "]\\l";
-                            }
-                            def.vrule(started / 1000, restartBarColor, legend, 2.0f);
+                        if (started >= end)
+                            break;
+                        String legend;
+                        if (Messages.isRTL(lang)) {
+                            // RTL languages
+                            legend = _t("Restart") + ' ' + DataHelper.formatTime(started) + " - " + event.getValue() + "\\l";
+                        } else {
+                            legend = _t("Restart") + ' ' + DataHelper.formatTime(started) + " [" + event.getValue() + "]\\l";
                         }
+                        def.vrule(started / 1000, restartBarColor, legend, 2.0f);
                     }
                     def.comment(DataHelper.formatTime(start) + " — " + DataHelper.formatTime(end) + "\\r");
                 } else {
                     SimpleDateFormat sdf = new SimpleDateFormat("dd MMM HH:mm");
                     for (Map.Entry<Long, String> event : events.entrySet()) {
                         long started = event.getKey().longValue();
-                        if (started > start && started < end) {
-                            String legend;
-                            if (Messages.isRTL(lang)) {
-                                // RTL languages
-                                legend = _t("Restart") + ' ' + sdf.format(new Date(started)) + " - " + event.getValue() + "\\l";
-                            } else {
-                                legend = _t("Restart") + ' ' + sdf.format(new Date(started)) + " [" + event.getValue() + "]\\l";
-                            }
-                            def.vrule(started / 1000, restartBarColor, legend, 2.0f);
+                        if (started >= end)
+                            break;
+                        String legend;
+                        if (Messages.isRTL(lang)) {
+                            // RTL languages
+                            legend = _t("Restart") + ' ' + sdf.format(new Date(started)) + " - " + event.getValue() + "\\l";
+                        } else {
+                            legend = _t("Restart") + ' ' + sdf.format(new Date(started)) + " [" + event.getValue() + "]\\l";
                         }
+                        def.vrule(started / 1000, restartBarColor, legend, 2.0f);
                     }
                     def.comment(sdf.format(new Date(start)) + " — " + sdf.format(new Date(end)) + " UTC\\r");
                 }
@@ -337,6 +363,7 @@ class SummaryRenderer {
             def.setAntiAliasing(false);
             def.setTextAntiAliasing(true);
             def.setGridStroke(GRID_STROKE);
+            def.setTickStroke(TICK_STROKE);
             //System.out.println("Rendering: \n" + def.exportXmlTemplate());
             //System.out.println("*****************\nData: \n" + _listener.getData().dump());
             def.setWidth(width);

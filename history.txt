@@ -1,3 +1,82 @@
+2024-06-04 zzz
+ * Console: Add js refresh on /graphs (Gitlab MR !199)
+ * i2psnark:
+   - Fix leaked requests, partial pieces, and temp files (Gitlab MR !203)
+   - Make PEX more efficient
+ * Reseed: Increase min version when creating bundles; CLI improvements
+ * Router: Add synthetic stats for client and expl. build success rate
+
+2024-06-01 zzz
+ * I2CP: Store local destination in lookup cache (Gitlab #482)
+ * Router: Don't update rates for full stats when not enabled
+ * Transport: Remove SSU1 code from UDPTransport (Gitlab MR !197)
+
+2024-05-29 zzz
+ * Console: More graph improvements
+
+2024-05-28 zzz
+ * Console: Graph improvements
+
+2024-05-26 zzz
+ * Susimail: CSS fixups (dark theme)
+
+2024-05-23 zzz
+ * i2ptunnel: Fix CTCP ACTION (Gitlab #481)
+
+2024-05-21 zzz
+ * Build: maketorblocklist.sh fixups (Gitlab MR !198 by kytv)
+ * Susimail: XHR search (Gitlab MR !196)
+ * Transport: Remove SSU1 code from IES/OES/PacketReader/HMAC (Gitlab MR !197)
+ * Tunnels: Don't parse messages at the OBEP (Gitlab MR !194)
+
+2024-05-19 zzz
+ * i2psnark: Fix NPE when attempting to create torrent with too many files
+
+2024-05-18 zzz
+ * Console: js global scope fixes (Gitlab MR !195)
+ * Transport: Remove SSU1 code from PacketBuilder/PeerState/OMF (Gitlab MR !193)
+
+2024-05-17 zzz
+ * Build: Add script to make Tor blocklist
+
+2024-05-16 zzz
+ * I2CP: Hopefully fix rare NPE
+ * Util: Remove ST2 timers from queue on cancel
+
+2024-05-15 2.5.2 (API 0.9.62) released
+
+2024-05-14 zzz
+ * i2ptunnel: Fix keepalive bug causing truncation of chunked content
+ * Pull translations from Transifex
+ * Router: Update Tor blocklist
+
+2024-05-12 zzz
+ * Console: Update rrd4j to 3.9.1 preview
+
+2024-05-08 zzz
+ * i2ptunnel: Fix custom options form width (light theme)
+ * Router: Publish G cap if symmetric natted
+ * Tunnels: Validate peer RI expiration in TunnelPeerSelector
+
+2024-05-06 2.5.1 (API 0.9.62) released
+
+2024-05-05 zzz
+ * NetDB: Various fixes and adjustments
+ * Pull translations from Transifex
+
+2024-05-03 zzz
+ * NetDB: Don't lookup RI if temp. banlisted
+ * Router: Add Tor blocklist
+ * Tunnels: OBEP distributor: Check and charge RI lookup bandwidth
+
+2024-05-02 zzz
+ * Profiles: Fixes for firstHeardAbout and/or lastHeardAbout being zero
+
+2024-05-01 zzz
+ * NetDB:
+   - Limit number of DSRM entries to follow
+   - Deny old ANY lookup type to non-ff
+
 2024-04-27 zzz
  * Sybil: Disable IP checks for now
 
@@ -6,7 +85,7 @@
 
 2024-04-25 zzz
  * Susimail: Add search box (Gitlab MR !190)
- * Transport: Remove SSU1 code from IMF/IMS (Gitlab MRs !189)
+ * Transport: Remove SSU1 code from IMF/IMS (Gitlab MR !189)
 
 2024-04-22 zzz
  * Addressbook: Use standard time formatting for log

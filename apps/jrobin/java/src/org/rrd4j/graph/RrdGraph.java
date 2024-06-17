@@ -12,10 +12,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
-import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
-import javax.imageio.spi.ImageWriterSpi;
 import javax.swing.ImageIcon;
 
 import org.rrd4j.core.Util;
@@ -38,7 +36,7 @@ public class RrdGraph implements RrdGraphConstants {
     };
 
     private static final int SYMBOLS_CENTER = 8;
-    private static final char[] SYMBOLS = {'y', 'z', 'a', 'f', 'p', 'n', 'µ', 'm', ' ', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'};
+    private static final char[] SYMBOLS = {'y', 'z', 'a', 'f', 'p', 'n', 'µ', 'm', ' ', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'};
 
     final RrdGraphDef gdef;
     final ImageParameters im;
@@ -47,8 +45,6 @@ public class RrdGraph implements RrdGraphConstants {
     Mapper mapper;
     private final RrdGraphInfo info = new RrdGraphInfo();
     private final String signature;
-    private final ImageWriter writer;
-    private final ImageWriteParam param;
 
     /**
      * Creates graph from the corresponding {@link org.rrd4j.graph.RrdGraphDef} object.
@@ -60,9 +56,8 @@ public class RrdGraph implements RrdGraphConstants {
         this.gdef = gdef;
         signature = gdef.getSignature();
         im = new ImageParameters();
-        worker = new ImageWorker(1, 1); // Dummy worker, just to start with something
-        writer = ImageIO.getImageWritersByFormatName(gdef.imageFormat).next();
-        param = getImageParams();
+
+        worker = BufferedImageWorker.getBuilder().setGdef(gdef).build();
         try {
             createGraph();
         }
@@ -72,6 +67,28 @@ public class RrdGraph implements RrdGraphConstants {
             dproc = null;
         }
     }
+
+    /**
+     * Create graph from a custom image worker
+     * @param gdef
+     * @param worker
+     * @throws IOException
+     */
+    public RrdGraph(RrdGraphDef gdef, ImageWorker worker) throws IOException {
+        this.gdef = gdef;
+        signature = gdef.getSignature();
+        im = new ImageParameters();
+        this.worker = worker;
+        try {
+            createGraph();
+        }
+        finally {
+            worker.dispose();
+            this.worker = null;
+            dproc = null;
+        }
+    }
+
 
     /**
      * <p>Creates graph from the corresponding {@link org.rrd4j.graph.RrdGraphDef} object.</p>
@@ -88,9 +105,7 @@ public class RrdGraph implements RrdGraphConstants {
         this.gdef = gdef;
         signature = gdef.getSignature();
         im = new ImageParameters();
-        worker = new ImageWorker(1, 1); // Dummy worker, just to start with something
-        this.writer = writer;
-        this.param = param;
+        worker = BufferedImageWorker.getBuilder().setGdef(gdef).setWriter(writer).setImageWriteParam(param).build();
         try {
             createGraph();
         }
@@ -108,21 +123,6 @@ public class RrdGraph implements RrdGraphConstants {
      */
     public RrdGraphInfo getRrdGraphInfo() {
         return info;
-    }
-
-    private ImageWriteParam getImageParams() {
-        ImageWriteParam iwp = writer.getDefaultWriteParam();
-        ImageWriterSpi imgProvider = writer.getOriginatingProvider();
-        //If lossy compression, use the quality
-        if (! imgProvider.isFormatLossless()) {
-            iwp.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-            iwp.setCompressionQuality(gdef.imageQuality);
-        }
-
-        if (iwp.canWriteProgressive()) {
-            iwp.setProgressiveMode(gdef.interlaced ? ImageWriteParam.MODE_DEFAULT:ImageWriteParam.MODE_DISABLED);
-        }
-        return iwp;
     }
 
     private void createGraph() throws IOException {
@@ -177,7 +177,7 @@ public class RrdGraph implements RrdGraphConstants {
     private void saveImage() throws IOException {
         if (! RrdGraphConstants.IN_MEMORY_IMAGE.equals(gdef.filename)) {
             Path imgpath = Paths.get(gdef.filename);
-            worker.saveImage(gdef.filename, writer, param);
+            worker.saveImage(gdef.filename);
             info.bytesSource = () -> {
                 try {
                     return Files.readAllBytes(imgpath);
@@ -194,7 +194,7 @@ public class RrdGraph implements RrdGraphConstants {
             };
         }
         else {
-            byte[] content = worker.getImageBytes(writer, param);
+            byte[] content = worker.getImageBytes();
             info.bytesSource = () -> Arrays.copyOf(content, content.length);
             info.bytesCount = () -> content.length;
         }
@@ -264,8 +264,12 @@ public class RrdGraph implements RrdGraphConstants {
         if (!gdef.onlyGraph) {
             worker.setTextAntiAliasing(gdef.textAntiAliasing);
             if (gdef.title != null) {
-                int x = im.xgif / 2 - (int) (worker.getStringWidth(gdef.title, gdef.getFont(FONTTAG_TITLE)) / 2);
-                int y = PADDING_TOP + (int) worker.getFontAscent(gdef.getFont(FONTTAG_TITLE));
+                // I2P truncate on the right only
+                //int x = im.xgif / 2 - (int) (worker.getStringWidth(gdef.title, gdef.getFont(FONTTAG_TITLE)) / 2);
+                int x = Math.max(2, im.xgif / 2 - (int) (worker.getStringWidth(gdef.title, gdef.getFont(FONTTAG_TITLE)) / 2));
+                // I2P a little less padding on top and more on the bottom
+                //int y = PADDING_TOP + (int) worker.getFontAscent(gdef.getFont(FONTTAG_TITLE));
+                int y = PADDING_TOP * 2 / 3 + (int) worker.getFontAscent(gdef.getFont(FONTTAG_TITLE));
                 worker.drawString(gdef.title, x, y, gdef.getFont(FONTTAG_TITLE), gdef.getColor(ElementsNames.font));
             }
             if (gdef.verticalLabel != null) {
@@ -399,6 +403,10 @@ public class RrdGraph implements RrdGraphConstants {
                     im.yorigin + 3,
             };
             worker.fillPolygon(Xarrow_x, im.yorigin + 3.0, Xarrow_y, arrowColor);
+
+            // I2P skip arrowheads if transparent
+            if (((Color)arrowColor).getAlpha() == 0)
+                return;
 
             //Do y axis arrow
             double[] Yarrow_x = {

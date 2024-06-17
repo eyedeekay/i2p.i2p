@@ -3,7 +3,7 @@ package org.rrd4j.graph;
 class ValueScaler {
     static final String UNIT_UNKNOWN = "?";
     static final String[] UNIT_SYMBOLS = {
-            "a", "f", "p", "n", "u", "m", " ", "k", "M", "G", "T", "P", "E"
+            "a", "f", "p", "n", "µ", "m", " ", "K", "M", "G", "T", "P", "E"
     };
     static final int SYMB_CENTER = 6;
 
@@ -16,6 +16,9 @@ class ValueScaler {
     }
 
     Scaled scale(double value, boolean mustRescale) {
+        // I2P avoid NaN in legend
+        if (Double.isNaN(value))
+            value = 0.0;
         Scaled scaled;
         if (mustRescale) {
             scaled = rescale(value);
@@ -47,6 +50,11 @@ class ValueScaler {
         }
         if (sindex <= SYMB_CENTER && sindex >= -SYMB_CENTER) {
             unit = UNIT_SYMBOLS[sindex + SYMB_CENTER];
+            // I2P show 0.xxx instead of xxx m
+            if (unit.equals("m")) {
+                unit = "";
+                magfact *= 1000;
+            }
         }
         else {
             unit = UNIT_UNKNOWN;

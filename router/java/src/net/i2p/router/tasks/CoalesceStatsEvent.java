@@ -44,6 +44,8 @@ public class CoalesceStatsEvent implements SimpleTimer.TimedEvent {
         sm.createRateStat("router.integratedPeers", "Known integrated (floodfill) peers", "NetworkDatabase", new long[] { 60*1000 });
         sm.createRateStat("router.knownPeers", "Known peers", "NetworkDatabase", new long[] { 60*1000 });
         sm.createRequiredRateStat("router.tunnelBacklog", _x("Size of tunnel acceptor backlog"), "Tunnels", new long[] { 60*60*1000 });
+        sm.createRateStat("tunnel.buildClientSuccessRate", "Percent success", "Tunnels", new long[] { 60*1000 });
+        sm.createRateStat("tunnel.buildExploratorySuccessRate", "Percent success", "Tunnels", new long[] { 60*1000 });
         _maxMemory = Runtime.getRuntime().maxMemory();
         String legend = "(Bytes)";
         if (_maxMemory < Long.MAX_VALUE)
@@ -57,19 +59,11 @@ public class CoalesceStatsEvent implements SimpleTimer.TimedEvent {
         int active = _ctx.commSystem().countActivePeers();
         sm.addRateData("router.activePeers", active);
 
-        int activeSend = _ctx.commSystem().countActiveSendPeers();
-        sm.addRateData("router.activeSendPeers", activeSend);
-
         int fast = _ctx.profileOrganizer().countFastPeers();
         sm.addRateData("router.fastPeers", fast);
 
         int highCap = _ctx.profileOrganizer().countHighCapacityPeers();
         sm.addRateData("router.highCapacityPeers", highCap);
-
-        int integrated = _ctx.peerManager().countPeersByCapability(FloodfillNetworkDatabaseFacade.CAPABILITY_FLOODFILL);
-        sm.addRateData("router.integratedPeers", integrated);
-
-        sm.addRateData("router.knownPeers", _ctx.netDb().getKnownRouters());
 
         sm.addRateData("bw.sendRate", (long)_ctx.bandwidthLimiter().getSendBps());
         sm.addRateData("bw.recvRate", (long)_ctx.bandwidthLimiter().getReceiveBps());
@@ -101,6 +95,48 @@ public class CoalesceStatsEvent implements SimpleTimer.TimedEvent {
                 double bytes = rate.getLastTotalValue();
                 double bps = (bytes*1000.0d)/rate.getPeriod(); 
                 sm.addRateData("bw.sendBps", (long)bps, 60*1000);
+            }
+        }
+
+        if (_ctx.getBooleanProperty("stat.full")) {
+            int activeSend = _ctx.commSystem().countActiveSendPeers();
+            sm.addRateData("router.activeSendPeers", activeSend);
+
+            int integrated = _ctx.peerManager().countPeersByCapability(FloodfillNetworkDatabaseFacade.CAPABILITY_FLOODFILL);
+            sm.addRateData("router.integratedPeers", integrated);
+
+            sm.addRateData("router.knownPeers", _ctx.netDb().getKnownRouters());
+
+            RateStat s1 = sm.getRate("tunnel.buildExploratorySuccess");
+            RateStat s2 = sm.getRate("tunnel.buildExploratoryExpire");
+            RateStat s3 = sm.getRate("tunnel.buildExploratoryReject");
+            if (s1 != null && s2 != null && s3 != null) {
+                Rate r1 = s1.getRate(10*60*1000);
+                Rate r2 = s2.getRate(10*60*1000);
+                Rate r3 = s3.getRate(10*60*1000);
+                if (r1 != null && r2 != null && r3 != null) {
+                    long s = r1.getCurrentEventCount() + r1.getLastEventCount();
+                    long t = s + r2.getCurrentEventCount() + r2.getLastEventCount() +
+                             r3.getCurrentEventCount() + r3.getLastEventCount();
+                    if (t > 0)
+                        sm.addRateData("tunnel.buildExploratorySuccessRate", 100 * s / t, 60*1000);
+                }
+            }
+
+            s1 = sm.getRate("tunnel.buildClientSuccess");
+            s2 = sm.getRate("tunnel.buildClientExpire");
+            s3 = sm.getRate("tunnel.buildClientReject");
+            if (s1 != null && s2 != null && s3 != null) {
+                Rate r1 = s1.getRate(10*60*1000);
+                Rate r2 = s2.getRate(10*60*1000);
+                Rate r3 = s3.getRate(10*60*1000);
+                if (r1 != null && r2 != null && r3 != null) {
+                    long s = r1.getCurrentEventCount() + r1.getLastEventCount();
+                    long t = s + r2.getCurrentEventCount() + r2.getLastEventCount() +
+                             r3.getCurrentEventCount() + r3.getLastEventCount();
+                    if (t > 0)
+                        sm.addRateData("tunnel.buildClientSuccessRate", 100 * s / t, 60*1000);
+                }
             }
         }
     }
