@@ -108,7 +108,7 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
     public static final double MIN_CLOSE = 242.0;
     private static final double PAIR_DISTANCE_FACTOR = 2.0;
     private static final double OUR_KEY_FACTOR = 4.0;
-    private static final double VERSION_FACTOR = 1.0;
+    private static final double VERSION_FACTOR = 1.5;
     private static final double POINTS_BAD_VERSION = 20.0;
     private static final double POINTS_UNREACHABLE = 4.0;
     private static final double POINTS_NEW = 4.0;
@@ -325,9 +325,15 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
 
     /** */
     private void addPoints(Map<Hash, Points> points, Hash h, double d, String reason) {
+        double maximum = 100000;
+        addPoints(points, h, d, reason, maximum);
+    }
+
+    private void addPoints(Map<Hash, Points> points, Hash h, double d, String reason, double maximum) {
         Points dd = points.get(h);
         if (dd != null) {
-            dd.addPoints(d, reason);
+            if (dd.getPoints() <= maximum)
+                dd.addPoints(d, reason);
         } else {
             points.put(h, new Points(d, reason));
         }
@@ -343,10 +349,10 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
          The penalty calculated on a curve instead
          */
         double result = 0;
-        for (int i = 0; i < count; i++) {
+        for (int i = 1; i < count; i++) {
             result += (1 / i) * penalty;
         }
-        
+
         if (result > max)
             return max;
         return result;
@@ -697,14 +703,14 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
                 if (ip[0] == ourIP[0] && ip[1] == ourIP[1]) {
                     if (ip[2] == ourIP[2]) {
                         if (ip[3] == ourIP[3]) {
-                            addPoints(points, info.getHash(), POINTS_US32, reason32);
+                            addPoints(points, info.getHash(), POINTS_US32, reason32, 25);
                             ri32.add(info);
                         } else {
-                            addPoints(points, info.getHash(), POINTS_US24, reason24);
+                            addPoints(points, info.getHash(), POINTS_US24, reason24, 25);
                             ri24.add(info);
                         }
                     } else {
-                        addPoints(points, info.getHash(), POINTS_US16, reason16);
+                        addPoints(points, info.getHash(), POINTS_US16, reason16, 25);
                         ri16.add(info);
                     }
                 }
@@ -715,10 +721,10 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
                     continue;
                 if (DataHelper.eq(ip, 0, ourIPv6, 0, 6)) {
                     if (ip[6] == ourIPv6[6] && ip[7] == ourIPv6[7]) {
-                        addPoints(points, info.getHash(), POINTS_V6_US64, reason64);
+                        addPoints(points, info.getHash(), POINTS_V6_US64, reason64, 25);
                         ri64.add(info);
                     } else {
-                        addPoints(points, info.getHash(), POINTS_V6_US48, reason48);
+                        addPoints(points, info.getHash(), POINTS_V6_US48, reason48, 15);
                         ri48.add(info);
                     }
                 }
@@ -823,7 +829,7 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
                         continue;
                 }
                 e.getValue().add(info);
-                addPoints(points, info.getHash(), point, reason);
+                addPoints(points, info.getHash(), point, reason, 25);
             }
         }
         return rv;
@@ -866,7 +872,7 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
                 if ((ip[1] & 0xff) != i1)
                     continue;
                 e.getValue().add(info);
-                addPoints(points, info.getHash(), point, reason);
+                addPoints(points, info.getHash(), point, reason, 25);
             }
         }
         return rv;
@@ -931,7 +937,7 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
                 if ((ip[7] & 0xff) != i7)
                     continue;
                 e.getValue().add(info);
-                addPoints(points, info.getHash(), point, reason);
+                addPoints(points, info.getHash(), point, reason, 25);
             }
         }
         return rv;
@@ -989,7 +995,7 @@ public class Analysis extends JobImpl implements RouterApp, Runnable {
                 if ((ip[5] & 0xff) != i5)
                     continue;
                 e.getValue().add(info);
-                addPoints(points, info.getHash(), point, reason);
+                addPoints(points, info.getHash(), point, reason, 25);
             }
         }
         return rv;
