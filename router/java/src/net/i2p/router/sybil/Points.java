@@ -3,6 +3,8 @@ package net.i2p.router.sybil;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.i2p.data.DataHelper;
 
@@ -12,14 +14,12 @@ import net.i2p.data.DataHelper;
  *  @since 0.9.38 moved from SybilRenderer
  */
 public class Points implements Comparable<Points> {
-    private double points;
-    private final List<String> reasons;
-
+    private final Map<String, Double> reasons;
     /**
      *  @since 0.9.38
      */
     private Points() {
-        reasons = new ArrayList<String>(4);
+        reasons = new ConcurrentHashMap<String, Double>(4);
     }
 
     /**
@@ -30,17 +30,25 @@ public class Points implements Comparable<Points> {
         addPoints(d, reason);
     }
 
-    /**
-     *  @since 0.9.38
-     */
-    public double getPoints() {
-        return points;
+    private double points() {
+        double rv = 0;
+        for (String reason: reasons.keySet()){
+            rv += reasons.get(reason);
+        }
+        return rv;
     }
 
     /**
      *  @since 0.9.38
      */
-    public List<String> getReasons() {
+    public double getPoints() {
+        return points();
+    }
+
+    /**
+     *  @since 0.9.38
+     */
+    public Map<String, Double> getReasons() {
         return reasons;
     }
 
@@ -49,14 +57,20 @@ public class Points implements Comparable<Points> {
      *  @since 0.9.38
      */
     public void addPoints(double d, String reason) {
-        points += d;
         DecimalFormat format = new DecimalFormat("#0.00");
         String rsn = format.format(d) + ": " + reason;
-        reasons.add(rsn);
+        Double rp = reasons.get(rsn);
+        if (rp == null) {
+            // reason was not yet present in the map, create a new entry for it.
+            reasons.put(rsn, d);
+        }else{
+            // reason was present in the map, add the points to it.
+            rp += d;
+        }
     }
 
     public int compareTo(Points r) {
-        return Double.compare(points, r.points);
+        return Double.compare(points(), r.points());
     }
 
     /**
@@ -79,8 +93,8 @@ public class Points implements Comparable<Points> {
      *  @since 0.9.38
      */
     public void toString(StringBuilder buf) {
-        buf.append(points);
-        for (String r : reasons) {
+        buf.append(points());
+        for (String r : reasons.keySet()) {
             buf.append('%').append(r.replace("%", "&#x25;"));
         }
     }
@@ -102,9 +116,8 @@ public class Points implements Comparable<Points> {
         }
         Points rv = new Points();
         for (int i = 1; i < ss.length; i++) {
-            rv.reasons.add(ss[i]);
+            rv.reasons.put(ss[i], d);
         }
-        rv.points = d;
         return rv;
     }
 }

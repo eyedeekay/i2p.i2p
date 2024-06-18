@@ -269,11 +269,11 @@ public class SybilRenderer {
                     first = false;
                 }
                 buf.append('>').append(DataHelper.formatTime(date.longValue())).append("</option>\n");
-            }        
+            }
             buf.append("</select>\n" +
                        "<input type=\"submit\" name=\"action\" class=\"go\" value=\"Review analysis\" />" +
                        "</form>\n");
-        }        
+        }
         writeBuf(out, buf);
     }
 
@@ -543,10 +543,10 @@ public class SybilRenderer {
                 if (p < minDisplay)
                     break;  // sorted
                 buf.append("<p class=\"threatpoints\"><b>Threat Points: " + fmt.format(p) + "</b></p><ul>");
-                List<String> reasons = pp.getReasons();
+                Map<String, Double> reasons = pp.getReasons();
                 if (reasons.size() > 1)
-                    Collections.sort(reasons, rcomp);
-                for (String s : reasons) {
+                    //Collections.sort(reasons, rcomp);
+                for (String s : reasons.keySet()) {
                     int c = s.indexOf(':');
                     if (c <= 0)
                         continue;
