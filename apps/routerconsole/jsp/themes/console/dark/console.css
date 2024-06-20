@@ -4643,6 +4643,24 @@ ul#upnphelp li:last-child,
 
 /* netdb (main section) */
 
+.mapcontainer {
+    position: relative;
+    top: 0;
+    left: 0;
+}
+
+.mapbase {
+    position: relative;
+    top: 0;
+    left: 0;
+}
+
+.mapoverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
 table#netdboverview {
     margin-bottom: 10px;
 }

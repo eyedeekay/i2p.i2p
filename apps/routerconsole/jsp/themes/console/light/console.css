@@ -5811,6 +5811,24 @@ tt a {
 
 /* netdb */
 
+.mapcontainer {
+    position: relative;
+    top: 0;
+    left: 0;
+}
+
+.mapbase {
+    position: relative;
+    top: 0;
+    left: 0;
+}
+
+.mapoverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
 .confignav+.netdbentry {
     margin-top: 10px;
 }

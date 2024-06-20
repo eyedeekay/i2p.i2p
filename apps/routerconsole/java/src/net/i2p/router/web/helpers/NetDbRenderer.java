@@ -56,6 +56,7 @@ import net.i2p.util.Addresses;
 import net.i2p.util.ConvertToHash;
 import net.i2p.util.Log;
 import net.i2p.util.ObjectCounterUnsafe;
+import net.i2p.util.SystemVersion;
 import net.i2p.util.Translate;
 import net.i2p.util.VersionComparator;
 
@@ -1021,7 +1022,15 @@ class NetDbRenderer {
         // the summary table
         buf.append("<table id=\"netdboverview\" border=\"0\" cellspacing=\"30\"><tr><th colspan=\"3\">");
         buf.append(_t("Network Database Router Statistics"));
-        buf.append("</th></tr><tr><td style=\"vertical-align: top;\">");
+        buf.append("</th></tr>");
+        if (!SystemVersion.isSlow() && !_context.commSystem().isDummy()) {
+            // https://stackoverflow.com/questions/48474/how-do-i-position-one-image-on-top-of-another-in-html
+            buf.append("<tr><td class=\"mapcontainer\" colspan=\"3\">" +
+                       "<img class=\"mapbase\" src=\"/themes/console/images/mapbase72.png\" width=\"1200\" height=\"636\">" +
+                       "<img class=\"mapoverlay\" src=\"viewmap.jsp\" width=\"1200\" height=\"636\">" +
+                       "</td></tr>");
+        }
+        buf.append("<tr><td style=\"vertical-align: top;\">");
         // versions table
         List<String> versionList = new ArrayList<String>(versions.objects());
         if (!versionList.isEmpty()) {
