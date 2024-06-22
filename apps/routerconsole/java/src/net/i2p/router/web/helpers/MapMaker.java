@@ -7,7 +7,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.util.Map;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -238,13 +238,15 @@ public class MapMaker {
         Color c = g.getColor();
         g.setColor(color);
         List<TunnelInfo> tunnels = tp.listTunnels();
+        List<Mercator> hops = new ArrayList<Mercator>(8);
+        int[] x = new int[8];
+        int[] y = new int[8];
         for (TunnelInfo info : tunnels) {
             int length = info.getLength();
             if (length < 2)
                 continue;
             boolean isInbound = info.isInbound();
             // gateway first
-            Mercator prevm = null;
             for (int j = 0; j < length; j++) {
                 Mercator m;
                 if (isInbound && j == length - 1) {
@@ -261,11 +263,20 @@ public class MapMaker {
                         continue;
                     m = mc;
                 }
-                if (prevm != null && !m.equals(prevm)) {
-                    g.drawLine(prevm.x + IMG_X_OFF, prevm.y + IMG_Y_OFF, m.x + IMG_X_OFF, m.y + IMG_Y_OFF);
+                if (hops.isEmpty() || !m.equals(hops.get(hops.size() - 1))) {
+                    hops.add(m);
                 }
-                prevm = m;
             }
+            int sz = hops.size();
+            if (sz > 1) {
+                for (int i = 0; i < sz; i++) {
+                    Mercator m = hops.get(i);
+                    x[i] = m.x + IMG_X_OFF;
+                    y[i] = m.y + IMG_Y_OFF;
+                }
+                g.drawPolyline(x, y, sz);
+            }
+            hops.clear();
         }
         g.setColor(c);
     }
