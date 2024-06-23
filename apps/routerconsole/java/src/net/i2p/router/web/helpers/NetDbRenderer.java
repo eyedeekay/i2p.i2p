@@ -1026,8 +1026,8 @@ class NetDbRenderer {
         if (!SystemVersion.isSlow() && !_context.commSystem().isDummy()) {
             // https://stackoverflow.com/questions/48474/how-do-i-position-one-image-on-top-of-another-in-html
             buf.append("<tr><td class=\"mapcontainer\" colspan=\"3\">" +
-                       "<img class=\"mapbase\" src=\"/themes/console/images/mapbase72.png\" width=\"1200\" height=\"636\">" +
-                       "<img class=\"mapoverlay\" src=\"viewmap.jsp\" width=\"1200\" height=\"636\">" +
+                       "<img class=\"mapbase\" src=\"/themes/console/images/mapbase72.png\" width=\"1600\" height=\"828\">" +
+                       "<img class=\"mapoverlay\" src=\"viewmap.jsp\" width=\"1600\" height=\"828\">" +
                        "</td></tr>");
         }
         buf.append("<tr><td style=\"vertical-align: top;\">");

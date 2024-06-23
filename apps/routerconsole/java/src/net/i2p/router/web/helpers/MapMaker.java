@@ -59,14 +59,16 @@ public class MapMaker {
     private static final String LATLONG_DEFAULT = "latlong.csv";
     private static final String MERCATOR_DEFAULT = "mercator.txt";
     private static final String BASEMAP_DEFAULT = "mapbase72.png";
-    private static final int WIDTH = 1200;
-    private static final int HEIGHT = 1200;
-    private static final int MAP_HEIGHT = 636;
+    private static final int WIDTH = 1600;
+    private static final int HEIGHT = 1600;
+    private static final int MAP_HEIGHT = 828;
     // offsets from mercator to image.
-    // We crop the top from 85 degrees down to about 72 degrees (215 pixels)
-    // We crop the bottom from 85 degrees down to about 60 degrees (349 pixels)
-    private static final int IMG_X_OFF = 0;
-    private static final int IMG_Y_OFF = -215;
+    // left side at 171.9 degrees (rotated 36 pixels)
+    // tweak to make it line up, eyeball Taiwan
+    private static final int IMG_X_OFF = -34;
+    // We crop the top from 85 degrees down to about 75 degrees (283 pixels)
+    // We crop the bottom from 85 degrees down to about 57 degrees (489 pixels)
+    private static final int IMG_Y_OFF = -283;
     // center text on the spot
     private static final int TEXT_Y_OFF = 5;
     private static final Color TEXT_COLOR = new Color(255, 0, 0);
@@ -75,8 +77,8 @@ public class MapMaker {
     private static final int FONT_SIZE = 12;
     private static final Color CIRCLE_BORDER_COLOR = new Color(192, 0, 0, 192);
     private static final Color CIRCLE_COLOR = new Color(160, 0, 0, 128);
-    private static final double CIRCLE_SIZE_FACTOR = 3.0;
-    private static final int MIN_CIRCLE_SIZE = 4;
+    private static final double CIRCLE_SIZE_FACTOR = 4.0;
+    private static final int MIN_CIRCLE_SIZE = 5;
     private static final Color SQUARE_BORDER_COLOR = new Color(0, 0, 0);
     private static final Color SQUARE_COLOR = new Color(255, 50, 255, 160);
     private static final Color EXPL_COLOR = new Color(255, 100, 0);
@@ -174,18 +176,18 @@ public class MapMaker {
                 continue;
             int count = countries.count(c);
             int sz = Math.max(MIN_CIRCLE_SIZE, (int) (CIRCLE_SIZE_FACTOR * Math.sqrt(count)));
-            drawCircle(g, m.x + IMG_X_OFF, m.y + IMG_Y_OFF, sz);
+            drawCircle(g, rotate(m.x), m.y + IMG_Y_OFF, sz);
             c = c.toUpperCase(Locale.US);
             double width = getStringWidth(c, large, g);
             int xoff = (int) (width / 2);
-            g.drawString(c.toUpperCase(Locale.US), m.x + IMG_X_OFF - xoff, m.y + IMG_Y_OFF + TEXT_Y_OFF);
+            g.drawString(c.toUpperCase(Locale.US), rotate(m.x) - xoff, m.y + IMG_Y_OFF + TEXT_Y_OFF);
         }
 
         String us = _context.commSystem().getOurCountry();
         if (us != null) {
             Mercator mus = _mercator.get(us);
             if (mus != null) {
-                drawSquare(g, mus.x + IMG_X_OFF, mus.y + IMG_Y_OFF, 24);
+                drawSquare(g, rotate(mus.x), mus.y + IMG_Y_OFF, 24);
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g.setStroke(new BasicStroke(2));
                 TunnelManagerFacade tm = _context.tunnelManager();
@@ -271,7 +273,7 @@ public class MapMaker {
             if (sz > 1) {
                 for (int i = 0; i < sz; i++) {
                     Mercator m = hops.get(i);
-                    x[i] = m.x + IMG_X_OFF;
+                    x[i] = rotate(m.x);
                     y[i] = m.y + IMG_Y_OFF;
                 }
                 g.drawPolyline(x, y, sz);
@@ -285,6 +287,12 @@ public class MapMaker {
         return font.getStringBounds(text, 0, text.length(), g.getFontRenderContext()).getBounds().getWidth();
     }
 
+    private static int rotate(int x) {
+        x += IMG_X_OFF;
+        if (x < 0)
+            x += WIDTH;
+        return x;
+    }
 
    /**
     * Read in and parse the mercator country file.
