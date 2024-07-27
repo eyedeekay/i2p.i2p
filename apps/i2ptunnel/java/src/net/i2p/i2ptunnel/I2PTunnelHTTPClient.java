@@ -405,7 +405,6 @@ public class I2PTunnelHTTPClient extends I2PTunnelHTTPClientBase implements Runn
         String internalRawQuery = null;
         String currentProxy = null;
         long requestId = __requestId.incrementAndGet();
-        boolean shout = false;
         boolean isConnect = false;
         boolean isHead = false;
         I2PSocket i2ps = null;
@@ -441,7 +440,6 @@ public class I2PTunnelHTTPClient extends I2PTunnelHTTPClientBase implements Runn
             }
             final HTTPRequestReader hrr = new HTTPRequestReader(s, _context, reader, __requestId,
             I2PTunnelHTTPClientBase.BROWSER_READ_TIMEOUT, getTunnel(), this);
-            //String line, method = null, protocol = null, host = null, destination = null;
             String method = hrr.getMethod();
             String protocol = hrr.getProtocol();
             String hostLowerCase = hrr.getHostLowerCase();
@@ -453,8 +451,6 @@ public class I2PTunnelHTTPClient extends I2PTunnelHTTPClientBase implements Runn
             String authorization = hrr.getAuthorization();
             int remotePort = hrr.getRemotePort();
             String referer = hrr.getReferer();
-            URI origRequestURI = null;
-            boolean preserveConnectionHeader = false;
             boolean allowGzip = hrr.getAllowGzip();
             String destination = hrr.getDestination();
             String host = hrr.getHost();
