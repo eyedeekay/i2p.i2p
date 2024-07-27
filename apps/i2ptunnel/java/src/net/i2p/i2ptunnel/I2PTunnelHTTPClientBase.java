@@ -84,7 +84,7 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
      *  Failsafe
      *  @since 0.9.42
      */
-    protected static final int BROWSER_READ_TIMEOUT = 4*60*60*1000;
+    public static final int BROWSER_READ_TIMEOUT = 4*60*60*1000;
 
     private static final String ERR_AUTH1 =
             "HTTP/1.1 407 Proxy Authentication Required\r\n" +
@@ -109,8 +109,8 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
          "<html><body><H1>I2P ERROR: No outproxy found</H1>"+
          "Your request was for a site outside of I2P, but you have no "+
          "outproxy configured.  Please configure an outproxy in I2PTunnel";
-    
-    protected final static String ERR_DESTINATION_UNKNOWN =
+
+    public final static String ERR_DESTINATION_UNKNOWN =
             "HTTP/1.1 503 Service Unavailable\r\n" +
             "Content-Type: text/html; charset=iso-8859-1\r\n" +
             "Cache-Control: no-cache\r\n" +
@@ -161,7 +161,7 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
     // SSL proxy config is parsed on the fly;
     // allow both to be changed and store the SSL proxy list.
     // TODO should track more than one failed proxy
-    
+
     /**
      *  Simple random selection, with caching by hostname,
      *  and avoidance of the last one to fail.
@@ -169,7 +169,7 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
      *  @param host the clearnet hostname we're targeting
      *  @return null if none configured
      */
-    protected String selectProxy(String host) {
+    public String selectProxy(String host) {
         String rv;
         synchronized (_proxyList) {
             int size = _proxyList.size();
@@ -207,7 +207,7 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
      *  @return null if none configured
      *  @since 0.9.11, moved from I2PTunnelHTTPClient in 0.9.39
      */
-    protected String selectSSLProxy(String host) {
+    public String selectSSLProxy(String host) {
         String s = getTunnel().getClientOptions().getProperty(PROP_SSL_OUTPROXIES);
         if (s == null)
             return null;
@@ -242,7 +242,7 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
             _log.info("Selected SSL proxy for " + host + ": " + rv);
         return rv;
     }
-    
+
     /**
      *  Update the cache and note if failed.
      *
@@ -289,11 +289,11 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
      *  so that large POSTs won't timeout on the read side
      */
     protected static final int DEFAULT_READ_TIMEOUT = -1;
-    
+
     protected static final AtomicLong __requestId = new AtomicLong();
 
-    public I2PTunnelHTTPClientBase(int localPort, boolean ownDest, Logging l, 
-                               EventDispatcher notifyThis, String handlerName, 
+    public I2PTunnelHTTPClientBase(int localPort, boolean ownDest, Logging l,
+                               EventDispatcher notifyThis, String handlerName,
                                I2PTunnel tunnel) throws IllegalArgumentException {
         super(localPort, ownDest, l, notifyThis, handlerName, tunnel);
         // force connect delay and bulk profile
@@ -722,7 +722,7 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
      *  @return non-null
      *  @since 0.9.4 moved from I2PTunnelHTTPClient
      */
-    protected static String getErrorPage(I2PAppContext ctx, String base, String backup) {
+    public static String getErrorPage(I2PAppContext ctx, String base, String backup) {
         String file = "proxy/" + base + "-header.ht";
         try {
             return readFile(ctx, file);
@@ -732,7 +732,7 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
     }
 
     /** these strings go in the jar, not the war */
-    private static final String BUNDLE_NAME = "net.i2p.i2ptunnel.proxy.messages";
+    public static final String BUNDLE_NAME = "net.i2p.i2ptunnel.proxy.messages";
 
     /**
      *  As of 0.9.49, loads the error pages from the jar, not the file system.
@@ -934,7 +934,7 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
      *  No jump servers or extra message
      *  @since 0.9.14
      */
-    protected void writeErrorMessage(String errMessage, OutputStream out, String targetRequest,
+    public void writeErrorMessage(String errMessage, OutputStream out, String targetRequest,
                                      boolean usingWWWProxy, String wwwProxy) throws IOException {
         writeErrorMessage(errMessage, null, out, targetRequest, usingWWWProxy, wwwProxy, null);
     }
@@ -1108,7 +1108,7 @@ public abstract class I2PTunnelHTTPClientBase extends I2PTunnelClientBase implem
         out.flush();
     }
 
-    private static String getFooter() {
+    public static String getFooter() {
         // The css is hiding this div for now, but we'll keep it here anyway
         // Tag the strings below for translation if we unhide it.
         //StringBuilder buf = new StringBuilder(128);

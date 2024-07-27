@@ -84,7 +84,7 @@ public class HTTPRequestReader {
         String line = null;
         _log = ctx.logManager().getLog(getClass());
         keepalive = getBooleanOption(I2PTunnelHTTPClient.OPT_KEEPALIVE_BROWSER,
-                I2PTunnelHTTPClient.DEFAULT_KEEPALIVE, tun)
+                true, tun)
                 &&
                 !(s instanceof InternalSocket);
 
