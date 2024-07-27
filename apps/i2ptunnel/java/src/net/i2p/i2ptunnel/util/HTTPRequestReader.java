@@ -18,8 +18,8 @@ import net.i2p.data.DataHelper;
 import net.i2p.data.Destination;
 import net.i2p.data.Hash;
 import net.i2p.i2ptunnel.I2PTunnel;
-import net.i2p.i2ptunnel.I2PTunnelHTTPBrowserClient;
 import net.i2p.i2ptunnel.I2PTunnelHTTPClient;
+import net.i2p.i2ptunnel.I2PTunnelHTTPClient.InputReader;
 import net.i2p.i2ptunnel.localServer.LocalHTTPServer;
 import net.i2p.util.ConvertToHash;
 import net.i2p.util.InternalSocket;
@@ -84,7 +84,7 @@ public class HTTPRequestReader {
         String line = null;
         _log = ctx.logManager().getLog(getClass());
         keepalive = getBooleanOption(I2PTunnelHTTPClient.OPT_KEEPALIVE_BROWSER,
-                I2PTunnelHTTPBrowserClient.DEFAULT_KEEPALIVE_BROWSER, tun)
+                I2PTunnelHTTPClient.DEFAULT_KEEPALIVE, tun)
                 &&
                 !(s instanceof InternalSocket);
 
