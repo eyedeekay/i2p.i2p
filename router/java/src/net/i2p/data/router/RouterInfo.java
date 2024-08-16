@@ -395,14 +395,27 @@ public class RouterInfo extends DatabaseEntry {
      */
     public boolean hasExpectedValues() {
         String version = this.getVersion();
-        if (version == null)
+        Log log = I2PAppContext.getGlobalContext().logManager().getLog(RouterInfo.class);
+        if (version == null) {
+            if (log.shouldLog(log.INFO)) {
+                log.info("rejecting store due to missing version");
+            }
             return false;
+        }
         String caps = this.getCapabilities();
-        if (caps == null)
+        if (caps == null) {
+            if (log.shouldLog(log.INFO)) {
+                log.info("rejecting store due to missing caps");
+            }
             return false;
+        }
         int netId = this.getNetworkId();
-        if (netId == -1)
+        if (netId == -1) {
+            if (log.shouldLog(log.INFO)) {
+                log.info("rejecting store due to missing network ID");
+            }
             return false;
+        }
         return true;
     }
 
