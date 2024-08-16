@@ -388,6 +388,24 @@ public class RouterInfo extends DatabaseEntry {
         return _isValid;
     }
 
+    /*
+     * Ensure that the router info contains all the information published by standard I2P router implementations
+     * 
+     * @since 0.9.64
+     */
+    public boolean hasExpectedValues() {
+        String version = this.getVersion();
+        if (version == null)
+            return false;
+        String caps = this.getCapabilities();
+        if (caps == null)
+            return false;
+        int netId = this.getNetworkId();
+        if (netId == -1)
+            return false;
+        return true;
+    }
+
     /**
      * Same as isValid()
      * @since 0.9

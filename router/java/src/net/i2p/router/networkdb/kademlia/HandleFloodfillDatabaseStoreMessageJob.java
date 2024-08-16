@@ -255,7 +255,8 @@ class HandleFloodfillDatabaseStoreMessageJob extends JobImpl {
                 if (_facade.isClientDb() && _log.shouldWarn())
                     _log.warn("[dbid: " + _facade
                         + "]:  Handling RI dbStore in client netDb context of router " + key.toBase64());
-                boolean shouldStore = true;
+                // never store an RI that doesn't at least include all the expected values
+                boolean shouldStore = ri.hasExpectedValues();
                 if (ri.getReceivedAsPublished()) {
                     // these are often just dup stores from concurrent lookups
                     prevNetDb = (RouterInfo) _facade.lookupLocallyWithoutValidation(key);
