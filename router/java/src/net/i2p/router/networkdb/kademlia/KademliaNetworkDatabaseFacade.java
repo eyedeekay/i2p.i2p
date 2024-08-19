@@ -1245,6 +1245,13 @@ public abstract class KademliaNetworkDatabaseFacade extends NetworkDatabaseFacad
                 _log.warn("Not in our network: " + routerInfo, new Exception());
             return "Not in our network";
         }
+        String version = routerInfo.getVersion();
+        if (version.equals("0")) {
+            if (_log.shouldLog(Log.WARN)) {
+                _log.warn("Missing version");
+            }
+            return "Missing version";
+        }
         FamilyKeyCrypto fkc = _context.router().getFamilyKeyCrypto();
         if (fkc != null) {
             FamilyKeyCrypto.Result r = fkc.verify(routerInfo);

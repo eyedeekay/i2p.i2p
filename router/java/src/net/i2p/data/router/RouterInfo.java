@@ -388,37 +388,6 @@ public class RouterInfo extends DatabaseEntry {
         return _isValid;
     }
 
-    /*
-     * Ensure that the router info contains all the information published by standard I2P router implementations
-     * 
-     * @since 0.9.64
-     */
-    public boolean hasExpectedValues() {
-        String version = this.getVersion();
-        Log log = I2PAppContext.getGlobalContext().logManager().getLog(RouterInfo.class);
-        if (version == null) {
-            if (log.shouldLog(log.INFO)) {
-                log.info("rejecting store due to missing version");
-            }
-            return false;
-        }
-        String caps = this.getCapabilities();
-        if (caps == null) {
-            if (log.shouldLog(log.INFO)) {
-                log.info("rejecting store due to missing caps");
-            }
-            return false;
-        }
-        int netId = this.getNetworkId();
-        if (netId == -1) {
-            if (log.shouldLog(log.INFO)) {
-                log.info("rejecting store due to missing network ID");
-            }
-            return false;
-        }
-        return true;
-    }
-
     /**
      * Same as isValid()
      * @since 0.9
