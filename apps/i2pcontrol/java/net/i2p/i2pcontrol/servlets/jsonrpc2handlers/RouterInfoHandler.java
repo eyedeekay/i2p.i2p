@@ -8,6 +8,7 @@ import com.thetransactioncompany.jsonrpc2.server.RequestHandler;
 
 import net.i2p.I2PAppContext;
 import net.i2p.data.router.RouterAddress;
+import net.i2p.data.router.RouterInfo;
 import net.i2p.router.CommSystemFacade;
 import net.i2p.router.Router;
 import net.i2p.router.RouterContext;
@@ -77,6 +78,17 @@ public class RouterInfoHandler implements RequestHandler {
         Map<String, Object> inParams = req.getNamedParams();
         Map outParams = new HashMap();
 
+        if (inParams.containsKey("RouterInfo")) {
+            Router router = _context.router();
+            if (router != null) {
+                RouterInfo ri = _context.router().getRouterInfo();
+                if (ri == null){
+                    outParams.put("RouterInfo", "");
+                }else{
+                    outParams.put("RouterInfo", ri.toString());
+                }
+            }
+        }
         if (inParams.containsKey("i2p.router.version")) {
             try {
                 Class rvClass = Class.forName("net.i2p.router.RouterVersion");
