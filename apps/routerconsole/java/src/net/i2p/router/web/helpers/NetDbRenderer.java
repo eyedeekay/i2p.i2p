@@ -768,7 +768,7 @@ class NetDbRenderer {
                 }
                 buf.append("</ul></td></tr>\n");
             }
-            buf.append("<tr><td><b>Total Known Peer Leasesets:</b></td><td colspan=\"3\">").append(leases.size()-1).append("</td></tr>\n");
+            buf.append("<tr><td><b>Total Known Remote Leasesets:</b></td><td colspan=\"3\">").append(leases.size()-1).append("</td></tr>\n");
             buf.append("</ul></td></tr>\n" +
                    "</table>\n");
         } else {
@@ -827,7 +827,7 @@ class NetDbRenderer {
             } else {
                 distance = null;
             }
-            if (myLeaseSet == null || ls != myLeaseSet) {
+            if (myLeaseSet == null || ls.getHash() != myLeaseSet.getHash()) {
                 renderLeaseSet(buf, ls, debug, now, linkSusi, distance);
                 out.write(buf.toString());
                 buf.setLength(0);
