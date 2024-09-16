@@ -776,7 +776,7 @@ class NetDbRenderer {
                        "<th><a href=\"/configadvanced\" title=\"").append(_t("Manually Configure Floodfill Participation")).append("\">[")
                .append(_t("Configure Floodfill Participation"))
                .append("]</a></th></tr>\n");
-               buf.append("<tr><td><b>Total Known Leasesets:</b></td><td colspan=\"3\">").append(leases.size()-1).append("</td></tr>\n");
+               buf.append("<tr><td><b>Total Known Leasesets:</b></td><td colspan=\"3\">").append(leases.size()).append("</td></tr>\n");
         }
 
         if (debug) {
