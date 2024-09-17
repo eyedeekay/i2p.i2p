@@ -723,9 +723,15 @@ class NetDbRenderer {
                 buf.append("</th><th></th></tr>\n");
                 boolean unpublished = ! _context.clientManager().shouldPublishLeaseSet(myLeaseSet.getHash());
                 if (unpublished) {
-                    buf.append("<tr><th colspan=\"3\">").append(_t("Local")).append(" ").append(_t("Unpublished")).append(" ");
+                    buf.append("<tr><th colspan=\"3\">").append(_t("Local")).append(" ");
+                    if (myLeaseSet.getType() == DatabaseEntry.KEY_TYPE_ENCRYPTED_LS2 || _context.keyRing().get(myLeaseSet.getHash()) != null)
+                        buf.append(" <b>(").append(_t("Encrypted")).append(")</b>");
+                    buf.append(_t("Unpublished")).append(" ");
                 } else {
-                    buf.append("<tr><th colspan=\"3\">").append(_t("Local")).append(" ").append(_t("Published")).append(" ");
+                    buf.append("<tr><th colspan=\"3\">").append(_t("Local")).append(" ");
+                    if (myLeaseSet.getType() == DatabaseEntry.KEY_TYPE_ENCRYPTED_LS2 || _context.keyRing().get(myLeaseSet.getHash()) != null)
+                        buf.append(" <b>(").append(_t("Encrypted")).append(")</b>");
+                    buf.append(_t("Published")).append(" ");
                     LeaseSet2 ls2 = (LeaseSet2) myLeaseSet;
                     long now = _context.clock().now();
                     long pub = now - ls2.getPublished();
