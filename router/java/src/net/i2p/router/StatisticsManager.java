@@ -39,15 +39,13 @@ public class StatisticsManager {
     /** enhance anonymity by only including build stats one out of this many times */
     private static final int RANDOM_INCLUDE_STATS = 16;
     //// remove after release ////
-    private static final boolean SIMPLE_STATS = CoreVersion.PUBLISHED_VERSION.equals("0.9.58");
 
     private final DecimalFormat _fmt;
     private final DecimalFormat _pct;
 
     public StatisticsManager(RouterContext context) {
         _context = context;
-        _fmt = SIMPLE_STATS ? new DecimalFormat("0.00", new DecimalFormatSymbols(Locale.UK)) :
-                              new DecimalFormat("###,##0.00", new DecimalFormatSymbols(Locale.UK));
+        _fmt = new DecimalFormat("0.00", new DecimalFormatSymbols(Locale.UK));
         _pct = new DecimalFormat("#0.00%", new DecimalFormatSymbols(Locale.UK));
         _log = context.logManager().getLog(StatisticsManager.class);
         // null for some tests
@@ -258,34 +256,7 @@ public class StatisticsManager {
      *</pre>
      */
     private String renderRate(Rate rate, boolean fudgeQuantity) {
-        if (SIMPLE_STATS)
-            return num(rate.getAverageValue());
-        StringBuilder buf = new StringBuilder(128);
-        buf.append(num(rate.getAverageValue())).append(';');
-        buf.append(num(rate.getExtremeAverageValue())).append(';');
-        buf.append(pct(rate.getPercentageOfLifetimeValue())).append(';');
-        if (rate.getLifetimeTotalEventTime() > 0) {
-            buf.append(pct(rate.getLastEventSaturation())).append(';');
-            buf.append(num(rate.getLastSaturationLimit())).append(';');
-            buf.append(pct(rate.getExtremeEventSaturation())).append(';');
-            buf.append(num(rate.getExtremeSaturationLimit())).append(';');
-        }
-        long numPeriods = rate.getLifetimePeriods();
-        if (fudgeQuantity) {
-            buf.append("555;");
-            if (numPeriods > 0) {
-                buf.append("555;555;");
-            }
-        } else {
-            buf.append(num(rate.getLastEventCount())).append(';');
-            if (numPeriods > 0) {
-                double avgFrequency = rate.getLifetimeEventCount() / (double)numPeriods;
-                buf.append(num(avgFrequency)).append(';');
-                buf.append(num(rate.getExtremeEventCount())).append(';');
-                buf.append(num(rate.getLifetimeEventCount())).append(';');
-            }
-        }
-        return buf.toString();
+        return num(rate.getAverageValue());
     }
 
     private static final String[] tunnelStats = { "Expire", "Reject", "Success" };
@@ -326,18 +297,7 @@ public class StatisticsManager {
      *  Previous format: see above
      */
     private String renderRate(Rate rate, double fudgeQuantity) {
-        if (SIMPLE_STATS)
-            return "0;0;0;" + num(fudgeQuantity);
-        StringBuilder buf = new StringBuilder(128);
-        buf.append(num(rate.getAverageValue())).append(';');
-        buf.append(num(rate.getExtremeAverageValue())).append(';');
-        buf.append(pct(rate.getPercentageOfLifetimeValue())).append(';');
-        if (rate.getLifetimeTotalEventTime() > 0) {
-            // bah saturation
-            buf.append("0;0;0;0;");
-        }
-        buf.append(num(fudgeQuantity)).append(';');
-        return buf.toString();
+        return "0;0;0;" + num(fudgeQuantity);
     }
 
     /* report the same data for tx and rx, for enhanced anonymity */
