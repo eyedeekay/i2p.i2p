@@ -32,7 +32,7 @@ jobs:
         working-directory: ./izpack-source
         run: |
           mvn clean install -DskipTests
-          ls $GITHUB_WORKSPACE/izpack-source/izpack-dist/target/IzPack
+          find . -iname 'izpack*.jar'
           echo "IZPACK_HOME=$GITHUB_WORKSPACE/izpack-source/izpack-dist/target/IzPack" >> $GITHUB_ENV
           echo "$GITHUB_WORKSPACE/izpack-source/izpack-dist/target/IzPack/bin" >> $GITHUB_PATH
       - name: Generate Properties
