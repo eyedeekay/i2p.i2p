@@ -35,9 +35,6 @@ jobs:
           find . -iname 'izpack*.jar'
           echo "IZPACK_HOME=$GITHUB_WORKSPACE/izpack-source/izpack-dist/target/IzPack" >> $GITHUB_ENV
           echo "$GITHUB_WORKSPACE/izpack-source/izpack-dist/target/IzPack/bin" >> $GITHUB_PATH
-      - name: Install IzPack
-        run: |
-          # Create auto-install.xml for headless installation
           cat > auto-install.xml << EOF
           <?xml version="1.0" encoding="UTF-8" standalone="no"?>
           <AutomatedInstallation langpack="eng">
