@@ -64,6 +64,7 @@ jobs:
           rm -f override.properties
           echo "build.built-by=GitHub Actions" >> override.properties
           echo "izpack.home=${{ env.IZPACK_HOME }}" >> override.properties
+          echo "izpack5.home=${{ env.IZPACK_HOME }}" >> override.properties
       - name: Verify Setup
         run: |
           java -version
@@ -83,4 +84,12 @@ jobs:
           key: izpack-snapshot-${{ github.sha }}
           restore-keys: |
             izpack-snapshot-
-      #- name: Build I2P installer
+      - name: build with Ant - Non Windows
+        run: ant distclean pkg installer5-nowindows
+      - name: build with Ant - Windows
+        run: ant distclean pkg installer5-windows
+      #- name: Upload installer.jar
+      #  uses: actions/upload-artifact@v4
+      #  with:
+      #    name: I2P-install-${{ github.sha }}.jar
+      #    path: install.jar
