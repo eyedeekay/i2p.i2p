@@ -65,6 +65,7 @@ jobs:
           echo "build.built-by=GitHub Actions" >> override.properties
           echo "izpack.home=${{ env.IZPACK_HOME }}" >> override.properties
           echo "izpack5.home=${{ env.IZPACK_HOME }}" >> override.properties
+          echo "izpack5.version=5.2.4-SNAPSHOT" >> override.properties
       - name: Verify Setup
         run: |
           java -version
