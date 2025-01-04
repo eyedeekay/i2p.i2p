@@ -35,6 +35,31 @@ jobs:
           find . -iname 'izpack*.jar'
           echo "IZPACK_HOME=$GITHUB_WORKSPACE/izpack-source/izpack-dist/target/IzPack" >> $GITHUB_ENV
           echo "$GITHUB_WORKSPACE/izpack-source/izpack-dist/target/IzPack/bin" >> $GITHUB_PATH
+      - name: Install IzPack
+        run: |
+          # Create auto-install.xml for headless installation
+          cat > auto-install.xml << EOF
+          <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+          <AutomatedInstallation langpack="eng">
+              <com.izforge.izpack.panels.HelloPanel/>
+              <com.izforge.izpack.panels.TargetPanel>
+                  <installpath>/usr/local/IzPack</installpath>
+              </com.izforge.izpack.panels.TargetPanel>
+              <com.izforge.izpack.panels.InstallPanel/>
+              <com.izforge.izpack.panels.FinishPanel/>
+          </AutomatedInstallation>
+          EOF
+
+          # Create installation directory
+          sudo mkdir -p /usr/local/IzPack
+          sudo chmod 777 /usr/local/IzPack
+
+          # Run the installer in headless mode
+          java -jar ./izpack-installer/target/izpack-installer-*-SNAPSHOT.jar auto-install.xml
+
+          # Update environment
+          echo "/usr/local/IzPack/bin" >> $GITHUB_PATH
+          echo "IZPACK_HOME=/usr/local/IzPack" >> $GITHUB_ENV
       - name: Generate Properties
         run: |
           rm -f override.properties
