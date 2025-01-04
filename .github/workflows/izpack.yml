@@ -52,7 +52,7 @@ jobs:
           sudo chmod 777 /usr/local/IzPack
 
           # Run the installer in headless mode
-          java -jar ./izpack-installer/target/izpack-installer-*-SNAPSHOT.jar auto-install.xml
+          java -jar ./izpack-dist/target/izpack-dist-*-SNAPSHOT-installer.jar auto-install.xml
 
           # Update environment
           echo "/usr/local/IzPack/bin" >> $GITHUB_PATH
