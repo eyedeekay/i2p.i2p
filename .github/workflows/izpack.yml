@@ -87,12 +87,12 @@ jobs:
             izpack-snapshot-
       - name: build with Ant - Non Windows
         run: ant distclean pkg installer5-linux
+      - name: find installer artifacts
+        run: find . -iname 'i2p*.jar'
       - name: build with Ant - Windows
         run: ant distclean pkg installer5-windows
       - name: find installer artifacts
-        run: |
-          find . -iname 'i2p*.jar'
-          find . -iname 'i2p*.exe'
+        run: find . -iname 'i2p*.exe'
       - name: Upload i2pinstall.exe
         uses: actions/upload-artifact@v4
         with:
