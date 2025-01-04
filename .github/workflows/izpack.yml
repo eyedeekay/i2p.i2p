@@ -89,6 +89,11 @@ jobs:
         run: ant distclean pkg installer5-linux
       - name: find installer artifacts
         run: find . -iname 'i2p*.jar'
+      - name: Upload i2pinstall.jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: i2pinstall-${{ github.sha }}.jar
+          path: i2pinstall*.jar
       - name: build with Ant - Windows
         run: ant distclean pkg installer5-windows
       - name: find installer artifacts
