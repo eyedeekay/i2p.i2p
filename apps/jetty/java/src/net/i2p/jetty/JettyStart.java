@@ -40,8 +40,10 @@ import net.i2p.util.VersionComparator;
 import org.eclipse.jetty.server.AbstractNetworkConnector;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.ConnectionFactory;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.component.LifeCycle;
+import org.eclipse.jetty.util.resource.ResourceFactory;
 import org.eclipse.jetty.xml.XmlConfiguration;
 
 /**
@@ -141,7 +143,7 @@ public class JettyStart implements ClientApp {
                 }
             } else {
                 URL configUrl = f.toURI().toURL();
-                XmlConfiguration configuration = new XmlConfiguration(configUrl);
+                XmlConfiguration configuration = new XmlConfiguration(ResourceFactory.root().newResource(configUrl));
                 if (last!=null)
                     configuration.getIdMap().putAll(last.getIdMap());
                 if (properties.size()>0) {
@@ -181,7 +183,9 @@ public class JettyStart implements ClientApp {
                 if (!lc.isRunning()) {
                     if (lc instanceof Server) {
                         Server server = (Server) lc;
-                        server.insertHandler(new XI2PLocationFilter());
+                        Handler.Wrapper filter = new XI2PLocationFilter();
+                        filter.setHandler(server.getHandler());
+                        server.setHandler(filter);
                     }
                     try {
                         lc.start();
