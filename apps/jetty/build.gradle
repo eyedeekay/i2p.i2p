@@ -13,30 +13,28 @@ sourceSets {
 }
 
 dependencies {
-    ext.jettyVersion = "${jettyVersion}"
-    ext.tomcatVersion = "${tomcatVersion}"
     api project(':core')
-    api 'org.eclipse.jetty:jetty-http:' + ext.jettyVersion
-    api 'org.eclipse.jetty:jetty-io:' + ext.jettyVersion
-    api 'org.eclipse.jetty.ee8:jetty-ee8-security:' + ext.jettyVersion
-    api 'org.eclipse.jetty:jetty-server:' + ext.jettyVersion
-    api 'org.eclipse.jetty.ee8:jetty-ee8-servlet:' + ext.jettyVersion
-    api 'org.eclipse.jetty:jetty-util:' + ext.jettyVersion
-    api 'org.eclipse.jetty:jetty-xml:' + ext.jettyVersion
-    api 'org.eclipse.jetty.ee8:jetty-ee8-apache-jsp:' + ext.jettyVersion
-    api 'org.eclipse.jetty:jetty-deploy:' + ext.jettyVersion
-    api 'org.eclipse.jetty:jetty-jmx:' + ext.jettyVersion
-    api 'org.eclipse.jetty.ee8:jetty-ee8-nested:' + ext.jettyVersion
-    api 'org.eclipse.jetty:jetty-rewrite:' + ext.jettyVersion
-    api 'org.eclipse.jetty.ee8:jetty-ee8-servlets:' + ext.jettyVersion
-    api 'org.eclipse.jetty:jetty-start:' + ext.jettyVersion
-    api 'org.eclipse.jetty.ee8:jetty-ee8-webapp:' + ext.jettyVersion
-    api 'org.apache.tomcat:tomcat-api:' + ext.tomcatVersion
-    api 'org.apache.tomcat:tomcat-el-api:' + ext.tomcatVersion
-    api 'org.apache.tomcat:tomcat-jasper:' + ext.tomcatVersion
-    api 'org.apache.tomcat:tomcat-jasper-el:' + ext.tomcatVersion
-    api 'org.apache.tomcat:tomcat-jsp-api:' + ext.tomcatVersion
-    api 'org.apache.tomcat:tomcat-juli:' + ext.tomcatVersion
-    api 'org.apache.tomcat:tomcat-util:' + ext.tomcatVersion
-    api 'org.apache.tomcat:tomcat-util-scan:' + ext.tomcatVersion
+    api "org.eclipse.jetty:jetty-http:${jettyVersion}"
+    api "org.eclipse.jetty:jetty-io:${jettyVersion}"
+    api "org.eclipse.jetty.ee8:jetty-ee8-security:${jettyVersion}"
+    api "org.eclipse.jetty:jetty-server:${jettyVersion}"
+    api "org.eclipse.jetty.ee8:jetty-ee8-servlet:${jettyVersion}"
+    api "org.eclipse.jetty:jetty-util:${jettyVersion}"
+    api "org.eclipse.jetty:jetty-xml:${jettyVersion}"
+    api "org.eclipse.jetty.ee8:jetty-ee8-apache-jsp:${jettyVersion}"
+    api "org.eclipse.jetty:jetty-deploy:${jettyVersion}"
+    api "org.eclipse.jetty:jetty-jmx:${jettyVersion}"
+    api "org.eclipse.jetty.ee8:jetty-ee8-nested:${jettyVersion}"
+    api "org.eclipse.jetty:jetty-rewrite:${jettyVersion}"
+    api "org.eclipse.jetty.ee8:jetty-ee8-servlets:${jettyVersion}"
+    api "org.eclipse.jetty:jetty-start:${jettyVersion}"
+    api "org.eclipse.jetty.ee8:jetty-ee8-webapp:${jettyVersion}"
+    api "org.apache.tomcat:tomcat-api:${tomcatVersion}"
+    api "org.apache.tomcat:tomcat-el-api:${tomcatVersion}"
+    api "org.apache.tomcat:tomcat-jasper:${tomcatVersion}"
+    api "org.apache.tomcat:tomcat-jasper-el:${tomcatVersion}"
+    api "org.apache.tomcat:tomcat-jsp-api:${tomcatVersion}"
+    api "org.apache.tomcat:tomcat-juli:${tomcatVersion}"
+    api "org.apache.tomcat:tomcat-util:${tomcatVersion}"
+    api "org.apache.tomcat:tomcat-util-scan:${tomcatVersion}"
 }

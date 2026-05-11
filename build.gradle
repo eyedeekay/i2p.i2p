@@ -18,10 +18,21 @@ buildscript {
     }
     dependencies {
         classpath 'com.github.ben-manes:gradle-versions-plugin:0.54.0'
+        // Companion plugin: reads the JSON report produced by gradle-versions-plugin
+        // and rewrites version strings in build.gradle / gradle.properties in place.
+        classpath 'se.patrikerdes:gradle-use-latest-versions-plugin:0.2.19'
     }
 }
 
 apply plugin: 'com.github.ben-manes.versions'
+// Must be applied after com.github.ben-manes.versions; adds the useLatestVersions
+// task which modifies build files in place based on the JSON update report.
+// Applied to the root project and all subprojects so the plugin scans every
+// *.gradle file that contains Maven dependency declarations.
+apply plugin: 'se.patrikerdes.use-latest-versions'
+useLatestVersions {
+    updateRootProperties = true
+}
 
 // Heuristic to identify non-stable ("pre-release") version strings.
 // Returns true when a version looks like an alpha, beta, RC, milestone, etc.
@@ -42,9 +53,10 @@ tasks.named('dependencyUpdates').configure {
     // Only consider releases (not milestones or integration builds).
     revision = 'release'
 
-    // Write a plain-text report so that dependencyUpdatesTable can parse it.
-    // The report is written to build/dependencyUpdates/report.txt.
-    outputFormatter = 'plain'
+    // Write both JSON (required by the use-latest-versions plugin to rewrite files)
+    // and plain text (parsed by the dependencyUpdatesTable task for human display).
+    // Both reports land in build/dependencyUpdates/.
+    outputFormatter = 'json,plain'
 
     // Refuse to suggest a pre-release candidate as an upgrade when the
     // currently used version is already stable.  This prevents suggestions

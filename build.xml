@@ -60,6 +60,7 @@
         <echo message="  updaterRouter:  updater with the i2p.jar and router.jar only" />
         <echo message="  translationReport: generate a translation status report" />
         <echo message="  checkDepUpdates: report current and latest stable dependency versions via Gradle" />
+        <echo message="  updateDepVersions: rewrite build.gradle/gradle.properties with latest stable versions" />
         <echo message="  checkVendoredDeps: report vendored/local dependency paths referenced by Gradle and Ant" />
         <echo message="  distclean: clean up all derived files" />
         <!-- <echo message="  syndie:    generate a standalone syndie install" /> -->
@@ -106,6 +107,22 @@
             <arg value="--no-daemon" />
             <arg value="-q" />
             <arg value="dependencyUpdatesTable" />
+        </exec>
+    </target>
+
+    <!-- Rewrites version strings in build.gradle and gradle.properties files in place
+         using the se.patrikerdes.use-latest-versions Gradle plugin.  The plugin works
+         by running dependencyUpdates first (JSON format), then scanning every .gradle
+         file and gradle.properties for the exact version string of each outdated
+         dependency and replacing it with the latest stable version.
+         Review the resulting diff carefully before committing; major-version bumps
+         (e.g. Tomcat 9→11, Jetty 12.0→12.1) may require additional migration work. -->
+    <target name="updateDepVersions">
+        <echo message="Updating dependency versions in build files (stable releases only)..." />
+        <exec executable="./gradlew" failonerror="true">
+            <arg value="--no-daemon" />
+            <arg value="-q" />
+            <arg value="useLatestVersions" />
         </exec>
     </target>
 
