@@ -59,6 +59,8 @@
         <echo message="  updaterSmall:   updater with the essentials only - no SAM, i2psnark, SusiMail, SusiDNS, or history.txt" />
         <echo message="  updaterRouter:  updater with the i2p.jar and router.jar only" />
         <echo message="  translationReport: generate a translation status report" />
+        <echo message="  checkDepUpdates: report current and latest stable dependency versions via Gradle" />
+        <echo message="  checkVendoredDeps: report vendored/local dependency paths referenced by Gradle and Ant" />
         <echo message="  distclean: clean up all derived files" />
         <!-- <echo message="  syndie:    generate a standalone syndie install" /> -->
         <echo message="  desktopgui: generate a standalone desktopgui install" />
@@ -96,6 +98,24 @@
             <echo message=" " />
             <echo message="Once the dependencies are installed, run &quot;ant debian&quot;"/>
             <echo message="to patch the source and build the packages." />
+    </target>
+
+    <target name="checkDepUpdates">
+        <echo message="Checking dependency updates (stable releases only)..." />
+        <exec executable="./gradlew" failonerror="true">
+            <arg value="--no-daemon" />
+            <arg value="-q" />
+            <arg value="dependencyUpdatesTable" />
+        </exec>
+    </target>
+
+    <target name="checkVendoredDeps">
+        <echo message="Checking vendored/local dependency paths (Debian excluded)..." />
+        <exec executable="./gradlew" failonerror="true">
+            <arg value="--no-daemon" />
+            <arg value="-q" />
+            <arg value="checkVendoredDeps" />
+        </exec>
     </target>
 
     <property name="gpg" value="gpg" />

@@ -1,3 +1,298 @@
+// ============================================================================
+// Dependency update checking (Maven-coordinate dependencies)
+//
+// This buildscript block loads the ben-manes versions plugin at configuration
+// time so it can be applied to the root project.  The plugin inspects every
+// Maven-coordinate dependency declared across all subprojects and queries the
+// remote repositories for newer stable releases.
+//
+// Run via Ant:  ant checkDepUpdates
+// Run directly: ./gradlew dependencyUpdatesTable
+// ============================================================================
+buildscript {
+    repositories {
+        // Plugin JARs are published to the Gradle Plugin Portal; Maven Central
+        // is included as a fallback for any transitive dependencies.
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.github.ben-manes:gradle-versions-plugin:0.54.0'
+    }
+}
+
+apply plugin: 'com.github.ben-manes.versions'
+
+// Heuristic to identify non-stable ("pre-release") version strings.
+// Returns true when a version looks like an alpha, beta, RC, milestone, etc.
+// Used below to filter the candidate set so we only surface stable upgrades.
+def isNonStable = { String version ->
+    // Some projects append known stable qualifiers even to release versions.
+    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { version.toUpperCase().contains(it) }
+    // A purely numeric/dot/dash version with an optional '-r' suffix is stable.
+    def stableVersionPattern = /^[0-9,.v-]+(-r)?$/
+    return !stableKeyword && !(version ==~ stableVersionPattern)
+}
+
+tasks.named('dependencyUpdates').configure {
+    // Do not check whether a newer version of Gradle itself is available;
+    // Gradle wrapper updates are managed separately.
+    checkForGradleUpdate = false
+
+    // Only consider releases (not milestones or integration builds).
+    revision = 'release'
+
+    // Write a plain-text report so that dependencyUpdatesTable can parse it.
+    // The report is written to build/dependencyUpdates/report.txt.
+    outputFormatter = 'plain'
+
+    // Refuse to suggest a pre-release candidate as an upgrade when the
+    // currently used version is already stable.  This prevents suggestions
+    // like "upgrade 9.0.107 → 10.0.0.M1".
+    rejectVersionIf {
+        isNonStable(it.candidate.version) && !isNonStable(it.currentVersion)
+    }
+}
+
+// Parses the plain-text dependency update report produced by the
+// ben-manes versions plugin and prints it as a human-readable aligned table.
+//
+// The plugin emits lines like:
+//   - group:artifact [currentVersion -> latestVersion]
+// We extract those three fields and print them in fixed-width columns.
+tasks.register('dependencyUpdatesTable') {
+    dependsOn tasks.named('dependencyUpdates')
+    doLast {
+        File report = file("${buildDir}/dependencyUpdates/report.txt")
+        if (!report.exists()) {
+            println 'No dependency update report was generated.'
+            return
+        }
+
+        def rows = []
+        report.eachLine { line ->
+            // Match lines of the form:   - group:artifact [old -> new]
+            def matcher = (line =~ /^\s*-\s+(\S+)\s+\[([^\]]+)\]\s*$/)
+            if (matcher.matches()) {
+                def versions = matcher[0][2].split('->')*.trim()
+                if (versions.size() == 2) {
+                    rows << [matcher[0][1], versions[0], versions[1]]
+                }
+            }
+        }
+
+        if (rows.isEmpty()) {
+            println 'No newer stable dependency versions found.'
+            return
+        }
+
+        // Calculate column widths from the data so the table is self-adjusting.
+        def depWidth = Math.max('Dependency'.length(), rows.collect { it[0].length() }.max())
+        def curWidth = Math.max('Current'.length(), rows.collect { it[1].length() }.max())
+        def latWidth = Math.max('Latest'.length(), rows.collect { it[2].length() }.max())
+
+        def header = String.format("%-${depWidth}s | %-${curWidth}s | %-${latWidth}s", 'Dependency', 'Current', 'Latest')
+        println header
+        println('-' * header.length())
+        rows.each { row ->
+            println String.format("%-${depWidth}s | %-${curWidth}s | %-${latWidth}s", row[0], row[1], row[2])
+        }
+    }
+}
+
+// ============================================================================
+// Vendored / local dependency audit (non-Maven-coordinate dependencies)
+//
+// Some dependencies are not pulled from Maven repositories at all; instead
+// they are checked-in JAR files or local distribution directories referenced
+// directly in Gradle build scripts via files() / fileTree(), or in the root
+// Ant build.xml via <pathelement location="...">.  These cannot be checked by
+// the ben-manes versions plugin and must be reviewed manually.
+//
+// This task scans all Gradle build files and the root Ant build.xml for such
+// references, resolves each raw path to an absolute filesystem path, and
+// prints a table indicating whether each path exists on disk and where you
+// would look for a newer version.
+//
+// Columns:
+//   Source      — "gradle:<file>:<line>" or "ant:build.xml:<line>"
+//   RawPath     — the literal path string as it appears in the source file,
+//                 with any Gradle property placeholders (e.g. ${tomcatVersion})
+//                 left un-expanded for readability
+//   ResolvedPath — the absolute (or project-relative for Ant) path after
+//                 expanding known version properties and resolving relative
+//                 segments against the containing build file's directory
+//   Exists      — "yes" / "no" based on whether the path exists on disk;
+//                 "dynamic" if the resolved path still contains a '${}' token
+//                 that could not be expanded
+//   CheckWith   — a short hint for how to look up whether a newer version
+//                 is available for that artifact
+//
+// Exclusions:
+//   - Paths beginning with "debian/" are skipped (Debian packaging is handled
+//     separately via debian/control Build-Depends).
+//   - Paths beginning with "$" (Gradle build-time variables such as
+//     $buildDir) are skipped because they are generated build outputs, not
+//     vendored artifacts.
+//   - Duplicate resolved paths are collapsed to one row regardless of how many
+//     times the same artifact is referenced across different build files or
+//     classpath declarations.
+//
+// Run via Ant:  ant checkVendoredDeps
+// Run directly: ./gradlew checkVendoredDeps
+// ============================================================================
+tasks.register('checkVendoredDeps') {
+    doLast {
+        def rows = []
+        // Deduplicate by resolved (absolute) path so that the same vendored
+        // JAR referenced from multiple build files only appears once.
+        def seen = new LinkedHashSet<String>()
+
+        // Helper: add a row only if its resolved path has not been seen before.
+        def addRow = { String source, String rawPath, String resolvedPath, String checkWith ->
+            String key = resolvedPath
+            if (seen.contains(key)) {
+                return
+            }
+            seen.add(key)
+
+            String exists
+            if (resolvedPath.contains('${')) {
+                // A '${}' token that survived expansion means the property was
+                // not available at task-execution time; mark as dynamic.
+                exists = 'dynamic'
+            } else {
+                exists = file(resolvedPath).exists() ? 'yes' : 'no'
+            }
+
+            rows << [source, rawPath, resolvedPath, exists, checkWith]
+        }
+
+        // Resolve a raw path string from a Gradle build file to an absolute path.
+        // Expands the two most common version-property placeholders so that the
+        // "Exists" column can report accurately for distribution directories
+        // like ../jetty/apache-tomcat-${tomcatVersion}.
+        def resolveFromGradleFile = { File gradleFile, String path ->
+            String resolved = path
+                .replace('${tomcatVersion}', String.valueOf(project.findProperty('tomcatVersion') ?: ''))
+                .replace('${jettyVersion}', String.valueOf(project.findProperty('jettyVersion') ?: ''))
+            return new File(gradleFile.parentFile, resolved).path
+        }
+
+        // ---- Scan all Gradle build files ----
+        // Look for single-string-argument files() and fileTree() calls, which
+        // are the forms used in this project to reference local JARs and local
+        // distribution directories.
+        //
+        // Patterns matched (the literal quoted string form only):
+        //   files("path/to/some.jar")
+        //   fileTree("path/to/directory")
+        //
+        // NOT matched (intentionally, because they reference generated sources
+        // or are not vendored artifacts):
+        //   fileTree(dir: ..., includes: [...])   ← used only in this task itself
+        //   fileTree("$buildDir/...")              ← filtered out by '$' prefix check
+        fileTree(dir: projectDir, includes: ['**/build.gradle'], excludes: ['**/build/**']).files.sort { it.path }.each { gradleFile ->
+            int lineNum = 0
+            gradleFile.eachLine { line ->
+                lineNum++
+
+                // files("path") — single JAR or directory referenced directly.
+                // Typically used for vendored JARs such as wrapper.jar and the
+                // JSTL jars in apps/susidns/src/lib/.
+                def filesMatcher = (line =~ /files\((['"])([^'"]+)\1\)/)
+                while (filesMatcher.find()) {
+                    String raw = filesMatcher.group(2)
+                    if (raw.startsWith('debian/') || raw.startsWith('$')) {
+                        continue
+                    }
+                    String resolved = resolveFromGradleFile(gradleFile, raw)
+                    addRow("gradle:${project.relativePath(gradleFile)}:${lineNum}", raw, resolved, 'upstream release / artifact metadata')
+                }
+
+                // fileTree("path") — local distribution directory whose JARs
+                // are added to the classpath wholesale.  Typically used for the
+                // Tomcat and Jetty local distribution directories under apps/jetty/.
+                def treeMatcher = (line =~ /fileTree\((['"])([^'"]+)\1\)/)
+                while (treeMatcher.find()) {
+                    String raw = treeMatcher.group(2)
+                    if (raw.startsWith('debian/') || raw.startsWith('$')) {
+                        continue
+                    }
+                    String resolved = resolveFromGradleFile(gradleFile, raw)
+                    addRow("gradle:${project.relativePath(gradleFile)}:${lineNum}", raw, resolved, 'directory inventory + upstream release notes')
+                }
+            }
+        }
+
+        // ---- Scan the root Ant build.xml ----
+        // The Ant build still references several vendored JARs in classpath
+        // declarations (e.g. for the launch4j Windows launcher and the Tanuki
+        // wrapper).  We look for three known path prefixes that identify vendored
+        // artifacts rather than build-output JARs:
+        //
+        //   installer/lib/       — installer tools (wrapper, launch4j, izpack…)
+        //   apps/susidns/src/lib/ — JSTL JARs vendored alongside SusiDNS
+        //   apps/jetty/jettylib/ — legacy Ant classpath for Jetty (Exists=no for
+        //                          most entries because the project now uses a
+        //                          local Jetty home directory rather than the old
+        //                          jettylib/ layout; the entries are left in
+        //                          build.xml as an Ant-only fallback)
+        //
+        // Sub-project build.xml files (e.g. apps/routerconsole/java/build.xml)
+        // also reference wrapper.jar via relative paths, but those resolve to
+        // the same installer/lib/wrapper/all/wrapper.jar that the root build.xml
+        // already captures; deduplication collapses them to a single row.
+        //
+        // The regex uses [^:\s\"']+ (stops at colon) to avoid matching
+        // colon-separated compound classpath strings as a single token.
+        File antBuild = file('build.xml')
+        if (antBuild.exists()) {
+            int lineNum = 0
+            antBuild.eachLine { line ->
+                lineNum++
+                def antJarMatcher = (line =~ /(installer\/lib\/[^:\s\"']+\.jar|apps\/susidns\/src\/lib\/[^:\s\"']+\.jar|apps\/jetty\/jettylib\/[^:\s\"']+\.jar)/)
+                while (antJarMatcher.find()) {
+                    String raw = antJarMatcher.group(1)
+                    if (raw.startsWith('debian/')) {
+                        continue
+                    }
+                    // Ant paths in build.xml are relative to the project root.
+                    addRow("ant:build.xml:${lineNum}", raw, raw, 'upstream release / artifact metadata')
+                }
+            }
+        }
+
+        if (rows.isEmpty()) {
+            println 'No vendored dependency paths detected.'
+            return
+        }
+
+        // Sort by resolved path so related artifacts (e.g. all Tomcat entries,
+        // all wrapper.jar entries) appear together.  Break ties by source location.
+        rows = rows.sort { a, b ->
+            int cmp = a[2] <=> b[2]
+            if (cmp != 0) {
+                return cmp
+            }
+            return a[0] <=> b[0]
+        }
+
+        // Calculate column widths from the data for a self-adjusting table.
+        def srcWidth = Math.max('Source'.length(), rows.collect { it[0].length() }.max())
+        def rawWidth = Math.max('RawPath'.length(), rows.collect { it[1].length() }.max())
+        def resolvedWidth = Math.max('ResolvedPath'.length(), rows.collect { it[2].length() }.max())
+        def existsWidth = Math.max('Exists'.length(), rows.collect { it[3].length() }.max())
+
+        def header = String.format("%-${srcWidth}s | %-${rawWidth}s | %-${resolvedWidth}s | %-${existsWidth}s | %s", 'Source', 'RawPath', 'ResolvedPath', 'Exists', 'CheckWith')
+        println header
+        println('-' * header.length())
+        rows.each { row ->
+            println String.format("%-${srcWidth}s | %-${rawWidth}s | %-${resolvedWidth}s | %-${existsWidth}s | %s", row[0], row[1], row[2], row[3], row[4])
+        }
+    }
+}
+
 String getReleaseVersion() {
     def releaseVersion
     file("core/java/src/net/i2p/CoreVersion.java").readLines().findAll({ line ->
