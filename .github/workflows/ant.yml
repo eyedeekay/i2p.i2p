@@ -11,6 +11,35 @@ permissions:
   id-token: write
 
 jobs:
+  dep-update-build-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: GetText
+        run: sudo apt install gettext
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name : Generate override.properties
+        run: |
+          rm -f override.properties
+          echo "build.built-by=GitHub Actions" >> override.properties
+          echo "noExe=true" >> override.properties
+      - name: update dependencies and attempt build (informational)
+        run: |
+          if ! ant ciUpdateDepsBuild 2>&1 | tee ciUpdateDepsBuild.log; then
+            echo "::warning title=Informational check failed::ant ciUpdateDepsBuild failed; this job is informational only."
+          fi
+      - name: Upload ciUpdateDepsBuild log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ciUpdateDepsBuild-log-${{ github.run_id }}
+          path: ciUpdateDepsBuild.log
+
   build:
     runs-on: ubuntu-latest
 

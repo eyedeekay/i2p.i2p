@@ -62,6 +62,7 @@
         <echo message="  checkDepUpdates: report current and latest stable dependency versions via Gradle" />
         <echo message="  updateDepVersions: rewrite build.gradle/gradle.properties with latest stable versions" />
         <echo message="  checkVendoredDeps: report vendored/local dependency paths referenced by Gradle and Ant" />
+        <echo message="  ciUpdateDepsBuild: auto-update dependency versions, then attempt a full build" />
         <echo message="  distclean: clean up all derived files" />
         <!-- <echo message="  syndie:    generate a standalone syndie install" /> -->
         <echo message="  desktopgui: generate a standalone desktopgui install" />
@@ -133,6 +134,14 @@
             <arg value="-q" />
             <arg value="checkVendoredDeps" />
         </exec>
+    </target>
+
+    <!-- CI helper: update dependency versions first, then attempt a full build.
+         The build step is intentionally strict; if either update or build fails,
+         this target fails so CI can flag the run for review. -->
+    <target name="ciUpdateDepsBuild" depends="updateDepVersions">
+        <echo message="Running CI dependency update + build verification..." />
+        <antcall target="build" />
     </target>
 
     <property name="gpg" value="gpg" />
