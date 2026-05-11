@@ -314,20 +314,47 @@ tasks.register('checkVendoredDeps') {
 // the versions in gradle.properties. This keeps the existing vendored build
 // flow while allowing updateDepVersions to manage the source artifact versions.
 configurations {
+    minidnsSync
     jsonSimpleSync
     jstlSync
 }
 
 dependencies {
+    minidnsSync "org.minidns:minidns-core:${minidnsVersion}"
     jsonSimpleSync "com.github.cliftonlabs:json-simple:${jsonSimpleVersion}"
     jstlSync "org.apache.taglibs:taglibs-standard-spec:${jstlSpecVersion}"
     jstlSync "org.apache.taglibs:taglibs-standard-impl:${jstlImplVersion}"
 }
 
-tasks.register('syncVendoredJsonSimpleJar') {
+tasks.register('syncVendoredMinidnsJar') {
     doLast {
         File coreBuildDir = file('core/java/build')
         coreBuildDir.mkdirs()
+
+        File minidnsJar = configurations.minidnsSync.resolvedConfiguration.resolvedArtifacts.find {
+            it.moduleVersion.id.group == 'org.minidns' && it.name == 'minidns-core'
+        }?.file
+
+        if (minidnsJar == null) {
+            throw new GradleException('Failed to resolve minidns-core artifact for vendored sync.')
+        }
+
+        copy {
+            from minidnsJar
+            into coreBuildDir
+            rename { 'minidns-core.jar' }
+        }
+
+        println "Synced vendored minidns jar in core/java/build from Maven coordinates:"
+        println "  org.minidns:minidns-core:${minidnsVersion} -> minidns-core.jar"
+    }
+}
+
+tasks.register('syncVendoredJsonSimpleJar') {
+    doLast {
+        File coreBuildDir = rootProject.file('core/java/build')
+        coreBuildDir.mkdirs()
+        File destJar = new File(coreBuildDir, 'json-simple.jar')
 
         File jsonSimpleJar = configurations.jsonSimpleSync.resolvedConfiguration.resolvedArtifacts.find {
             it.moduleVersion.id.group == 'com.github.cliftonlabs' && it.name == 'json-simple'
@@ -343,8 +370,14 @@ tasks.register('syncVendoredJsonSimpleJar') {
             rename { 'json-simple.jar' }
         }
 
+        if (!destJar.exists()) {
+            throw new GradleException("json-simple sync did not create destination jar: ${destJar.absolutePath}")
+        }
+
         println "Synced vendored json-simple jar in core/java/build from Maven coordinates:"
         println "  com.github.cliftonlabs:json-simple:${jsonSimpleVersion} -> json-simple.jar"
+        println "  source=${jsonSimpleJar.absolutePath}"
+        println "  dest=${destJar.absolutePath}"
     }
 }
 

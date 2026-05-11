@@ -14,7 +14,7 @@
     <target name="depend" if="depend.available">
         <depend
             cache="../../build"
-            srcdir="./src" 
+            srcdir="./src"
             destdir="./build/obj" >
         </depend>
     </target>
@@ -50,7 +50,14 @@
     <condition property="javac.classpath.mod4" value="build/json-simple.jar:" else="" >
         <istrue value="${with-libjson-simple-java}" />
     </condition>
-    <property name="javac.classpath.mod" value="${javac.classpath.mod1}${javac.classpath.mod2}${javac.classpath.mod4}${javac.classpath}" />
+    <!-- fixups if we're using minidns-core.jar for org.minidns classes -->
+    <condition property="source.exclude5" value="org/minidns/**" else="NOTHING" >
+        <istrue value="${with-libminidns-java}" />
+    </condition>
+    <condition property="javac.classpath.mod5" value="build/minidns-core.jar:" else="" >
+        <istrue value="${with-libminidns-java}" />
+    </condition>
+    <property name="javac.classpath.mod" value="${javac.classpath.mod1}${javac.classpath.mod2}${javac.classpath.mod4}${javac.classpath.mod5}${javac.classpath}" />
 
     <!-- jar classpath fixups -->
     <condition property="gettext.jar" value="/usr/share/java/libintl.jar" else="" >
@@ -61,6 +68,9 @@
     </condition>
     <condition property="json-simple.jar" value="/usr/share/java/json-simple.jar" else="" >
         <istrue value="${with-libjson-simple-java}" />
+    </condition>
+    <condition property="minidns-core.jar" value="/usr/share/java/minidns-core.jar" else="" >
+        <istrue value="${with-libminidns-java}" />
     </condition>
 
     <target name="compile" depends="depend">
@@ -78,6 +88,7 @@
             <exclude name="${source.exclude1}" />
             <exclude name="${source.exclude2}" />
             <exclude name="${source.exclude4}" />
+            <exclude name="${source.exclude5}" />
         </javac>
     </target>
 
@@ -159,7 +170,7 @@
         <exec executable="sh" osfamily="windows" failifexecutionfails="false" >
             <arg value="./bundle-messages.sh" />
         </exec>
-        <javac source="${javac.version}" target="${javac.version}" 
+        <javac source="${javac.version}" target="${javac.version}"
                release="${javac.release}"
                includeAntRuntime="false"
                encoding="UTF-8"
