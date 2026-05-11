@@ -57,6 +57,12 @@
     <condition property="javac.classpath.mod5" value="build/minidns-core.jar:" else="" >
         <istrue value="${with-libminidns-java}" />
     </condition>
+    <condition property="jar.embed.jsonsimple.includes" value="org/json/simple/**,com/github/cliftonlabs/json_simple/**" else="NOTHING" >
+        <istrue value="${with-libjson-simple-java}" />
+    </condition>
+    <condition property="jar.embed.minidns.includes" value="org/minidns/**" else="NOTHING" >
+        <istrue value="${with-libminidns-java}" />
+    </condition>
     <property name="javac.classpath.mod" value="${javac.classpath.mod1}${javac.classpath.mod2}${javac.classpath.mod4}${javac.classpath.mod5}${javac.classpath}" />
 
     <!-- jar classpath fixups -->
@@ -125,6 +131,11 @@
             <fileset dir="./build/obj" />
             <!-- the getopt translation files -->
             <fileset dir="src" includes="${translation.includes}" />
+            <!-- When using external jar-path switches, embed the selected
+                 library classes directly into i2p.jar instead of compiling
+                 them from vendored source. -->
+            <zipfileset src="build/json-simple.jar" includes="${jar.embed.jsonsimple.includes}" erroronmissingarchive="false" />
+            <zipfileset src="build/minidns-core.jar" includes="${jar.embed.minidns.includes}" erroronmissingarchive="false" />
             <manifest>
                 <attribute name="${manifest.classpath.name}" value="${gettext.jar} ${getopt.jar}" />
                 <attribute name="Specification-Title" value="I2P Core API" />

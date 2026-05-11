@@ -414,6 +414,208 @@ tasks.register('syncVendoredJstlJars') {
     }
 }
 
+tasks.register('ensureCiOverrideProperties') {
+    doLast {
+        File overrideProps = rootProject.file('override.properties')
+        def requiredEntries = [
+            'with-libjson-simple-java': 'true',
+            'with-libminidns-java': 'true',
+        ]
+
+        List<String> lines = overrideProps.exists() ? overrideProps.readLines('UTF-8') : []
+        boolean changed = false
+
+        requiredEntries.each { key, value ->
+            String newLine = "${key}=${value}"
+            int existingIndex = lines.findIndexOf { it ==~ /^\s*${java.util.regex.Pattern.quote(key)}\s*=.*$/ }
+            if (existingIndex >= 0) {
+                if (lines[existingIndex] != newLine) {
+                    lines[existingIndex] = newLine
+                    changed = true
+                }
+            } else {
+                lines << newLine
+                changed = true
+            }
+        }
+
+        if (changed || !overrideProps.exists()) {
+            overrideProps.text = lines.join(System.lineSeparator()) + System.lineSeparator()
+        }
+
+        println 'Ensured CI override.properties entries:'
+        requiredEntries.each { key, value ->
+            println "  ${key}=${value}"
+        }
+    }
+}
+
+def sha256Bytes = { byte[] bytes ->
+    def digest = java.security.MessageDigest.getInstance('SHA-256')
+    digest.update(bytes)
+    return digest.digest().collect { String.format('%02x', it) }.join()
+}
+
+def jarEntriesUnderPrefix = { java.util.zip.ZipFile zipFile, Object prefixes ->
+    List<String> prefixList = (prefixes instanceof Collection) ? prefixes.collect { String.valueOf(it) } : [String.valueOf(prefixes)]
+    zipFile.entries().findAll {
+        !it.isDirectory() && prefixList.any { prefix -> it.name.startsWith(prefix) }
+    }.collect { it.name }.sort()
+}
+
+def jarEntryShaMap = { File jarFile, Object prefixes ->
+    def result = [:]
+    def zipFile = new java.util.zip.ZipFile(jarFile)
+    try {
+        jarEntriesUnderPrefix(zipFile, prefixes).each { entryName ->
+            def entry = zipFile.getEntry(entryName)
+            result[entryName] = sha256Bytes(zipFile.getInputStream(entry).bytes)
+        }
+    } finally {
+        zipFile.close()
+    }
+    return result
+}
+
+def jarManifestVersion = { File jarFile ->
+    if (!jarFile.exists()) {
+        return ''
+    }
+    def zipFile = new java.util.zip.ZipFile(jarFile)
+    try {
+        def entry = zipFile.getEntry('META-INF/MANIFEST.MF')
+        if (entry == null) {
+            return ''
+        }
+        def manifestText = zipFile.getInputStream(entry).getText('UTF-8')
+        def patterns = [
+                ~/(?m)^Implementation-Version:\s*(.+)$/,
+                ~/(?m)^Bundle-Version:\s*(.+)$/,
+                ~/(?m)^Specification-Version:\s*(.+)$/,
+        ]
+        for (pattern in patterns) {
+            def matcher = manifestText =~ pattern
+            if (matcher.find()) {
+                return matcher.group(1).trim()
+            }
+        }
+    } finally {
+        zipFile.close()
+    }
+    return ''
+}
+
+def sourceMarkerVersion = { File markerFile, java.util.regex.Pattern pattern ->
+    if (!markerFile.exists()) {
+        return ''
+    }
+    def matcher = markerFile.getText('UTF-8') =~ pattern
+    return matcher.find() ? matcher.group(1).trim() : ''
+}
+
+tasks.register('builtArtifactLibraryVersions') {
+    doLast {
+        File builtJar = rootProject.file('core/java/build/i2p.jar')
+        if (!builtJar.exists()) {
+            throw new GradleException("Built artifact not found: ${builtJar.absolutePath}. Run ant buildCore or ant ciUpdateDepsBuild first.")
+        }
+
+        def libraries = [
+            [
+                name: 'json-simple',
+                prefixes: ['org/json/simple/', 'com/github/cliftonlabs/json_simple/'],
+                externalJar: rootProject.file('core/java/build/json-simple.jar'),
+                sourceMarker: rootProject.file('core/java/src/org/json/simple/package.html'),
+                sourceVersionPattern: ~/release\s+([0-9.]+)/,
+            ],
+            [
+                name: 'minidns',
+                prefixes: ['org/minidns/'],
+                externalJar: rootProject.file('core/java/build/minidns-core.jar'),
+                sourceMarker: rootProject.file('core/java/src/org/minidns/package-info.java'),
+                sourceVersionPattern: ~/release\s+([0-9.]+)\s+of\s+MiniDNS/,
+            ],
+        ]
+
+        def jarArtifactLibraries = [
+            [
+                name: 'jstl-spec',
+                artifactJar: rootProject.file('apps/susidns/src/lib/jstl.jar'),
+                sourceJar: rootProject.file('apps/susidns/src/lib/jstl.jar'),
+            ],
+            [
+                name: 'jstl-impl',
+                artifactJar: rootProject.file('apps/susidns/src/lib/standard.jar'),
+                sourceJar: rootProject.file('apps/susidns/src/lib/standard.jar'),
+            ],
+        ]
+
+        def rows = libraries.collect { library ->
+            def builtEntryMap = jarEntryShaMap(builtJar, library.prefixes)
+            def externalEntryMap = library.externalJar.exists() ? jarEntryShaMap(library.externalJar, library.prefixes) : [:]
+            def sourceVersion = sourceMarkerVersion(library.sourceMarker, library.sourceVersionPattern)
+            def externalVersion = jarManifestVersion(library.externalJar)
+
+            String mode
+            String version
+            String evidence
+
+            if (!builtEntryMap.isEmpty()) {
+                if (!externalEntryMap.isEmpty() && builtEntryMap == externalEntryMap) {
+                    mode = 'embedded-external-match'
+                    version = externalVersion ?: 'unknown'
+                    evidence = "embedded package matches ${library.externalJar.name}"
+                } else {
+                    mode = 'embedded-vendored-source'
+                    version = sourceVersion ?: 'unknown'
+                    evidence = library.sourceMarker.exists() ? "embedded package differs from ${library.externalJar.name}; source marker=${library.sourceMarker.name}" : 'embedded package differs from external jar'
+                }
+            } else if (library.externalJar.exists()) {
+                mode = 'external-jar'
+                version = externalVersion ?: 'unknown'
+                evidence = "package absent from built jar; external jar present as ${library.externalJar.name}"
+            } else {
+                mode = 'absent'
+                version = 'n/a'
+                evidence = 'package absent from built jar and no external jar found'
+            }
+
+            [library.name, mode, version, evidence]
+        } + jarArtifactLibraries.collect { library ->
+            String mode
+            String version
+            String evidence
+
+            if (library.artifactJar.exists()) {
+                mode = 'external-build-lib'
+                version = jarManifestVersion(library.artifactJar) ?: 'unknown'
+                if (library.sourceJar.exists() && library.artifactJar.bytes.encodeHex().toString() == library.sourceJar.bytes.encodeHex().toString()) {
+                    evidence = "artifact jar matches ${rootProject.relativePath(library.sourceJar)}"
+                } else {
+                    evidence = "artifact jar present at ${rootProject.relativePath(library.artifactJar)}"
+                }
+            } else {
+                mode = 'absent'
+                version = 'n/a'
+                evidence = "artifact jar missing: ${rootProject.relativePath(library.artifactJar)}"
+            }
+
+            [library.name, mode, version, evidence]
+        }
+
+        def nameWidth = Math.max('Library'.length(), rows.collect { it[0].length() }.max())
+        def modeWidth = Math.max('Mode'.length(), rows.collect { it[1].length() }.max())
+        def versionWidth = Math.max('Version'.length(), rows.collect { it[2].length() }.max())
+
+        def header = String.format("%-${nameWidth}s | %-${modeWidth}s | %-${versionWidth}s | %s", 'Library', 'Mode', 'Version', 'Evidence')
+        println header
+        println('-' * header.length())
+        rows.each { row ->
+            println String.format("%-${nameWidth}s | %-${modeWidth}s | %-${versionWidth}s | %s", row[0], row[1], row[2], row[3])
+        }
+    }
+}
+
 String getReleaseVersion() {
     def releaseVersion
     file("core/java/src/net/i2p/CoreVersion.java").readLines().findAll({ line ->

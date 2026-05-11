@@ -155,6 +155,25 @@
         </exec>
     </target>
 
+    <target name="ensureCiOverrideProperties">
+        <echo message="Ensuring required jar-path override.properties options for CI build..." />
+        <exec executable="./gradlew" failonerror="true">
+            <arg value="--no-daemon" />
+            <arg value="-q" />
+            <arg value="ensureCiOverrideProperties" />
+        </exec>
+    </target>
+
+    <target name="invalidateCiDependencyArtifacts">
+        <echo message="Invalidating dependency-sensitive build artifacts before nested CI build..." />
+        <delete file="core/java/build/i2p.jar" quiet="true" />
+        <delete file="build/i2p.jar" quiet="true" />
+        <delete dir="core/java/build/obj/org/json/simple" quiet="true" />
+        <delete dir="core/java/build/obj/org/minidns" quiet="true" />
+        <delete file="build/jstl.jar" quiet="true" />
+        <delete file="build/standard.jar" quiet="true" />
+    </target>
+
     <target name="checkVendoredDeps">
         <echo message="Checking vendored/local dependency paths (Debian excluded)..." />
         <exec executable="./gradlew" failonerror="true">
@@ -167,9 +186,9 @@
     <!-- CI helper: update dependency versions first, then attempt a full build.
          The build step is intentionally strict; if either update or build fails,
          this target fails so CI can flag the run for review. -->
-    <target name="ciUpdateDepsBuild" depends="updateDepVersions, syncVendoredJsonSimpleJar, syncVendoredMinidnsJar, syncVendoredJstlJars">
+    <target name="ciUpdateDepsBuild" depends="updateDepVersions, syncVendoredJsonSimpleJar, syncVendoredMinidnsJar, syncVendoredJstlJars, ensureCiOverrideProperties, invalidateCiDependencyArtifacts">
         <echo message="Running CI dependency update + build verification..." />
-        <antcall target="build" />
+        <ant antfile="build.xml" dir="${basedir}" target="build" inheritAll="true" />
     </target>
 
     <property name="gpg" value="gpg" />
