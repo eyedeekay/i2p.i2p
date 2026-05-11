@@ -30,6 +30,9 @@ apply plugin: 'com.github.ben-manes.versions'
 // Applied to the root project and all subprojects so the plugin scans every
 // *.gradle file that contains Maven dependency declarations.
 apply plugin: 'se.patrikerdes.use-latest-versions'
+repositories {
+    mavenCentral()
+}
 useLatestVersions {
     updateRootProperties = true
 }
@@ -304,6 +307,77 @@ tasks.register('checkVendoredDeps') {
         rows.each { row ->
             println String.format("%-${srcWidth}s | %-${rawWidth}s | %-${resolvedWidth}s | %-${existsWidth}s | %s", row[0], row[1], row[2], row[3], row[4])
         }
+    }
+}
+
+// Syncs vendored JSTL jars in apps/susidns/src/lib from Maven Central using
+// the versions in gradle.properties. This keeps the existing vendored build
+// flow while allowing updateDepVersions to manage the source artifact versions.
+configurations {
+    jsonSimpleSync
+    jstlSync
+}
+
+dependencies {
+    jsonSimpleSync "com.github.cliftonlabs:json-simple:${jsonSimpleVersion}"
+    jstlSync "org.apache.taglibs:taglibs-standard-spec:${jstlSpecVersion}"
+    jstlSync "org.apache.taglibs:taglibs-standard-impl:${jstlImplVersion}"
+}
+
+tasks.register('syncVendoredJsonSimpleJar') {
+    doLast {
+        File coreBuildDir = file('core/java/build')
+        coreBuildDir.mkdirs()
+
+        File jsonSimpleJar = configurations.jsonSimpleSync.resolvedConfiguration.resolvedArtifacts.find {
+            it.moduleVersion.id.group == 'com.github.cliftonlabs' && it.name == 'json-simple'
+        }?.file
+
+        if (jsonSimpleJar == null) {
+            throw new GradleException('Failed to resolve json-simple artifact for vendored sync.')
+        }
+
+        copy {
+            from jsonSimpleJar
+            into coreBuildDir
+            rename { 'json-simple.jar' }
+        }
+
+        println "Synced vendored json-simple jar in core/java/build from Maven coordinates:"
+        println "  com.github.cliftonlabs:json-simple:${jsonSimpleVersion} -> json-simple.jar"
+    }
+}
+
+tasks.register('syncVendoredJstlJars') {
+    doLast {
+        File susidnsLibDir = file('apps/susidns/src/lib')
+        susidnsLibDir.mkdirs()
+
+        File specJar = configurations.jstlSync.resolvedConfiguration.resolvedArtifacts.find {
+            it.moduleVersion.id.group == 'org.apache.taglibs' && it.name == 'taglibs-standard-spec'
+        }?.file
+        File implJar = configurations.jstlSync.resolvedConfiguration.resolvedArtifacts.find {
+            it.moduleVersion.id.group == 'org.apache.taglibs' && it.name == 'taglibs-standard-impl'
+        }?.file
+
+        if (specJar == null || implJar == null) {
+            throw new GradleException('Failed to resolve JSTL artifacts for vendored sync (spec and impl required).')
+        }
+
+        copy {
+            from specJar
+            into susidnsLibDir
+            rename { 'jstl.jar' }
+        }
+        copy {
+            from implJar
+            into susidnsLibDir
+            rename { 'standard.jar' }
+        }
+
+        println "Synced vendored JSTL jars in apps/susidns/src/lib from Maven coordinates:"
+        println "  org.apache.taglibs:taglibs-standard-spec:${jstlSpecVersion} -> jstl.jar"
+        println "  org.apache.taglibs:taglibs-standard-impl:${jstlImplVersion} -> standard.jar"
     }
 }
 

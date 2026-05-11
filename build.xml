@@ -128,6 +128,24 @@
         </exec>
     </target>
 
+    <target name="syncVendoredJstlJars">
+        <echo message="Syncing vendored JSTL jars from Maven coordinates..." />
+        <exec executable="./gradlew" failonerror="true">
+            <arg value="--no-daemon" />
+            <arg value="-q" />
+            <arg value="syncVendoredJstlJars" />
+        </exec>
+    </target>
+
+    <target name="syncVendoredJsonSimpleJar">
+        <echo message="Syncing vendored json-simple jar from Maven coordinates..." />
+        <exec executable="./gradlew" failonerror="true">
+            <arg value="--no-daemon" />
+            <arg value="-q" />
+            <arg value="syncVendoredJsonSimpleJar" />
+        </exec>
+    </target>
+
     <target name="checkVendoredDeps">
         <echo message="Checking vendored/local dependency paths (Debian excluded)..." />
         <exec executable="./gradlew" failonerror="true">
@@ -140,7 +158,7 @@
     <!-- CI helper: update dependency versions first, then attempt a full build.
          The build step is intentionally strict; if either update or build fails,
          this target fails so CI can flag the run for review. -->
-    <target name="ciUpdateDepsBuild" depends="updateDepVersions">
+    <target name="ciUpdateDepsBuild" depends="updateDepVersions, syncVendoredJsonSimpleJar, syncVendoredJstlJars">
         <echo message="Running CI dependency update + build verification..." />
         <antcall target="build" />
     </target>
