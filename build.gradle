@@ -245,6 +245,8 @@ tasks.register('checkVendoredDeps') {
         //
         //   installer/lib/       — installer tools (wrapper, launch4j, izpack…)
         //   apps/susidns/src/lib/ — JSTL JARs vendored alongside SusiDNS
+        //   core/java/build/      — locally built or symlinked jars used by Ant,
+        //                           notably json-simple.jar in distro builds
         //   apps/jetty/jettylib/ — legacy Ant classpath for Jetty (Exists=no for
         //                          most entries because the project now uses a
         //                          local Jetty home directory rather than the old
@@ -263,7 +265,7 @@ tasks.register('checkVendoredDeps') {
             int lineNum = 0
             antBuild.eachLine { line ->
                 lineNum++
-                def antJarMatcher = (line =~ /(installer\/lib\/[^:\s\"']+\.jar|apps\/susidns\/src\/lib\/[^:\s\"']+\.jar|apps\/jetty\/jettylib\/[^:\s\"']+\.jar)/)
+                def antJarMatcher = (line =~ /(installer\/lib\/[^:\s\"']+\.jar|apps\/susidns\/src\/lib\/[^:\s\"']+\.jar|core\/java\/build\/[^:\s\"']+\.jar|apps\/jetty\/jettylib\/[^:\s\"']+\.jar)/)
                 while (antJarMatcher.find()) {
                     String raw = antJarMatcher.group(1)
                     if (raw.startsWith('debian/')) {

@@ -41,6 +41,12 @@ sourceSets {
 }
 
 dependencies {
+    // Tracker-only coordinates for vendored libraries. These keep the current
+    // bundled source visible to Gradle's version update tooling without
+    // changing the runtime classpath or the shipped jar contents yet.
+    compileOnly "com.github.cliftonlabs:json-simple:${jsonSimpleVersion}"
+    compileOnly "org.minidns:minidns-core:${minidnsVersion}"
+
     api 'gnu.getopt:java-getopt:1.0.13'
     api 'org.gnu.gettext:libintl:0.18.3'
 

@@ -15,6 +15,12 @@ dependencies {
     implementation project(':core')
     implementation project(':apps:jetty')
 
+    // Tracker-only coordinates for vendored JSTL jars (src/lib/jstl.jar and
+    // src/lib/standard.jar). This keeps versions visible to Gradle's update
+    // tooling without changing runtime classpath behavior yet.
+    compileOnly "org.apache.taglibs:taglibs-standard-spec:${jstlSpecVersion}"
+    compileOnly "org.apache.taglibs:taglibs-standard-impl:${jstlImplVersion}"
+
     // seems like it should be compileOnly but that doesn't work
     implementation 'org.apache.ant:ant:1.10.14'
     implementation fileTree("../jetty/apache-tomcat-${tomcatVersion}")

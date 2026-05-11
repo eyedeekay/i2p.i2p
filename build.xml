@@ -120,6 +120,7 @@
          (e.g. Tomcat 9→11, Jetty 12.0→12.1) may require additional migration work. -->
     <target name="updateDepVersions">
         <echo message="Updating dependency versions in build files (stable releases only)..." />
+        <echo message="Note: vendored/local dependencies (for example core/java/build/json-simple.jar) are not rewritten by this target; run checkVendoredDeps to audit them." />
         <exec executable="./gradlew" failonerror="true">
             <arg value="--no-daemon" />
             <arg value="-q" />
