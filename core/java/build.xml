@@ -57,11 +57,27 @@
     <condition property="javac.classpath.mod5" value="build/minidns-core.jar:" else="" >
         <istrue value="${with-libminidns-java}" />
     </condition>
+    <!-- Embed external library classes into i2p.jar.
+         Gated on a SEPARATE property (embed.lib*-java) so that Debian's
+         existing semantics are preserved: Debian sets only with-lib*-java=true
+         to exclude vendored source from compile and resolve the classes via the
+         /usr/share/java/*.jar symlink at runtime; it must NOT also embed those
+         classes into i2p.jar (that would ship duplicate / version-mismatched
+         copies of system-packaged classes).
+         The embed flag only takes effect when with-lib*-java=true is also set
+         (otherwise the source is still compiled in and embedding would produce
+         duplicate classes). -->
     <condition property="jar.embed.jsonsimple.includes" value="org/json/simple/**,com/github/cliftonlabs/json_simple/**" else="NOTHING" >
-        <istrue value="${with-libjson-simple-java}" />
+        <and>
+            <istrue value="${with-libjson-simple-java}" />
+            <istrue value="${embed.libjson-simple-java}" />
+        </and>
     </condition>
     <condition property="jar.embed.minidns.includes" value="org/minidns/**" else="NOTHING" >
-        <istrue value="${with-libminidns-java}" />
+        <and>
+            <istrue value="${with-libminidns-java}" />
+            <istrue value="${embed.libminidns-java}" />
+        </and>
     </condition>
     <property name="javac.classpath.mod" value="${javac.classpath.mod1}${javac.classpath.mod2}${javac.classpath.mod4}${javac.classpath.mod5}${javac.classpath}" />
 

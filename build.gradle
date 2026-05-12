@@ -417,9 +417,17 @@ tasks.register('syncVendoredJstlJars') {
 tasks.register('ensureCiOverrideProperties') {
     doLast {
         File overrideProps = rootProject.file('override.properties')
+        // CI exercises the embed-from-Maven path: with-lib*-java=true excludes
+        // the vendored source and adds build/<lib>.jar to the compile classpath
+        // (CI populates that file via syncVendored* tasks from Maven Central);
+        // embed.lib*-java=true then bundles the resolved classes into i2p.jar.
+        // Debian intentionally does NOT set the embed.* flags so its system-jar
+        // symlinks remain the sole runtime source for those classes.
         def requiredEntries = [
             'with-libjson-simple-java': 'true',
+            'embed.libjson-simple-java': 'true',
             'with-libminidns-java': 'true',
+            'embed.libminidns-java': 'true',
         ]
 
         List<String> lines = overrideProps.exists() ? overrideProps.readLines('UTF-8') : []
